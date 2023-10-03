@@ -788,7 +788,7 @@ def get_brdf_data(
                 dtype=VLEN_STRING,
             ),
             local_source_paths=[
-                path for ds in brdf_datasets for path in tally[ds].source_files
+                path for ds in tally for path in tally[ds].source_files
             ],
             value=np.mean(
                 [spatial_averages[ds][param]["value"] for ds in spatial_averages]
