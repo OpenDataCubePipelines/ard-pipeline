@@ -576,7 +576,7 @@ def get_tally(
             brdf_base_dir = assert_exists(brdf_config["viirs_i_path"])
             brdf_dirs = get_brdf_dirs_viirs(brdf_base_dir, dt)
         elif "M" in viirs_datasets.keys():
-            brdf_base_dir = assert_exists(brdf_config["viirs_i_path"])
+            brdf_base_dir = assert_exists(brdf_config["viirs_m_path"])
             brdf_dirs = get_brdf_dirs_viirs(brdf_base_dir, dt)
         else:
             raise ValueError("No I or M bands in VIIRS band for sensor")
@@ -703,7 +703,6 @@ def get_brdf_data(
     dt = acquisition.acquisition_datetime.date()
 
     brdf_datasets: List[str] = acquisition.brdf_datasets
-    viirs_datasets = {"I": ["BRDF_Albedo_Parameters_I1"]}
     if hasattr(acquisition, "brdf_viirs_datasets"):
         viirs_datasets = acquisition.brdf_viirs_datasets
     else:
