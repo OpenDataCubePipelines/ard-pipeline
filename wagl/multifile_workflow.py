@@ -62,7 +62,6 @@ from wagl.modtran import (
     link_atmospheric_results,
     prepare_modtran,
 )
-from wagl.pq import _run_pq, can_pq
 from wagl.reflectance import _calculate_reflectance, link_standard_data
 from wagl.satellite_solar_angles import _calculate_angles
 from wagl.slope_aspect import _slope_aspect_arrays
@@ -940,7 +939,6 @@ class DataStandardisation(luigi.Task):
     """
 
     land_sea_path = luigi.Parameter()
-    pixel_quality = luigi.BoolParameter()
     dsm_fname = luigi.Parameter(significant=False)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
@@ -986,21 +984,6 @@ class DataStandardisation(luigi.Task):
         with self.output().temporary_path() as out_fname:
             fnames = [target.path for target in self.input()]
             link_standard_data(fnames, out_fname)
-            sbt_only = self.workflow == Workflow.SBT
-            if (
-                self.pixel_quality
-                and can_pq(self.level1, self.acq_parser_hint)
-                and not sbt_only
-            ):
-                _run_pq(
-                    self.level1,
-                    out_fname,
-                    self.group,
-                    self.land_sea_path,
-                    self.compression,
-                    self.filter_opts,
-                    self.acq_parser_hint,
-                )
 
 
 class LinkwaglOutputs(luigi.Task):
@@ -1012,7 +995,6 @@ class LinkwaglOutputs(luigi.Task):
     acq_parser_hint = luigi.OptionalParameter(default="")
     workflow = luigi.EnumParameter(enum=Workflow)
     vertices = luigi.TupleParameter(default=(5, 5))
-    pixel_quality = luigi.BoolParameter()
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
     dsm_fname = luigi.Parameter(significant=False)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
@@ -1027,7 +1009,6 @@ class LinkwaglOutputs(luigi.Task):
                 "group": group,
                 "workflow": self.workflow,
                 "vertices": self.vertices,
-                "pixel_quality": self.pixel_quality,
                 "method": self.method,
                 "dsm_fname": self.dsm_fname,
                 "buffer_distance": self.buffer_distance,
@@ -1068,7 +1049,6 @@ class ARD(luigi.WrapperTask):
     outdir = luigi.Parameter()
     workflow = luigi.EnumParameter(enum=Workflow)
     vertices = luigi.TupleParameter(default=(5, 5))
-    pixel_quality = luigi.BoolParameter()
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
     dsm_fname = luigi.Parameter(significant=False)
     acq_parser_hint = luigi.OptionalParameter(default="")
@@ -1090,7 +1070,6 @@ class ARD(luigi.WrapperTask):
                     "granule": granule,
                     "workflow": self.workflow,
                     "vertices": self.vertices,
-                    "pixel_quality": self.pixel_quality,
                     "method": self.method,
                     "dsm_fname": self.dsm_fname,
                     "buffer_distance": self.buffer_distance,

@@ -118,7 +118,6 @@ Dataset names for each output are as follows:
     * /SLOPE-ASPECT/SLOPE
 * standardised-products.h5
     * /METADATA/NBAR-METADATA
-    * /METADATA/PQ-METADATA
     * /METADATA/SBT-METADATA
     * /STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/{band_name} *(combinations based on the band_name)*
     * /STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/{band_name} *(combinations based on the band_name)*

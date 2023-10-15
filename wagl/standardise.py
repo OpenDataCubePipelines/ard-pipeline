@@ -20,7 +20,6 @@ from wagl.constants import (
     GroupName,
     Workflow,
 )
-from wagl.constants import ArdProducts as AP
 from wagl.dsm import get_dsm
 from wagl.hdf5 import H5CompressionFilter, read_h5_table
 from wagl.incident_exiting_angles import (
@@ -39,7 +38,6 @@ from wagl.modtran import (
     prepare_modtran,
     run_modtran,
 )
-from wagl.pq import can_pq, run_pq
 from wagl.reflectance import calculate_reflectance
 from wagl.satellite_solar_angles import calculate_angles
 from wagl.slope_aspect import slope_aspect_arrays
@@ -58,7 +56,6 @@ def card4l(
     workflow,
     vertices,
     method,
-    pixel_quality,
     landsea,
     tle_path,
     aerosol,
@@ -103,9 +100,6 @@ def card4l(
         An enum from wagl.constants.Method representing the
         interpolation method to use during the interpolation
         of the atmospheric coefficients.
-
-    :param pixel_quality:
-        A bool indicating whether or not to run pixel quality.
 
     :param landsea:
         A string containing the full file pathname to the directory
@@ -544,30 +538,6 @@ def card4l(
                         normalized_solar_zenith,
                         esun_values[acq.band_name],
                     )
-
-            # pixel quality
-            sbt_only = workflow == Workflow.SBT
-            if pixel_quality and can_pq(level1, acq_parser_hint) and not sbt_only:
-                run_pq(
-                    level1,
-                    res_group,
-                    landsea,
-                    res_group,
-                    compression,
-                    filter_opts,
-                    AP.NBAR,
-                    acq_parser_hint,
-                )
-                run_pq(
-                    level1,
-                    res_group,
-                    landsea,
-                    res_group,
-                    compression,
-                    filter_opts,
-                    AP.NBART,
-                    acq_parser_hint,
-                )
 
         def get_band_acqs(grp_name):
             acqs = container.get_acquisitions(granule=granule, group=grp_name)

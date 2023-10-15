@@ -71,7 +71,6 @@ class DataStandardisation(luigi.Task):
     workflow = luigi.EnumParameter(enum=Workflow, default=Workflow.STANDARD)
     vertices = luigi.TupleParameter(default=(5, 5))
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
-    pixel_quality = luigi.BoolParameter()
     land_sea_path = luigi.Parameter()
     aerosol = luigi.DictParameter(default={"user": 0.05})
     brdf = luigi.DictParameter()
@@ -113,7 +112,6 @@ class DataStandardisation(luigi.Task):
                 self.workflow,
                 self.vertices,
                 self.method,
-                self.pixel_quality,
                 self.land_sea_path,
                 self.tle_path,
                 self.aerosol,
@@ -158,7 +156,6 @@ class ARD(luigi.WrapperTask):
                     "granule": granule,
                     "workflow": self.workflow,
                     "vertices": self.vertices,
-                    "pixel_quality": self.pixel_quality,
                     "method": self.method,
                     "modtran_exe": self.modtran_exe,
                     "outdir": outdir,

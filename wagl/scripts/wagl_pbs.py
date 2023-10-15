@@ -57,7 +57,7 @@ FMT1 = "level1-scenes-{jobid}.txt"
 FMT2 = "jobid-{jobid}.bash"
 FMT3 = "scratch/{f_project}+gdata/{f_project}"
 DAEMON_FMT = "luigid --background --logdir {}"
-ARD_FMT = "--module wagl.{workflow_type} ARD --workflow {workflow} --vertices '{vertices}' --buffer-distance {distance} --method {method}{pq}"  # pylint: disable=line-too-long
+ARD_FMT = "--module wagl.{workflow_type} ARD --workflow {workflow} --vertices '{vertices}' --buffer-distance {distance} --method {method}"  # pylint: disable=line-too-long
 TASK_FMT = "--module wagl.multifile_workflow CallTask --task {task}"
 
 
@@ -232,7 +232,6 @@ def run(
     vertices="(5, 5)",
     workflow="standard",
     method="linear",
-    pixel_quality=False,
     outdir=None,
     logdir=None,
     env=None,
@@ -279,8 +278,6 @@ def run(
         filesystem_projects=fsys_projects,
     )
 
-    pq = " --pixel-quality" if pixel_quality else ""
-
     workflow_type = "singlefile_workflow" if singlefile else "multifile_workflow"
 
     # luigi task workflow options
@@ -288,7 +285,6 @@ def run(
         options = ARD_FMT.format(
             workflow_type=workflow_type,
             workflow=workflow,
-            pq=pq,
             vertices=vertices,
             method=method,
             distance=buffer_distance,
@@ -445,7 +441,6 @@ def main():
         args.vertices,
         args.workflow,
         args.method,
-        args.pixel_quality,
         args.outdir,
         args.logdir,
         args.env,
