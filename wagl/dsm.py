@@ -3,6 +3,7 @@
 
 import h5py
 import numpy as np
+import rasterio
 from rasterio.warp import Resampling
 from scipy import ndimage
 
@@ -43,7 +44,8 @@ def filter_dsm(array):
 
 def get_dsm(
     acquisition,
-    pathname,
+    srtm_pathname,
+    cop_pathname,
     buffer_distance=8000,
     out_group=None,
     compression=H5CompressionFilter.LZF,
@@ -58,9 +60,12 @@ def get_dsm(
     :param acquisition:
         An instance of an acquisition object.
 
-    :param pathname:
-        A string pathname of the DSM with a ':' to seperate the
+    :param srtm_pathname:
+        A string pathname of the SRTM DSM with a ':' to seperate the
         filename from the import HDF5 dataset name.
+
+    :param cop_pathname:
+        A string pathname of the mosaiced Copernicus 30m DEM .tif file.
 
     :param buffer_distance:
         A number representing the desired distance (in the same
@@ -110,26 +115,46 @@ def get_dsm(
         crs=geobox.crs.ExportToWkt(),
     )
 
-    # split the DSM filename, dataset name, and load
-    fname, dname = pathname.split(":")
-    with h5py.File(fname, "r") as dsm_fid:
-        dsm_ds = dsm_fid[dname]
-        dsm_geobox = GriddedGeoBox.from_dataset(dsm_ds)
+    try:
+        # split the DSM filename, dataset name, and load
+        fname, dname = srtm_pathname.split(":")
+        with h5py.File(fname, "r") as dsm_fid:
+            dsm_ds = dsm_fid[dname]
+            dsm_geobox = GriddedGeoBox.from_dataset(dsm_ds)
 
-        # calculate full border extents into CRS of DSM
-        extents = dem_geobox.project_extents(dsm_geobox.crs)
-        ul_xy = (extents[0], extents[3])
-        ur_xy = (extents[2], extents[3])
-        lr_xy = (extents[2], extents[1])
-        ll_xy = (extents[0], extents[1])
+            # calculate full border extents into CRS of DSM
+            extents = dem_geobox.project_extents(dsm_geobox.crs)
+            ul_xy = (extents[0], extents[3])
+            ur_xy = (extents[2], extents[3])
+            lr_xy = (extents[2], extents[1])
+            ll_xy = (extents[0], extents[1])
 
-        # load the subset and corresponding geobox
-        subs, subs_geobox = read_subset(
-            dsm_ds, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
-        )
+            # load the subset and corresponding geobox
+            subs, subs_geobox = read_subset(
+                dsm_ds, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
+            )
 
-        # ancillary metadata tracking
-        metadata = current_h5_metadata(dsm_fid, dataset_path=dname)
+            # ancillary metadata tracking
+            metadata = current_h5_metadata(dsm_fid, dataset_path=dname)
+
+    except (IndexError, ValueError):
+        with rasterio.open(cop_pathname, "r") as dsm_ds:
+            dsm_geobox = GriddedGeoBox.from_dataset(dsm_ds)
+
+            # calculate full border extents into CRS of DSM
+            extents = dem_geobox.project_extents(dsm_geobox.crs)
+            ul_xy = (extents[0], extents[3])
+            ur_xy = (extents[2], extents[3])
+            lr_xy = (extents[2], extents[1])
+            ll_xy = (extents[0], extents[1])
+
+            # load the subset and corresponding geobox
+            subs, subs_geobox = read_subset(
+                dsm_ds, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
+            )
+
+            # ancillary metadata tracking
+            metadata = {'id': 'cop-30m-dem'}
 
     # Retrive the DSM data
     dsm_data = reproject_array_to_array(
