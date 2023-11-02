@@ -78,7 +78,8 @@ class DataStandardisation(luigi.Task):
     dem_path = luigi.Parameter(significant=False)
     ecmwf_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
-    dsm_fname = luigi.Parameter(significant=False)
+    srtm_pathname = luigi.Parameter(significant=False)
+    cop_pathname = luigi.Parameter(significant=False)
     modtran_exe = luigi.Parameter(significant=False)
     tle_path = luigi.Parameter(significant=False)
     rori = luigi.FloatParameter(default=0.52, significant=False)
@@ -117,7 +118,8 @@ class DataStandardisation(luigi.Task):
                 self.ozone_path,
                 self.water_vapour,
                 self.dem_path,
-                self.dsm_fname,
+                self.srtm_pathname,
+                self.cop_pathname,
                 self.invariant_height_fname,
                 self.modtran_exe,
                 out_fname,
