@@ -61,7 +61,8 @@ def card4l(
     ozone_path,
     water_vapour,
     dem_path,
-    dsm_fname,
+    srtm_pathname,
+    cop_pathname,
     invariant_fname,
     modtran_exe,
     out_fname,
@@ -125,10 +126,12 @@ def card4l(
         A string containing the full file pathname to the directory
         containing the reduced resolution DEM.
 
-    :param dsm_path:
-        A string containing the full file pathname to the directory
-        containing the Digital Surface Workflow for use in terrain
-        illumination correction.
+    :param srtm_pathname:
+        A string pathname of the SRTM DSM with a ':' to seperate the
+        filename from the import HDF5 dataset name.
+
+    :param cop_pathname:
+        A string pathname of the mosaiced Copernicus 30m DEM .tif file.
 
     :param invariant_fname:
         A string containing the full file pathname to the image file
@@ -203,7 +206,8 @@ def card4l(
             granule,
             tle_path,
             workflow,
-            dsm_fname,
+            srtm_pathname,
+            cop_pathname,
             buffer_distance,
             compression,
             filter_opts,
@@ -276,7 +280,8 @@ def stash_oa_bands(
     granule,
     tle_path,
     workflow,
-    dsm_fname,
+    srtm_pathname,
+    cop_pathname,
     buffer_distance,
     compression,
     filter_opts,
@@ -311,7 +316,15 @@ def stash_oa_bands(
         if workflow in (Workflow.STANDARD, Workflow.NBAR):
             # DEM
             log.info("DEM-retriveal")
-            get_dsm(acqs[0], dsm_fname, buffer_distance, root, compression, filter_opts)
+            get_dsm(
+                acqs[0],
+                srtm_pathname,
+                cop_pathname,
+                buffer_distance,
+                root,
+                compression,
+                filter_opts
+            )
 
             # slope & aspect
             log.info("Slope-Aspect")
