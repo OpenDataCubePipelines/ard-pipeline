@@ -63,6 +63,7 @@ logging_conf_file = ${package_dest}/etc/luigi-logging.cfg
 record_task_history = true
 state_path = luigi-state.pkl
 disable_hard_timeout = 600
+worker_disconnect_delay = 1800
 
 [task_history]
 db_connection = sqlite:///luigi-task-hist.db
