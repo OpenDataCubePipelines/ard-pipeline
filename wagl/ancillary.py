@@ -781,25 +781,26 @@ def get_ozone_data(ozone_fname: str, lonlat: LonLat, acq_time: datetime.datetime
     try:
         data, md_uuid = get_pixel(ozone_fname, dname, lonlat)
         metadata = {
-        "id": np.array([md_uuid], VLEN_STRING),
-        "tier": OzoneTier.DEFINITIVE.name,
-    }
+            "id": np.array([md_uuid], VLEN_STRING),
+            "tier": OzoneTier.DEFINITIVE.name,
+        }
     except IndexError:
-        # Coords for expanded AOI in long lat 
+        # Coords for expanded AOI in long lat
         coords = [[70.3, -56.7], [170.0, -56.7], [170.0, -7.8], [70.3, -7.8]]
         polygon = Polygon(coords)
-        point = Point(lonlat) 
-        
+        point = Point(lonlat)
+
         if polygon.contains(point):
-            data = 0.275 # atm-cm or 275 Dobson Units (DU)
+            data = 0.275  # atm-cm or 275 Dobson Units (DU)
             metadata = {
-        "id": np.array([], VLEN_STRING),
-        "tier": OzoneTier.USER.name,
-    }
-        else: 
+                "id": np.array([], VLEN_STRING),
+                "tier": OzoneTier.USER.name,
+            }
+        else:
             raise AncillaryError("No Ozone data")
-        
+
     return data, metadata
+
 
 def get_water_vapour(
     acquisition: Acquisition,
