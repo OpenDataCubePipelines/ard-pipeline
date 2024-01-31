@@ -154,7 +154,7 @@ def get_dsm(
             )
 
             # ancillary metadata tracking
-            metadata = {'id': 'cop-30m-dem'}
+            metadata = {"id": "cop-30m-dem"}
 
     # Retrive the DSM data
     dsm_data = reproject_array_to_array(
