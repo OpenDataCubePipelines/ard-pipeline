@@ -56,7 +56,13 @@ def _get_dsm(
     """
     with h5py.File(out_fname, "w") as fid:
         get_dsm(
-            acquisition, srtm_pathname, cop_pathname, buffer_distance, fid, compression, filter_opts
+            acquisition,
+            srtm_pathname,
+            cop_pathname,
+            buffer_distance,
+            fid,
+            compression,
+            filter_opts,
         )
 
 
@@ -174,7 +180,7 @@ def get_dsm(
             )
 
             # ancillary metadata tracking
-            metadata = {'id': 'cop-30m-dem'}
+            metadata = {"id": "cop-30m-dem"}
 
     # Retrive the DSM data
     dsm_data = reproject_array_to_array(

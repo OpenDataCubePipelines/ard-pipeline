@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 import json
 import tempfile
 from os.path import join as pjoin
@@ -231,7 +232,13 @@ def card4l(
                 # DEM
                 log.info("DEM-retriveal")
                 get_dsm(
-                    acqs[0], srtm_pathname, cop_pathname, buffer_distance, root, compression, filter_opts
+                    acqs[0],
+                    srtm_pathname,
+                    cop_pathname,
+                    buffer_distance,
+                    root,
+                    compression,
+                    filter_opts,
                 )
 
                 # slope & aspect
