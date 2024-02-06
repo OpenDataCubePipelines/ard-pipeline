@@ -111,8 +111,8 @@ SUBROUTINE cast_shadow_main( &
     real*4 sun_zen
     real*4 htol
     logical exists
-    real pi, r2d, d2r, eps
-    common/base/pi,r2d,d2r,eps
+    real pi_real, r2d_real, d2r_real, eps_real
+    common/base/pi_real,r2d_real,d2r_real,eps_real
 
 !f2py intent(in) dem_data, solar_data, sazi_data
 !f2py intent(in) dresx, dresy, spheroid, alat1, alon1
@@ -127,10 +127,10 @@ SUBROUTINE cast_shadow_main( &
 !f2py intent(out) mask_all
 
 !   set basic constants
-    pi=4.0*atan(1.0)
-    r2d=180.0/pi
-    d2r=pi/180.0
-    eps=1.0e-7
+    pi_real=4.0*atan(1.0)
+    r2d_real=180.0/pi_real
+    d2r_real=pi_real/180.0
+    eps_real=1.0e-7
 
 !   set the tolerance for occlusion in metres
 !   (usually >0 and less than 10.0m)

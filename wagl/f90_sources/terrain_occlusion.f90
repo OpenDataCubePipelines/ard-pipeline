@@ -27,8 +27,6 @@ SUBROUTINE proj_terrain(n_max, m_max, n, m, z, mask, n_off, m_off, k_max, &
     real zmax, t, tt, test, htol, xd, yd, zpos
     integer i, j, ii, jj, k, ipos, jpos
     integer*4 itot
-    real pi,r2d,d2r,eps
-    common/base/pi,r2d,d2r,eps
 
 !   loop over object matrix A and project out into buffer
 

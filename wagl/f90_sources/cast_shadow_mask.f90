@@ -20,8 +20,6 @@ SUBROUTINE get_proj_shadows(hx, hy, ns, nl, &
     integer*2 mask(nlA_ori, nsA_ori)
     integer*2 rmax, rmin
 
-    real pi,r2d,d2r,eps
-    common/base/pi,r2d,d2r,eps
 !
 !   calculate the border info for the sun position
 !   In Australia and in the south in particular case=1

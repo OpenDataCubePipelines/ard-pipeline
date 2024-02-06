@@ -13,8 +13,8 @@ SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
     real phi_sun, zmax, zmin, sun_zen, phc
     real*8 hx, hy
     real sinphc, cosphc, d, d0
-    real pi, r2d, d2r, eps
-    common/base/pi,r2d,d2r,eps
+    real pi_real, d2r_real
+    common/base/pi_real,d2r_real
     logical set_border
 
 
@@ -27,16 +27,16 @@ SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
 
     if (phi_sun.ge.0.0 .and. phi_sun.le.90.0) then
         az_case=1
-        phc=pi/2.0-phi_sun*d2r
+        phc=pi_real/2.0-phi_sun*d2r_real
     else if (phi_sun.ge.270.0 .and. phi_sun.le.360.0) then
         az_case=2
-        phc=phi_sun*d2r-3.0*pi/2.0
+        phc=phi_sun*d2r_real-3.0*pi_real/2.0
     else if (phi_sun.ge.180.0 .and. phi_sun.le.270.0) then
         az_case=3
-        phc=3.0*pi/2.0-phi_sun*d2r
+        phc=3.0*pi_real/2.0-phi_sun*d2r_real
     else if (phi_sun.ge.90.0 .and. phi_sun.le.180.0) then
         az_case=4
-        phc=phi_sun*d2r-pi/2.0
+        phc=phi_sun*d2r_real-pi_real/2.0
     else
         ierr=61
         goto 99
@@ -53,7 +53,7 @@ SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
 !   distance in the sun direction is at Zmax
 !   then it can just occlude the first pixel
 !
-    d = (zmax-zmin)/tan(pi/2.0-sun_zen*d2r)
+    d = (zmax-zmin)/tan(pi_real/2.0-sun_zen*d2r_real)
     if(cosphc*hy.gt.sinphc*hx) then
         d0 = 0.5*hx/cosphc
     else
@@ -89,7 +89,7 @@ SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
         else
             m_inc(k)=-h_offset(k)*sinphc/hy
         endif
-        h_offset(k)=h_offset(k)*tan(pi/2.0-sun_zen*d2r)
+        h_offset(k)=h_offset(k)*tan(pi_real/2.0-sun_zen*d2r_real)
     enddo
 
 !   n_add and m_add are the sizes of the pixel buffer
