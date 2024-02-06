@@ -110,6 +110,7 @@ _cast_shadow_mask = py3.extension_module(
     link_language: 'fortran',
     subdir: 'wagl',
 )
+
 exiting_angle_src = [
     'f90_sources/sys_variables.f90',
     'f90_sources/exiting_angle.f90',
@@ -136,7 +137,7 @@ _exiting_angle = py3.extension_module(
         _exiting_angle_module,
         exiting_angle_src,
     ],
-    fortran_args: fortran_args,
+
     install: true,
     dependencies: [fortranobject_dep],
     link_language: 'fortran',
@@ -167,7 +168,7 @@ _incident_angle = py3.extension_module(
         _incident_angle_module,
         incident_angle_src,
     ],
-    fortran_args: fortran_args,
+
     install: true,
     dependencies: [fortranobject_dep],
     link_language: 'fortran',
@@ -199,7 +200,7 @@ _slope_aspect = py3.extension_module(
         _slope_aspect_module,
         slope_aspect_src,
     ],
-    fortran_args: fortran_args,
+
     install: true,
     dependencies: [fortranobject_dep],
     link_language: 'fortran',
@@ -232,7 +233,7 @@ _surface_reflectance = py3.extension_module(
         _surface_reflectance_module,
         surface_reflectance_src,
     ],
-    fortran_args: fortran_args,
+
     install: true,
     dependencies: [fortranobject_dep],
     link_language: 'fortran',
@@ -264,7 +265,7 @@ _satellite_model = py3.extension_module(
         _satellite_model_module,
         satellite_model_src,
     ],
-    fortran_args: fortran_args,
+
     install: true,
     dependencies: [fortranobject_dep],
     link_language: 'fortran',
@@ -300,7 +301,7 @@ _track_time_info = py3.extension_module(
         _track_time_info_module,
         track_time_info_src,
     ],
-    fortran_args: fortran_args,
+
     install: true,
     dependencies: [fortranobject_dep],
     link_language: 'fortran',
@@ -333,7 +334,7 @@ _bilinear_interpolation = py3.extension_module(
         _bilinear_interpolation_module,
         bilinear_interpolation_src,
     ],
-    fortran_args: fortran_args,
+
     install: true,
     dependencies: [fortranobject_dep],
     link_language: 'fortran',
