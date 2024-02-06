@@ -14,7 +14,6 @@ py3 = py_mod.find_installation(pure: false)
 
 py3_dep = py3.dependency()
 
-add_languages('fortran', native: false)
 ff = meson.get_compiler('fortran')
 
 c = run_command('utils/python-package-files.sh', check: true)
