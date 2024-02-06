@@ -38,7 +38,7 @@ ARG fmask_version=0.5.7
 
 COPY deployment/create-conda-environment.sh deployment/environment.yaml ./
 RUN --mount=type=cache,target=/opt/conda/pkgs,id=conda \
-    --mount=type=cache,target=/root/.cache,id=pip \
+    --mount=type=cache,target=/root/.cache,id=pipconda \
     ./create-conda-environment.sh /opt/conda
 
 # Use conda for the remaining commands
@@ -54,7 +54,7 @@ COPY wagl ./wagl
 COPY .git ./.git
 COPY pyproject.toml meson.build LICENCE.md README.md ./
 
-RUN --mount=type=cache,target=/root/.cache,id=pip \
+RUN --mount=type=cache,target=/root/.cache,id=pipours \
     --mount=type=tmpfs,target=/tmp <<EOF
     pip install --config-settings=builddir=/tmp/ard-pipeline-build .
 EOF

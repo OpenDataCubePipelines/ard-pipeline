@@ -12,6 +12,9 @@
 @build:
     docker build --platform linux/amd64 -t ard:dev .
 
+@build-plain:
+    docker build --progress=plain --platform linux/amd64 -t ard:dev .
+
 @build-builder:
     docker build --platform linux/amd64 --target builder -t ard:builder .
 
