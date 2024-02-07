@@ -938,7 +938,6 @@ class DataStandardisation(luigi.Task):
     SurfaceReflectance and SurfaceTemperature.
     """
 
-    land_sea_path = luigi.Parameter()
     dsm_fname = luigi.Parameter(significant=False)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 

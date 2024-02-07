@@ -56,7 +56,6 @@ def card4l(
     workflow,
     vertices,
     method,
-    landsea,
     tle_path,
     aerosol,
     brdf,
@@ -100,10 +99,6 @@ def card4l(
         An enum from wagl.constants.Method representing the
         interpolation method to use during the interpolation
         of the atmospheric coefficients.
-
-    :param landsea:
-        A string containing the full file pathname to the directory
-        containing the land/sea mask datasets.
 
     :param tle_path:
         A string containing the full file pathname to the directory
