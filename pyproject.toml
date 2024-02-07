@@ -89,7 +89,6 @@ ignore = [
     "S101",  # Allow asserts
     "EXE001"  # "Shebang is present, but not executable". Too many to list right now.
 ]
-line-length = 120
 # Which checkers to enable?
 select = [
     "A",  # Don't shadow built-ins
@@ -146,6 +145,11 @@ target-version = "py38"
     "NPY002"  # randint usage. TODO: fixable
 ]
 "wagl/vincenty.py" = ["N802", "N803", "N806", "N816", "N817"]
+
+# Matching old behaviour: We auto-format with the smaller line default
+# ...  but only enforce line length to be under this larger 120 limit.
+[tool.ruff.pycodestyle]
+max-line-length = 120
 
 [tool.setuptools_scm]
 write_to = "wagl/_version.py"

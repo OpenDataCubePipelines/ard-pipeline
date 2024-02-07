@@ -48,17 +48,11 @@ def _calculate_reflectance(
         satellite_solar_angles_fname, "r"
     ) as fid_sat_sol, h5py.File(slope_aspect_fname, "r") as fid_slp_asp, h5py.File(
         relative_slope_fname, "r"
-    ) as fid_rel_slp, h5py.File(
-        incident_angles_fname, "r"
-    ) as fid_inc, h5py.File(
+    ) as fid_rel_slp, h5py.File(incident_angles_fname, "r") as fid_inc, h5py.File(
         exiting_angles_fname, "r"
-    ) as fid_exi, h5py.File(
-        shadow_masks_fname, "r"
-    ) as fid_shadow, h5py.File(
+    ) as fid_exi, h5py.File(shadow_masks_fname, "r") as fid_shadow, h5py.File(
         ancillary_fname, "r"
-    ) as fid_anc, h5py.File(
-        out_fname, "w"
-    ) as fid:
+    ) as fid_anc, h5py.File(out_fname, "w") as fid:
         grp1 = fid_interp[GroupName.INTERP_GROUP.value]
         grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
         grp3 = fid_slp_asp[GroupName.SLP_ASP_GROUP.value]

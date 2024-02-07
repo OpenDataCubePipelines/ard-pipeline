@@ -50,9 +50,7 @@ from wagl.logs import TASK_LOGGER
 from wagl.singlefile_workflow import DataStandardisation
 
 _LOG = logging.getLogger(__name__)
-write_yaml = partial(
-    yaml.safe_dump, default_flow_style=False, indent=4
-)  # pylint: disable=invalid-name
+write_yaml = partial(yaml.safe_dump, default_flow_style=False, indent=4)  # pylint: disable=invalid-name
 
 
 class GverifyTask(luigi.Task):
