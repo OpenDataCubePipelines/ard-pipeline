@@ -592,8 +592,22 @@ def get_tally(
         if f.endswith(".h5")
     ]
 
+    # Create shapely polygon from ocean mask 
+    ocean_mask = rasterio.open(brdf_config['ocean_mask_path'], "r")
+    ocean_mask_poly = box(*ocean_mask.bounds)
+    ocean_mask.close()
+
+    # Create transformer to project from source CRS to ocean mask CRS
+    transformer = pyproj.Transformer.from_crs(src_crs, ocean_mask.crs)
+    projected_scene = shapely.ops.transform(transformer.transform, src_poly)
+
+    if projected_scene.intersects(ocean_mask_poly):
+        ocean_mask_path_to_use = brdf_config['ocean_mask_path']
+    else: 
+        ocean_mask_path_to_use = brdf_config['extended_ocean_mask_path']
+
     tally = {}
-    with rasterio.open(brdf_config["ocean_mask_path"], "r") as fid_mask:
+    with rasterio.open(ocean_mask_path_to_use, "r") as fid_mask:
         for ds in datasets:
             tally[ds] = BrdfTileSummary.empty()
             for tile in tile_list:
