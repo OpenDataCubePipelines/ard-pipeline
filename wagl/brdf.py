@@ -592,8 +592,8 @@ def get_tally(
         if f.endswith(".h5")
     ]
 
-    # Create shapely polygon from ocean mask 
-    ocean_mask = rasterio.open(brdf_config['ocean_mask_path'], "r")
+    # Create shapely polygon from ocean mask
+    ocean_mask = rasterio.open(brdf_config["ocean_mask_path"], "r")
     ocean_mask_poly = box(*ocean_mask.bounds)
     ocean_mask.close()
 
@@ -602,9 +602,9 @@ def get_tally(
     projected_scene = shapely.ops.transform(transformer.transform, src_poly)
 
     if projected_scene.intersects(ocean_mask_poly):
-        ocean_mask_path_to_use = brdf_config['ocean_mask_path']
-    else: 
-        ocean_mask_path_to_use = brdf_config['extended_ocean_mask_path']
+        ocean_mask_path_to_use = brdf_config["ocean_mask_path"]
+    else:
+        ocean_mask_path_to_use = brdf_config["extended_ocean_mask_path"]
 
     tally = {}
     with rasterio.open(ocean_mask_path_to_use, "r") as fid_mask:
