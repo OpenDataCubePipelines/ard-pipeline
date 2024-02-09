@@ -593,13 +593,12 @@ def get_tally(
     ]
 
     # Create shapely polygon from ocean mask
-    ocean_mask = rasterio.open(brdf_config["ocean_mask_path"], "r")
-    ocean_mask_poly = box(*ocean_mask.bounds)
-    ocean_mask.close()
+    with rasterio.open(brdf_config["ocean_mask_path"], "r") as ocean_mask:
+        ocean_mask_poly = box(*ocean_mask.bounds)
 
-    # Create transformer to project from source CRS to ocean mask CRS
-    transformer = pyproj.Transformer.from_crs(src_crs, ocean_mask.crs)
-    projected_scene = shapely.ops.transform(transformer.transform, src_poly)
+        # Create transformer to project from source CRS to ocean mask CRS
+        transformer = pyproj.Transformer.from_crs(src_crs, ocean_mask.crs)
+        projected_scene = shapely.ops.transform(transformer.transform, src_poly)
 
     if projected_scene.intersects(ocean_mask_poly):
         ocean_mask_path_to_use = brdf_config["ocean_mask_path"]
