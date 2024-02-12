@@ -14,9 +14,11 @@ SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
     real*8 hx, hy
     real sinphc, cosphc, d, d0
     real pi_real, d2r_real
-    common/base/pi_real,d2r_real
     logical set_border
 
+!   set basic constants
+    pi_real=4.0*atan(1.0)
+    d2r_real=pi_real/180.0
 
     set_border=.true.
     ierr=0
