@@ -4,13 +4,14 @@
 
 import datetime
 import logging
-import subprocess
 import typing
 
 import numpy as np
 import rasterio
 import yaml
 from rasterio.warp import Resampling
+
+from eugl.fmask import run_command
 
 # Post SLC-OFF date
 SLC_OFF = datetime.datetime(2003, 6, 1)
@@ -381,6 +382,7 @@ def reproject(
     source_fname: str,
     reference_fname: str,
     out_fname: str,
+    cwd: str,
     resampling: Resampling = Resampling.bilinear,
 ) -> None:
     """Reproject an image.
@@ -393,6 +395,9 @@ def reproject(
 
     :param out_fname:
         A `string` representing the filepath name of the output image.
+
+    :param cwd:
+        Current working directory to execute `gdalwarp` in.
 
     :param resampling:
         The resampling method to use during image re-projection.
@@ -432,7 +437,7 @@ def reproject(
     ]
 
     _LOG.info("calling gdalwarp:\n%s", cmd)
-    subprocess.check_call(cmd)
+    run_command(cmd, cwd)
 
 
 def _populate_nan_residuals() -> typing.Dict:

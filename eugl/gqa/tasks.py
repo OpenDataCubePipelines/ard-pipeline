@@ -594,7 +594,7 @@ def build_vrt(reference_images, out_file, work_dir):
                 src_file = image.filename
                 ref_file = common_csr.filename
                 out_file = pjoin(temp_directory, basename(src_file))
-                reproject(src_file, ref_file, out_file)
+                reproject(src_file, ref_file, out_file, temp_directory)
                 yield CSR.from_file(out_file)
 
     reprojected = [abspath(image.filename) for image in reprojected_images()]
