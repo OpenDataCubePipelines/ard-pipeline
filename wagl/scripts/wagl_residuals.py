@@ -35,14 +35,19 @@ def distribution(data):
     a binsize of 1.
     """
     if data.dtype.name in ["float", "float32", "float64"]:
-        min, max = np.nanmin(data), np.nanmax(data)
-        hist, bins = np.histogram(data, range=(min, max), bins=256)
+        minv, maxv = np.nanmin(data), np.nanmax(data)
+        hist, bins = np.histogram(data, range=(minv, maxv), bins=256)
         # keep only the left edges of the bins
-        return dict(histogram=hist, omin=min, omax=max, loc=bins[:-1])
+        return {"histogram": hist, "omin": minv, "omax": maxv, "loc": bins[:-1]}
     else:
-        min, max = np.min(data), np.max(data)
-        hist, _ = np.histogram(data, range=(min, max), bins=(max - min) + 1)
-        return dict(histogram=hist, omin=min, omax=max, loc=np.arange(min, max + 1))
+        minv, maxv = np.min(data), np.max(data)
+        hist, _ = np.histogram(data, range=(minv, maxv), bins=(maxv - minv) + 1)
+        return {
+            "histogram": hist,
+            "omin": minv,
+            "omax": maxv,
+            "loc": np.arange(minv, maxv + 1),
+        }
 
 
 def image_residual(
