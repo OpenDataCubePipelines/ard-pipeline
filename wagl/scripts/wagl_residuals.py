@@ -14,7 +14,6 @@ from posixpath import join as ppjoin
 import h5py
 import numpy as np
 import pandas as pd
-from idl_functions import histogram
 
 from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import (
@@ -36,21 +35,14 @@ def distribution(data):
     a binsize of 1.
     """
     if data.dtype.name in ["float", "float32", "float64"]:
-        try:
-            h = histogram(
-                data, omin="omin", omax="omax", locations="loc", nbins=256, nan=True
-            )
-        except ValueError:
-            h = {}
-            h["histogram"] = np.zeros((256), dtype="uint32")
-            h["omin"] = 0
-            h["omax"] = 0
-            h["loc"] = np.zeros((256), dtype=data.dtype.name)
-            h["histogram"][0] = data.size
+        min, max = np.nanmin(data), np.nanmax(data)
+        hist, bins = np.histogram(data, range=(min, max), bins=256)
+        # keep only the left edges of the bins
+        return dict(histogram=hist, omin=min, omax=max, loc=bins[:-1])
     else:
-        h = histogram(data, omin="omin", omax="omax", locations="loc")
-
-    return h
+        min, max = np.min(data), np.max(data)
+        hist, _ = np.histogram(data, range=(min, max), bins=(max - min) + 1)
+        return dict(histogram=hist, omin=min, omax=max, loc=np.arange(min, max + 1))
 
 
 def image_residual(
