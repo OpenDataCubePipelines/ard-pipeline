@@ -14,7 +14,6 @@ import zipfile
 import numpy as np
 import rasterio
 import yaml
-from idl_functions import histogram
 
 from wagl.acquisition import xml_via_safe
 
@@ -114,7 +113,8 @@ def fmask_metadata(
     :rtype: None
     """
     with rasterio.open(fmask_img_path) as ds:
-        hist = histogram(ds.read(1), minv=0, maxv=5)["histogram"]
+        data = ds.read(1)
+        hist, _ = np.histogram(data, bins=6, range=(0, 5))
 
     _LOG.info("Histogram: %r", hist)
 
@@ -190,7 +190,8 @@ def s2cloudless_metadata(
     :rtype: None
     """
     with rasterio.open(mask_out_fname) as ds:
-        hist = histogram(ds.read(1), minv=0, maxv=2)["histogram"]
+        data = ds.read(1)
+        hist, _ = np.histogram(data, bins=3, range=(0, 2))
 
     # base info (software versions)
     base_info = _get_s2cloudless_metadata()
