@@ -42,4 +42,4 @@
 
 # Export a snapshot of the inner conda environment
 @take-env:
-    docker run --rm --volume "${PWD}:/tests" --user root -w /tests ard:dev 'pip uninstall ard-pipeline rios python-fmask idl-functions -y; conda env export > /tests/deployment/environment.yaml'
+    docker run --rm --volume "${PWD}:/tests" --user root -w /tests ard:dev 'pip uninstall ard-pipeline rios python-fmask -y; conda env export > /tests/deployment/environment.yaml'

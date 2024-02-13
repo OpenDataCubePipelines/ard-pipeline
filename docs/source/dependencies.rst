@@ -18,7 +18,6 @@ Software requirements
 * `scikit-image <http://scikit-image.org/>`_,
 * `rasterio <https://github.com/mapbox/rasterio/>`_,
 * `h5py <https://github.com/h5py/h5py>`_,
-* `idl-functions <https://github.com/sixy6e/idl-functions>`_,
 * `bitshuffle <https://github.com/kiyo-masui/bitshuffle>`_,
 * `mafisc <https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc>`_,
 * `pytables <https://github.com/PyTables/PyTables>`_,

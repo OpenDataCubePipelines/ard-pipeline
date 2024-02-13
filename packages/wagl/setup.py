@@ -27,13 +27,8 @@ install_requires = [
     "nested_lookup>=0.1.3",
     "python-dateutil>=2.6.1",
     "structlog>=16.1.0",
-    "idl-functions>=0.5.2",  # custom package
     "attrs>=17.4.0",
     "importlib-metadata;python_version<'3.8'",
-]
-
-dependency_links = [
-    "git+git://github.com/sixy6e/idl-functions.git@master#egg=idl-functions-0.5.2",
 ]
 
 
@@ -78,5 +73,4 @@ setup(
     setup_requires=["pytest-runner", "setuptools_scm"],
     tests_require=tests_require,
     install_requires=install_requires,
-    dependency_links=dependency_links,
 )
