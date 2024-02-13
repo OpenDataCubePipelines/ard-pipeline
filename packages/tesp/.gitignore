@@ -1,6 +1,0 @@
-.idea*
-*.pyc
-*.egg*
-dist
-build
-version.py
