@@ -70,7 +70,12 @@ jobs:
 
         -   name: Push Docker image
             run: |
+                export TAG=$(git describe --tags)
                 docker tag ard-pipeline:dev geoscienceaustralia/ard-pipeline:dev
-                docker tag ard-pipeline:dev  ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:dev
                 docker push geoscienceaustralia/ard-pipeline:dev
+                docker tag ard-pipeline:dev geoscienceaustralia/ard-pipeline:$TAG
+                docker push geoscienceaustralia/ard-pipeline:$TAG
+                docker tag ard-pipeline:dev  ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:dev
                 docker push ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:dev
+                docker tag ard-pipeline:dev  ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:$TAG
+                docker push ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:$TAG
