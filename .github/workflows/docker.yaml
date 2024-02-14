@@ -27,12 +27,20 @@ jobs:
         -   name: Save Docker image
             run: docker save ard-pipeline:dev > ard-pipeline-image.tar
 
+        -   name: Save git tag
+            run: git describe --tags > git-tag.txt
+
         -   name: Upload image as artifact
             uses: actions/upload-artifact@v3
             with:
                 name: ard-pipeline-image
                 path: ard-pipeline-image.tar
 
+        -   name: Upload git tag as an artifact
+            uses: actions/upload-artifact@v3
+            with:
+                name: ard-pipeline-git-tag
+                path: git-tag.txt
     # Now push the docker image everywhere (if we need to).
     publish_docker:
         name: Upload container
