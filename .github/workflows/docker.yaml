@@ -61,7 +61,7 @@ jobs:
         -   uses: actions/download-artifact@v2
             with:
                 name: ard-pipeline-tag
-        
+
         -   run: cat git-tag.txt
 
         -   uses: actions/download-artifact@v2
