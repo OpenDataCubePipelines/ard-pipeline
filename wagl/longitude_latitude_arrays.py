@@ -93,20 +93,6 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
     return y
 
 
-def _create_lon_lat_grids(
-    acquisition,
-    out_fname=None,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-    depth=7,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    multifile workflow.
-    """
-    with h5py.File(out_fname, "w") as fid:
-        create_lon_lat_grids(acquisition, fid, compression, filter_opts, depth)
-
-
 def create_lon_lat_grids(
     acquisition,
     out_group=None,

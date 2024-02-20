@@ -7,36 +7,16 @@ as source directions, as well as self shadow masks.
 ---------------------------------------------------
 """
 
-from posixpath import join as ppjoin
-
 import h5py
 import numpy as np
 
 from wagl.__cast_shadow_mask import cast_shadow_main
 from wagl.constants import DatasetName, GroupName
 from wagl.geobox import GriddedGeoBox
-from wagl.hdf5 import H5CompressionFilter, attach_image_attributes, create_external_link
+from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.margins import pixel_buffer
 from wagl.satellite_solar_angles import setup_spheroid
 from wagl.tiling import generate_tiles
-
-
-def _self_shadow(
-    incident_angles_fname,
-    exiting_angles_fname,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(incident_angles_fname, "r") as fid_incident, h5py.File(
-        exiting_angles_fname, "r"
-    ) as fid_exiting, h5py.File(out_fname, "w") as fid:
-        grp1 = fid_incident[GroupName.INCIDENT_GROUP.value]
-        grp2 = fid_exiting[GroupName.EXITING_GROUP.value]
-        self_shadow(grp1, grp2, fid, compression, filter_opts)
 
 
 def self_shadow(
@@ -271,36 +251,6 @@ class CastShadowError(FortranError):
             return "matrix A does not have sufficient x margin"
 
 
-def _calculate_cast_shadow(
-    acquisition,
-    dsm_fname,
-    buffer_distance,
-    satellite_solar_angles_fname,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-    solar_source=True,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(dsm_fname, "r") as dsm_fid, h5py.File(
-        satellite_solar_angles_fname, "r"
-    ) as fid_sat_sol, h5py.File(out_fname, "w") as fid:
-        grp1 = dsm_fid[GroupName.ELEVATION_GROUP.value]
-        grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
-        calculate_cast_shadow(
-            acquisition,
-            grp1,
-            grp2,
-            buffer_distance,
-            fid,
-            compression,
-            filter_opts,
-            solar_source,
-        )
-
-
 def calculate_cast_shadow(
     acquisition,
     dsm_group,
@@ -505,32 +455,6 @@ def calculate_cast_shadow(
         return fid
 
 
-def _combine_shadow(
-    self_shadow_fname,
-    cast_shadow_sun_fname,
-    cast_shadow_satellite_fname,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(self_shadow_fname, "r") as fid_self, h5py.File(
-        cast_shadow_sun_fname, "r"
-    ) as fid_sun, h5py.File(cast_shadow_satellite_fname, "r") as fid_sat, h5py.File(
-        out_fname, "w"
-    ) as fid:
-        grp1 = fid_self[GroupName.SHADOW_GROUP.value]
-        grp2 = fid_sun[GroupName.SHADOW_GROUP.value]
-        grp3 = fid_sat[GroupName.SHADOW_GROUP.value]
-        combine_shadow_masks(grp1, grp2, grp3, fid, compression, filter_opts)
-
-    link_shadow_datasets(
-        self_shadow_fname, cast_shadow_sun_fname, cast_shadow_satellite_fname, out_fname
-    )
-
-
 def combine_shadow_masks(
     self_shadow_group,
     cast_shadow_sun_group,
@@ -647,21 +571,3 @@ def combine_shadow_masks(
 
     if out_group is None:
         return fid
-
-
-def link_shadow_datasets(
-    self_shadow_fname, cast_shadow_sun_fname, cast_shadow_satellite_fname, out_fname
-):
-    """Link the self shadow mask, and the two cast shadow masks into a
-    single file for easier access.
-    """
-    group_path = GroupName.SHADOW_GROUP.value
-    dname_fmt = DatasetName.CAST_SHADOW_FMT.value
-    dname = ppjoin(group_path, DatasetName.SELF_SHADOW.value)
-    create_external_link(self_shadow_fname, dname, out_fname, dname)
-
-    dname = ppjoin(group_path, dname_fmt.format(source="SUN"))
-    create_external_link(cast_shadow_sun_fname, dname, out_fname, dname)
-
-    dname = ppjoin(group_path, dname_fmt.format(source="SATELLITE"))
-    create_external_link(cast_shadow_satellite_fname, dname, out_fname, dname)

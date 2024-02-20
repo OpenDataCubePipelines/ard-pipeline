@@ -35,7 +35,6 @@ from wagl.data import get_pixel
 from wagl.hdf5 import (
     VLEN_STRING,
     H5CompressionFilter,
-    attach_attributes,
     attach_table_attributes,
     read_h5_table,
     write_dataframe,
@@ -162,36 +161,6 @@ def default_interpolation_grid(acquisition, vertices, boxline_dataset):
     locations = locations.reshape(nvertices, 2)
     coordinator = create_coordinator(locations, geobox)
     return coordinator
-
-
-def _collect_ancillary(
-    container,
-    satellite_solar_fname,
-    nbar_paths,
-    sbt_path=None,
-    invariant_fname=None,
-    vertices=(3, 3),
-    out_fname=None,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(satellite_solar_fname, "r") as fid, h5py.File(
-        out_fname, "w"
-    ) as out_fid:
-        sat_sol_grp = fid[GroupName.SAT_SOL_GROUP.value]
-        collect_ancillary(
-            container,
-            sat_sol_grp,
-            nbar_paths,
-            sbt_path,
-            invariant_fname,
-            vertices,
-            out_fid,
-            compression,
-        )
 
 
 class AerosolDict(TypedDict):
@@ -723,83 +692,6 @@ def collect_nbar_ancillary(
 
     if out_group is None:
         return fid
-
-
-def _aggregate_ancillary(ancillary_fnames, write_access):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    # a horrible mechanism to ensure an unneeded logic contiunes; sigh....
-    fnames = ancillary_fnames.copy()
-    fnames.pop(fnames.index(write_access))
-
-    # get file ids
-    fids = [h5py.File(fname, "r") for fname in fnames]
-    fids.append(h5py.File(write_access, "a"))
-    aggregate_ancillary(fids)
-
-    # close
-    for fid in fids:
-        fid.close()
-
-
-def aggregate_ancillary(granule_groups):
-    """If the acquisition is part of a `tiled` scene such as Sentinel-2a,
-    then we need to average the point measurements gathered from
-    all granules.
-    """
-    # initialise the mean result
-    ozone = vapour = aerosol = elevation = 0.0
-
-    # number of granules in the scene
-    n_tiles = len(granule_groups)
-
-    for granule in granule_groups:
-        group = granule[GroupName.ANCILLARY_GROUP.value]
-
-        ozone += group[DatasetName.OZONE.value][()]
-        vapour += group[DatasetName.WATER_VAPOUR.value][()]
-        aerosol += group[DatasetName.AEROSOL.value][()]
-        elevation += group[DatasetName.ELEVATION.value][()]
-
-    # average
-    ozone /= n_tiles
-    vapour /= n_tiles
-    aerosol /= n_tiles
-    elevation /= n_tiles
-
-    description = (
-        "The {} value is an average from all the {} values "
-        "retreived for each Granule."
-    )
-    attrs = {"data_source": "granule_average"}
-
-    # output each average value back into the same granule ancillary group
-    group_name = ppjoin(
-        GroupName.ANCILLARY_GROUP.value, GroupName.ANCILLARY_AVG_GROUP.value
-    )
-    for granule in granule_groups:
-        # for the multifile workflow, we only want to write to one granule
-        try:
-            group = granule.create_group(group_name)
-        except ValueError:
-            continue
-
-        dset = group.create_dataset(DatasetName.OZONE.value, data=ozone)
-        attrs["description"] = description.format(*(2 * ["Ozone"]))
-        attach_attributes(dset, attrs)
-
-        dset = group.create_dataset(DatasetName.WATER_VAPOUR.value, data=vapour)
-        attrs["description"] = description.format(*(2 * ["Water Vapour"]))
-        attach_attributes(dset, attrs)
-
-        dset = group.create_dataset(DatasetName.AEROSOL.value, data=aerosol)
-        attrs["description"] = description.format(*(2 * ["Aerosol"]))
-        attach_attributes(dset, attrs)
-
-        dset = group.create_dataset(DatasetName.ELEVATION.value, data=elevation)
-        attrs["description"] = description.format(*(2 * ["Elevation"]))
-        attach_attributes(dset, attrs)
 
 
 def get_aerosol_data(

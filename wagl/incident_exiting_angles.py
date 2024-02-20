@@ -14,28 +14,6 @@ from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.tiling import generate_tiles
 
 
-def _incident_exiting_angles(
-    satellite_solar_fname,
-    slope_aspect_fname,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-    incident=True,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(satellite_solar_fname, "r") as sat_sol, h5py.File(
-        slope_aspect_fname, "r"
-    ) as slp_asp, h5py.File(out_fname, "w") as out_fid:
-        grp1 = sat_sol[GroupName.SAT_SOL_GROUP.value]
-        grp2 = slp_asp[GroupName.SLP_ASP_GROUP.value]
-        if incident:
-            incident_angles(grp1, grp2, out_fid, compression, filter_opts)
-        else:
-            exiting_angles(grp1, grp2, out_fid, compression, filter_opts)
-
-
 def incident_angles(
     satellite_solar_group,
     slope_aspect_group,
@@ -336,24 +314,6 @@ def exiting_angles(
 
     if out_group is None:
         return fid
-
-
-def _relative_azimuth_slope(
-    incident_angles_fname,
-    exiting_angles_fname,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(incident_angles_fname, "r") as inci_fid, h5py.File(
-        exiting_angles_fname, "r"
-    ) as exit_fid, h5py.File(out_fname, "w") as out_fid:
-        grp1 = inci_fid[GroupName.INCIDENT_GROUP.value]
-        grp2 = exit_fid[GroupName.EXITING_GROUP.value]
-        relative_azimuth_slope(grp1, grp2, out_fid, compression, filter_opts)
 
 
 def relative_azimuth_slope(

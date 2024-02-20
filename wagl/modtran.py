@@ -34,7 +34,6 @@ from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import (
     VLEN_STRING,
     H5CompressionFilter,
-    create_external_link,
     read_h5_table,
     write_dataframe,
     write_scalar,
@@ -79,30 +78,6 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir):
 
         # Copy the spectral response filter file to the modtran workdir
         shutil.copy(acq.spectral_filter_filepath, out_fname)
-
-
-def _format_json(
-    acquisitions,
-    satellite_solar_angles_fname,
-    longitude_latitude_fname,
-    ancillary_fname,
-    out_fname,
-    workflow,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(satellite_solar_angles_fname, "r") as sat_sol_fid, h5py.File(
-        longitude_latitude_fname, "r"
-    ) as lon_lat_fid, h5py.File(ancillary_fname, "r") as anc_fid, h5py.File(
-        out_fname, "w"
-    ) as fid:
-        grp1 = anc_fid[GroupName.ANCILLARY_GROUP.value]
-        grp2 = sat_sol_fid[GroupName.SAT_SOL_GROUP.value]
-        grp3 = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
-        json_data, _ = format_json(acquisitions, grp1, grp2, grp3, workflow, fid)
-
-    return json_data
 
 
 def format_json(
@@ -270,41 +245,6 @@ def format_json(
     return json_data, out_group
 
 
-def _run_modtran(
-    acquisitions,
-    modtran_exe,
-    basedir,
-    point,
-    albedos,
-    workflow,
-    npoints,
-    atmospheric_inputs_fname,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(atmospheric_inputs_fname, "r") as atmos_fid, h5py.File(
-        out_fname, "w"
-    ) as fid:
-        atmos_grp = atmos_fid[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
-        run_modtran(
-            acquisitions,
-            atmos_grp,
-            workflow,
-            npoints,
-            point,
-            albedos,
-            modtran_exe,
-            basedir,
-            fid,
-            compression,
-            filter_opts,
-        )
-
-
 def run_modtran(
     acquisitions,
     atmospherics_group,
@@ -442,22 +382,6 @@ def run_modtran(
 
     if out_group is None:
         return fid
-
-
-def _calculate_coefficients(
-    atmosheric_results_fname,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(atmosheric_results_fname, "r") as atmos_fid, h5py.File(
-        out_fname, "w"
-    ) as fid:
-        results_group = atmos_fid[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
-        calculate_coefficients(results_group, fid, compression, filter_opts)
 
 
 def calculate_coefficients(
@@ -881,82 +805,3 @@ def read_modtran_channel(chn_fname, tp6_fname, acquisition, albedo):
     chn_data.columns = chn_data.columns.astype(str)
 
     return chn_data, df_sz_angle
-
-
-def link_atmospheric_results(input_targets, out_fname, npoints, workflow):
-    """Uses h5py's ExternalLink to combine the atmospheric results into
-    a single file.
-
-    :param input_targets:
-        A `list` of luigi.LocalTargets.
-
-    :param out_fname:
-        A `str` containing the output filename.
-
-    :param npoints:
-        An `int` containing the number of points (vertices) used for
-        evaluating the atmospheric conditions.
-
-    :param workflow:
-        An Enum given by wagl.constants.Workflow.
-
-    :return:
-        None. Results from each file in `input_targets` are linked
-        into the output file.
-    """
-    base_group_name = GroupName.ATMOSPHERIC_RESULTS_GRP.value
-    nbar_atmospherics = False
-    sbt_atmospherics = False
-    attributes = []
-    for fname in input_targets:
-        with h5py.File(fname.path, "r") as fid:
-            points = list(fid[base_group_name].keys())
-
-            # copy across several attributes on the POINT Group
-            # as the linking we do here links direct to a dataset
-            # which will create the required parent Groups
-            for point in points:
-                group = ppjoin(base_group_name, point)
-                attributes.append(
-                    (
-                        point,
-                        fid[group].attrs["lonlat"],
-                        fid[group].attrs["datetime"],
-                        fid[group].attrs["albedos"],
-                    )
-                )
-
-        for point in points:
-            for albedo in workflow.albedos:
-                if albedo == Albedos.ALBEDO_TH:
-                    datasets = [
-                        DatasetName.UPWARD_RADIATION_CHANNEL.value,
-                        DatasetName.DOWNWARD_RADIATION_CHANNEL.value,
-                    ]
-                    sbt_atmospherics = True
-                else:
-                    datasets = [
-                        DatasetName.CHANNEL.value,
-                        DatasetName.SOLAR_ZENITH_CHANNEL.value,
-                    ]
-                    nbar_atmospherics = True
-
-                grp_path = ppjoin(
-                    base_group_name, point, ALBEDO_FMT.format(a=albedo.value)
-                )
-
-                for dset in datasets:
-                    dname = ppjoin(grp_path, dset)
-                    create_external_link(fname.path, dname, out_fname, dname)
-
-    with h5py.File(out_fname, "a") as fid:
-        group = fid[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
-        group.attrs["npoints"] = npoints
-        group.attrs["nbar_atmospherics"] = nbar_atmospherics
-        group.attrs["sbt_atmospherics"] = sbt_atmospherics
-
-        # assign the lonlat attribute for each POINT Group
-        for point, lonlat, date_time, albedos in attributes:
-            group[point].attrs["lonlat"] = lonlat
-            group[point].attrs["datetime"] = date_time
-            group[point].attrs.create("albedos", data=albedos, dtype=VLEN_STRING)

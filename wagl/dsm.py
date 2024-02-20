@@ -41,23 +41,6 @@ def filter_dsm(array):
     return filtered
 
 
-def _get_dsm(
-    acquisition,
-    national_dsm,
-    buffer_distance,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(out_fname, "w") as fid:
-        get_dsm(
-            acquisition, national_dsm, buffer_distance, fid, compression, filter_opts
-        )
-
-
 def get_dsm(
     acquisition,
     pathname,

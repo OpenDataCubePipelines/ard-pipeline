@@ -13,32 +13,8 @@ import numpy as np
 from wagl.constants import ArdProducts, DatasetName, GroupName
 from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
-from wagl.metadata import create_ard_yaml
 
 NO_DATA_VALUE = -999
-
-
-def _surface_brightness_temperature(
-    acquisition,
-    acquisitions,
-    bilinear_fname,
-    ancillary_fname,
-    out_fname,
-    normalized_solar_zenith,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(bilinear_fname, "r") as interp_fid, h5py.File(
-        ancillary_fname, "r"
-    ) as fid_anc, h5py.File(out_fname, "w") as fid:
-        grp1 = interp_fid[GroupName.INTERP_GROUP.value]
-        surface_brightness_temperature(acquisition, grp1, fid, compression, filter_opts)
-
-        grp2 = fid_anc[GroupName.ANCILLARY_GROUP.value]
-        create_ard_yaml(acquisitions, grp2, fid, normalized_solar_zenith, True)
 
 
 def surface_brightness_temperature(

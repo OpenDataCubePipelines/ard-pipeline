@@ -818,31 +818,6 @@ def _store_parameter_settings(
     attach_table_attributes(track_dset, title="Satellite Track", attrs=attrs)
 
 
-def _calculate_angles(
-    acquisition,
-    lon_lat_fname,
-    out_fname=None,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-    tle_path=None,
-    trackpoints=12,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(lon_lat_fname, "r") as lon_lat_fid, h5py.File(out_fname, "w") as fid:
-        lon_lat_grp = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
-        calculate_angles(
-            acquisition,
-            lon_lat_grp,
-            fid,
-            compression,
-            filter_opts,
-            tle_path,
-            trackpoints,
-        )
-
-
 def calculate_angles(
     acquisition,
     lon_lat_group,

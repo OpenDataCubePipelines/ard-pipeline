@@ -13,8 +13,6 @@ from scipy.interpolate import Rbf
 from wagl.constants import DatasetName, GroupName, Method, Workflow
 from wagl.hdf5 import (
     H5CompressionFilter,
-    create_external_link,
-    find,
     read_h5_table,
     write_h5_image,
 )
@@ -412,41 +410,6 @@ def sheared_bilinear_interpolate(
     return result
 
 
-def _interpolate(
-    acq,
-    coefficient,
-    sat_sol_angles_fname,
-    coefficients_fname,
-    ancillary_fname,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-    method=Method.SHEARB,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(sat_sol_angles_fname, "r") as sat_sol, h5py.File(
-        coefficients_fname, "r"
-    ) as comp, h5py.File(ancillary_fname, "r") as anc, h5py.File(
-        out_fname, "w"
-    ) as out_fid:
-        grp1 = anc[GroupName.ANCILLARY_GROUP.value]
-        grp2 = sat_sol[GroupName.SAT_SOL_GROUP.value]
-        grp3 = comp[GroupName.COEFFICIENTS_GROUP.value]
-        interpolate(
-            acq,
-            coefficient,
-            grp1,
-            grp2,
-            grp3,
-            out_fid,
-            compression,
-            filter_opts,
-            method,
-        )
-
-
 def interpolate(
     acq,
     coefficient,
@@ -552,16 +515,3 @@ def interpolate(
 
     if out_group is None:
         return fid
-
-
-def link_interpolated_data(data, out_fname):
-    """Links the individual interpolated results into a
-    single file for easier access.
-    """
-    for key in data:
-        fname = data[key]
-        with h5py.File(fname, "r") as fid:
-            dataset_names = find(fid, dataset_class="IMAGE")
-
-        for dname in dataset_names:
-            create_external_link(fname, dname, out_fname, dname)

@@ -16,69 +16,9 @@ from wagl.data import as_array
 from wagl.hdf5 import (
     H5CompressionFilter,
     attach_image_attributes,
-    create_external_link,
-    find,
 )
-from wagl.metadata import create_ard_yaml
 
 NO_DATA_VALUE = -999
-
-
-def _calculate_reflectance(
-    acquisition,
-    acquisitions,
-    interpolation_fname,
-    satellite_solar_angles_fname,
-    slope_aspect_fname,
-    relative_slope_fname,
-    incident_angles_fname,
-    exiting_angles_fname,
-    shadow_masks_fname,
-    ancillary_fname,
-    rori,
-    out_fname,
-    compression,
-    filter_opts,
-    normalized_solar_zenith,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(interpolation_fname, "r") as fid_interp, h5py.File(
-        satellite_solar_angles_fname, "r"
-    ) as fid_sat_sol, h5py.File(slope_aspect_fname, "r") as fid_slp_asp, h5py.File(
-        relative_slope_fname, "r"
-    ) as fid_rel_slp, h5py.File(incident_angles_fname, "r") as fid_inc, h5py.File(
-        exiting_angles_fname, "r"
-    ) as fid_exi, h5py.File(shadow_masks_fname, "r") as fid_shadow, h5py.File(
-        ancillary_fname, "r"
-    ) as fid_anc, h5py.File(out_fname, "w") as fid:
-        grp1 = fid_interp[GroupName.INTERP_GROUP.value]
-        grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
-        grp3 = fid_slp_asp[GroupName.SLP_ASP_GROUP.value]
-        grp4 = fid_rel_slp[GroupName.REL_SLP_GROUP.value]
-        grp5 = fid_inc[GroupName.INCIDENT_GROUP.value]
-        grp6 = fid_exi[GroupName.EXITING_GROUP.value]
-        grp7 = fid_shadow[GroupName.SHADOW_GROUP.value]
-        grp8 = fid_anc[GroupName.ANCILLARY_GROUP.value]
-        calculate_reflectance(
-            acquisition,
-            grp1,
-            grp2,
-            grp3,
-            grp4,
-            grp5,
-            grp6,
-            grp7,
-            grp8,
-            rori,
-            fid,
-            compression,
-            filter_opts,
-            normalized_solar_zenith,
-        )
-
-        create_ard_yaml(acquisitions, grp8, fid, normalized_solar_zenith)
 
 
 def calculate_reflectance(
@@ -404,28 +344,3 @@ def calculate_reflectance(
 
     if out_group is None:
         return fid
-
-
-def link_standard_data(input_fnames, out_fname):
-    # TODO: incorporate linking for multi-granule and multi-group
-    #       datasets
-    """Links the individual reflectance and surface temperature
-    results into a single file for easier access.
-    """
-    for fname in input_fnames:
-        with h5py.File(fname, "r") as fid:
-            dataset_names = find(fid, dataset_class="IMAGE")
-
-        for dname in dataset_names:
-            create_external_link(fname, dname, out_fname, dname)
-
-        # metadata
-        with h5py.File(fname, "r") as fid:
-            with h5py.File(out_fname, "a") as out_fid:
-                yaml_dname = DatasetName.NBAR_YAML.value
-                if yaml_dname in fid and yaml_dname not in out_fid:
-                    fid.copy(yaml_dname, out_fid, name=yaml_dname)
-
-                yaml_dname = DatasetName.SBT_YAML.value
-                if yaml_dname in fid and yaml_dname not in out_fid:
-                    fid.copy(yaml_dname, out_fid, name=yaml_dname)

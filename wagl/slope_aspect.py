@@ -13,22 +13,6 @@ from wagl.margins import pixel_buffer
 from wagl.satellite_solar_angles import setup_spheroid
 
 
-def _slope_aspect_arrays(
-    acquisition,
-    dsm_fname,
-    buffer_distance,
-    out_fname,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    with h5py.File(dsm_fname, "r") as dsm_fid, h5py.File(out_fname, "w") as fid:
-        dsm_grp = dsm_fid[GroupName.ELEVATION_GROUP.value]
-        slope_aspect_arrays(acquisition, dsm_grp, buffer_distance, fid, compression)
-
-
 def slope_aspect_arrays(
     acquisition,
     dsm_group,
