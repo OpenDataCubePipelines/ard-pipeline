@@ -285,8 +285,8 @@ class BrdfTileSummary:
 
         return BrdfTileSummary(
             {key: add(key) for key in BrdfModelParameters},
-            sorted(set(self.source_files + other.source_files)),
             sorted(set(self.source_ids + other.source_ids)),
+            sorted(set(self.source_files + other.source_files)),
         )
 
     def mean(self) -> Dict[BrdfDirectionalParameters, BrdfValue]:
@@ -450,6 +450,7 @@ def load_brdf_tile(
         lambda x, y: dst_geotransform * (x, y),
         box(0.0, 0.0, ds_width, ds_height, ccw=False),
     )
+
     if not bound_poly.intersects(dst_poly):
         return BrdfTileSummary.empty()
 
@@ -457,6 +458,7 @@ def load_brdf_tile(
         lambda x, y: fid_mask.transform * (x, y),
         box(0.0, 0.0, fid_mask.width, fid_mask.height),
     )
+
     if not ocean_poly.intersects(dst_poly):
         return BrdfTileSummary.empty()
 
@@ -530,6 +532,7 @@ def get_tally(
     dt: datetime.date,
     src_poly,
     src_crs,
+    offshore: bool,
 ):
     """
     Get all HDF files in the input dir.
@@ -592,15 +595,7 @@ def get_tally(
         if f.endswith(".h5")
     ]
 
-    # Create shapely polygon from ocean mask
-    with rasterio.open(brdf_config["ocean_mask_path"], "r") as ocean_mask:
-        ocean_mask_poly = box(*ocean_mask.bounds)
-
-        # Create transformer to project from source CRS to ocean mask CRS
-        transformer = pyproj.Transformer.from_crs(src_crs, ocean_mask.crs)
-        projected_scene = shapely.ops.transform(transformer.transform, src_poly)
-
-    if projected_scene.intersects(ocean_mask_poly):
+    if not offshore:
         ocean_mask_path_to_use = brdf_config["ocean_mask_path"]
     else:
         ocean_mask_path_to_use = brdf_config["extended_ocean_mask_path"]
@@ -641,9 +636,10 @@ class LoadedBrdfCoverageDict(TypedDict):
 def get_brdf_data(
     acquisition: Acquisition,
     brdf_config: BrdfDict,
+    mode: Optional[BrdfMode] = None,
+    offshore: bool = False,
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
-    mode: Optional[BrdfMode] = None,
 ) -> Dict[BrdfDirectionalParameters, LoadedBrdfCoverageDict]:
     """Calculates the mean BRDF value for the given acquisition,
     for each BRDF parameter ['geo', 'iso', 'vol'] that covers
@@ -725,7 +721,14 @@ def get_brdf_data(
         # brdf_config, brdf_datasets, and viirs datasets are "constants"
         # for the purpose of choosing the data to use (MODIS vs VIIRS vs fallback)
         result = get_tally(
-            mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, src_crs
+            mode,
+            brdf_config,
+            brdf_datasets,
+            viirs_datasets,
+            dt,
+            src_poly,
+            src_crs,
+            offshore,
         )
 
         # for fallback, it is OK to find no BRDF
