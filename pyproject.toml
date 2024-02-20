@@ -79,7 +79,6 @@ wagl_aot_converter = "wagl.scripts.aot_converter:main"
 wagl_buildvrt = "wagl.scripts.wagl_buildvrt:main"
 wagl_convert = "wagl.scripts.wagl_convert:main"
 wagl_ls = " wagl.scripts.wagl_ls:main"
-wagl_pbs = "wagl.scripts.wagl_pbs:main"
 wagl_residuals = "wagl.scripts.wagl_residuals:main"
 
 [tool.ruff]

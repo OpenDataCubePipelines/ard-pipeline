@@ -68,7 +68,6 @@ setup(
         "utils/wagl_convert",
         "utils/wagl_ls",
         "utils/wagl_residuals",
-        "utils/wagl_pbs",
     ],
     setup_requires=["pytest-runner", "setuptools_scm"],
     tests_require=tests_require,

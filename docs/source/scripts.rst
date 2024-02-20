@@ -5,7 +5,6 @@ There are several command line scripts for either extracting datasets or unittes
 
     * wagl_convert:  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*
     * wagl_ls: *List the contents of an HDF5 file.*
-    * wagl_pbs: *Evenly distribute a list of level-1 datasets and submit each block for processing into the PBS queue.*
     * test_calculate_angles: *Compares and evaluates each dataset contained within a* **satellite-solar.h5** *file against the same datasets contained within another file.*
     * test_dsm: *Compare and evaluate two* **dsm-extract.h5** *files.*
     * test_exiting_angles: *Compare and evaluate two* **exiting-angles.h5** *files.*
@@ -37,30 +36,6 @@ Example of use:
    $ wagl_ls --filename satellite-solar.h5
 
    $ wagl_ls --filename satellite-solar.h5 --verbose
-
-**wagl_pbs**
-
-Given a list of level-1 datasets, evenly distrubute the number of datasets across *n* nodes and submit as either a single job, or multiple jobs to the PBS queue.
-
-An example of submitting individual jobs to the PBS queue using the following specifications:
-
-  * Run using the *nbar* workflow.
-  * The *bilinear* interpolation function.
-  * Specify a 3x3 point grid location to calculate the radiative transfer at.
-  * 10 nodes.
-  * Use the nx200 project allocation code identifier.
-  * Submit to the express queue.
-  * Maximum job runtime of 2 hours.
-
-.. code-block:: bash
-
-   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --workflow nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
-
-The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
-
-.. code-block:: bash
-
-   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --workflow nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
 **test_calculate_angles**
 
