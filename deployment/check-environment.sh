@@ -44,7 +44,7 @@ try_load("wagl")
 # This will import the fortran modules too, which are
 # commonly missing when the build is misconfigured.
 print("Attempting load of fortran-based modules... ", end='', flush=True)
-from wagl import multifile_workflow
+from wagl import singlefile_workflow
 print("✅")
 
 # The previous import of wagl should have initialised the filters.

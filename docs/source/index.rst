@@ -17,7 +17,6 @@ Contents:
    algorithms
    dependencies
    directories
-   invoking
    acquisitions
    hdf5
    atmospherics

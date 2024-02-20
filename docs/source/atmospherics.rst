@@ -238,7 +238,7 @@ The table dataset names for the *NBAR* and *SBT* workflow are:
 * /ATMOSPHERIC-COEFFICIENTS/NBAR-COEFFICIENTS
 * /ATMOSPHERIC-COEFFICIENTS/SBT-COEFFICIENTS
 
-if the dataset is not composed of multiple tiles/granules in which case the *coefficiencts* Group is at the root layer of the *wagl.singlefile_workflow* or the *wagl.multifile_workflow*, otherwise the *granule name* eg *S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01* would precede the *coefficients* Group in the *wagl.singlefile_workflow* like such:
+if the dataset is not composed of multiple tiles/granules in which case the *coefficiencts* Group is at the root layer of the *wagl.singlefile_workflow*, otherwise the *granule name* eg *S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01* would precede the *coefficients* Group in the *wagl.singlefile_workflow* like such:
 
 * /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COEFFICIENTS/NBAR-COEFFICIENTS
 * /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COEFFICIENTS/SBT-COEFFICIENTS

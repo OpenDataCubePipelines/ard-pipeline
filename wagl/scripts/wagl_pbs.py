@@ -58,7 +58,6 @@ FMT2 = "jobid-{jobid}.bash"
 FMT3 = "scratch/{f_project}+gdata/{f_project}"
 DAEMON_FMT = "luigid --background --logdir {}"
 ARD_FMT = "--module wagl.{workflow_type} ARD --workflow {workflow} --vertices '{vertices}' --buffer-distance {distance} --method {method}"  # pylint: disable=line-too-long
-TASK_FMT = "--module wagl.multifile_workflow CallTask --task {task}"
 
 
 def _get_project_for_path(path: Path):
@@ -244,8 +243,6 @@ def run(
     local_scheduler=False,
     dsh=False,
     test=False,
-    singlefile=False,
-    task=None,
     ncpus=48,
     workers=30,
     memory=192,
@@ -278,19 +275,16 @@ def run(
         filesystem_projects=fsys_projects,
     )
 
-    workflow_type = "singlefile_workflow" if singlefile else "multifile_workflow"
+    workflow_type = "singlefile_workflow"
 
     # luigi task workflow options
-    if task is None:
-        options = ARD_FMT.format(
-            workflow_type=workflow_type,
-            workflow=workflow,
-            vertices=vertices,
-            method=method,
-            distance=buffer_distance,
-        )
-    else:
-        options = TASK_FMT.format(task=task)
+    options = ARD_FMT.format(
+        workflow_type=workflow_type,
+        workflow=workflow,
+        vertices=vertices,
+        method=method,
+        distance=buffer_distance,
+    )
 
     if test:
         print(f"Mocking... Submitting Batch: {batchid} ...Mocking")
@@ -408,23 +402,6 @@ def _parser():
         "--dsh", help="Run using PBS Distributed Shell.", action="store_true"
     )
     parser.add_argument(
-        "--singlefile",
-        action="store_true",
-        help=(
-            "Run wagl using the single-file workflow. "
-            "Default is to output multiple files."
-        ),
-    )
-    parser.add_argument(
-        "--task",
-        help=(
-            "Specify a luigi Task contained within the "
-            "wagl.multifile_workflow module and run "
-            "each scene listed in level1-list through to "
-            "that Task level."
-        ),
-    )
-    parser.add_argument(
         "--test",
         action="store_true",
         help=("Test job execution (Don't submit the job to " "the PBS queue)."),
@@ -453,8 +430,6 @@ def main():
         args.local_scheduler,
         args.dsh,
         args.test,
-        args.singlefile,
-        args.task,
         args.ncpus,
         args.workers,
         args.memory,

@@ -106,19 +106,3 @@ To install the `mafisc` compression filter, follow these [instructions](https://
 The [bitshuffle filter](https://github.com/kiyo-masui/bitshuffle) can be installed
 from source, or conda via the supplied [conda recipe](https://github.com/kiyo-masui/bitshuffle/tree/master/conda-recipe).
 It utilises a bitshuffling filter on top of either a lz4 or lzf compression filter.
-
-## Basic command line useage
---------------------------
-Using the [local scheduler](http://luigi.readthedocs.io/en/stable/command_line.html):
-
-    $ luigi --module wagl.multifile_workflow ARD --workflow NBAR --level1-list scenes.txt --outdir /some/path --local-scheduler --workers 4
-
-Using the [central scheduler](http://luigi.readthedocs.io/en/stable/central_scheduler.html):
-
-    $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
-
-    $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --workflow STANDARD --outdir /some/path --workers 4
-
-    $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --workflow NBAR --outdir /some/path --workers 4
-
-    $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --workflow SBT --outdir /some/path --workers 4
