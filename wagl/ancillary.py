@@ -218,7 +218,9 @@ class NbarPathsDict(TypedDict):
     brdf_dict: BrdfDict
 
 
-def is_offshore_territory(acq: Acquisition, offshore_territory_boundary_path: str) -> bool:
+def is_offshore_territory(
+    acq: Acquisition, offshore_territory_boundary_path: str
+) -> bool:
     geobox = acq.gridded_geo_box()
     acq_polygon = Polygon(
         [geobox.ul_lonlat, geobox.ur_lonlat, geobox.lr_lonlat, geobox.ll_lonlat]
