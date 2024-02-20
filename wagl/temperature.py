@@ -6,7 +6,6 @@
 
 import logging
 
-import h5py
 import numexpr
 import numpy as np
 
@@ -50,9 +49,7 @@ def surface_brightness_temperature(
         * DatasetName.INTERPOLATION_FMT
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be given by the format string detailed
         by:
@@ -94,13 +91,8 @@ def surface_brightness_temperature(
     dname = dname_fmt.format(coefficient=AC.TRANSMITTANCE_UP.value, band_name=bn)
     transmittance = interpolation_group[dname]
 
-    # Initialise the output file
-    if out_group is None:
-        fid = h5py.File(
-            "surface-temperature.h5", "w", driver="core", backing_store=False
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.STANDARD_GROUP.value not in fid:
         fid.create_group(GroupName.STANDARD_GROUP.value)
@@ -161,9 +153,6 @@ def surface_brightness_temperature(
 
         out_dset[idx] = brightness_temp
     acq.close()  # If dataset is cached; clear it
-
-    if out_group is None:
-        return fid
 
 
 def radiance_conversion(band_array, gain, bias):

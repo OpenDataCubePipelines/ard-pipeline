@@ -2,7 +2,6 @@
 
 """Calculates 2D grids of incident, exiting and relative azimuthal angles."""
 
-import h5py
 import numpy as np
 
 from wagl.__exiting_angle import exiting_angle
@@ -38,9 +37,7 @@ def incident_angles(
         * DatasetName.ASPECT
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be as follows:
 
@@ -76,11 +73,8 @@ def incident_angles(
     rows, cols = shape
     crs = geobox.crs.ExportToWkt()
 
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File("incident-angles.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.INCIDENT_GROUP.value not in fid:
         fid.create_group(GroupName.INCIDENT_GROUP.value)
@@ -159,9 +153,6 @@ def incident_angles(
         incident_dset[idx] = incident
         azi_inc_dset[idx] = azi_incident
 
-    if out_group is None:
-        return fid
-
 
 def exiting_angles(
     satellite_solar_group,
@@ -187,9 +178,7 @@ def exiting_angles(
         * DatasetName.ASPECT
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be as follows:
 
@@ -225,11 +214,8 @@ def exiting_angles(
     rows, cols = shape
     crs = geobox.crs.ExportToWkt()
 
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File("exiting-angles.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.EXITING_GROUP.value not in fid:
         fid.create_group(GroupName.EXITING_GROUP.value)
@@ -312,9 +298,6 @@ def exiting_angles(
         exiting_dset[idx] = exiting
         azi_exit_dset[idx] = azi_exiting
 
-    if out_group is None:
-        return fid
-
 
 def relative_azimuth_slope(
     incident_angles_group,
@@ -338,9 +321,7 @@ def relative_azimuth_slope(
         * DatasetName.AZIMUTHAL_EXITING
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be as follows:
 
@@ -373,13 +354,8 @@ def relative_azimuth_slope(
     rows, cols = shape
     crs = geobox.crs.ExportToWkt()
 
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File(
-            "relative-azimuth-angles.h5", "w", driver="core", backing_store=False
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.REL_SLP_GROUP.value not in fid:
         fid.create_group(GroupName.REL_SLP_GROUP.value)
@@ -428,6 +404,3 @@ def relative_azimuth_slope(
 
         # Write the current tile to disk
         out_dset[idx] = rel_azi
-
-    if out_group is None:
-        return fid

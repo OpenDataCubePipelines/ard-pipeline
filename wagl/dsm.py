@@ -69,9 +69,7 @@ def get_dsm(
         Default is 8000.
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset name will be as follows:
 
@@ -142,11 +140,8 @@ def get_dsm(
     subs = None
 
     # Output the reprojected result
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File("dsm-subset.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if filter_opts is None:
         filter_opts = {}
@@ -185,6 +180,3 @@ def get_dsm(
     attrs["description"] = desc
     attrs["id"] = np.array([metadata["id"]], VLEN_STRING)
     attach_image_attributes(out_sm_dset, attrs)
-
-    if out_group is None:
-        return fid

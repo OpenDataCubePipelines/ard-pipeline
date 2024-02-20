@@ -107,9 +107,7 @@ def create_lon_lat_grids(
         An instance of an `Acquisition` object.
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be given by:
 
@@ -144,13 +142,8 @@ def create_lon_lat_grids(
     result = np.zeros(shape, dtype="float64")
     interpolate_grid(result, lon_func, depth=depth, origin=(0, 0), shape=shape)
 
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File(
-            "longitude-latitude.h5", "w", driver="core", backing_store=False
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.LON_LAT_GROUP.value not in fid:
         fid.create_group(GroupName.LON_LAT_GROUP.value)

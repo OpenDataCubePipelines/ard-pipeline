@@ -7,7 +7,6 @@ as source directions, as well as self shadow masks.
 ---------------------------------------------------
 """
 
-import h5py
 import numpy as np
 
 from wagl.__cast_shadow_mask import cast_shadow_main
@@ -41,9 +40,7 @@ def self_shadow(
         * DatasetName.EXITING
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
         The dataset name will be given by:
 
         * DatasetName.SELF_SHADOW
@@ -68,11 +65,8 @@ def self_shadow(
     exiting_angle = exiting_angles_group[DatasetName.EXITING.value]
     geobox = GriddedGeoBox.from_dataset(incident_angle)
 
-    # Initialise the output file
-    if out_group is None:
-        fid = h5py.File("self-shadow.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if filter_opts is None:
         filter_opts = {}
@@ -123,9 +117,6 @@ def self_shadow(
 
         # Write the current tile to disk
         out_dset[idx] = mask
-
-    if out_group is None:
-        return fid
 
 
 class FortranError(Exception):
@@ -319,9 +310,7 @@ def calculate_cast_shadow(
         Default is 8000.
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be given by the format string detailed
         by:
@@ -408,16 +397,8 @@ def calculate_cast_shadow(
 
     source_dir = "SUN" if solar_source else "SATELLITE"
 
-    # Initialise the output file
-    if out_group is None:
-        fid = h5py.File(
-            f"cast-shadow-{source_dir}.h5",
-            "w",
-            driver="core",
-            backing_store=False,
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.SHADOW_GROUP.value not in fid:
         fid.create_group(GroupName.SHADOW_GROUP.value)
@@ -450,9 +431,6 @@ def calculate_cast_shadow(
     attrs["description"] = desc
     attrs["alias"] = f"cast-shadow-{source_dir}".lower()
     attach_image_attributes(out_dset, attrs)
-
-    if out_group is None:
-        return fid
 
 
 def combine_shadow_masks(
@@ -487,9 +465,7 @@ def combine_shadow_masks(
         * DatasetName.CAST_SHDADOW_FMT
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be given by the format string detailed
         by:
@@ -520,11 +496,8 @@ def combine_shadow_masks(
     cast_sat = cast_shadow_satellite_group[dname]
     geobox = GriddedGeoBox.from_dataset(self_shad)
 
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File("combined-shadow.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.SHADOW_GROUP.value not in fid:
         fid.create_group(GroupName.SHADOW_GROUP.value)
@@ -568,6 +541,3 @@ def combine_shadow_masks(
         idx = (slice(ystart, yend), slice(xstart, xend))
 
         out_dset[idx] = self_shad[idx] & cast_sun[idx] & cast_sat[idx]
-
-    if out_group is None:
-        return fid

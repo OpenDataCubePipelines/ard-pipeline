@@ -15,7 +15,6 @@ from os.path import exists
 from os.path import join as pjoin
 from posixpath import join as ppjoin
 
-import h5py
 import numpy as np
 import pandas as pd
 
@@ -139,8 +138,7 @@ def format_json(
     # get the modtran profiles to use based on the centre latitude
     _, centre_lat = acquisitions[0].gridded_geo_box().centre_lonlat
 
-    if out_group is None:
-        out_group = h5py.File("atmospheric-inputs.h5", "w")
+    assert out_group is not None
 
     if GroupName.ATMOSPHERIC_INPUTS_GRP.value not in out_group:
         out_group.create_group(GroupName.ATMOSPHERIC_INPUTS_GRP.value)
@@ -261,13 +259,8 @@ def run_modtran(
     """Run MODTRAN and channel results."""
     lonlat = atmospherics_group[POINT_FMT.format(p=point)].attrs["lonlat"]
 
-    # determine the output group/file
-    if out_group is None:
-        fid = h5py.File(
-            "atmospheric-results.h5", "w", driver="core", backing_store=False
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     # initial attributes
     base_attrs = {
@@ -380,9 +373,6 @@ def run_modtran(
     fid[base_path].attrs["datetime"] = acqs[0].acquisition_datetime.isoformat()
     fid[base_path].attrs.create("albedos", data=alb_vals, dtype=VLEN_STRING)
 
-    if out_group is None:
-        return fid
-
 
 def calculate_coefficients(
     atmospheric_results_group,
@@ -401,9 +391,7 @@ def calculate_coefficients(
         from each MODTRAN run.
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The datasets will be formatted to the HDF5 TABLE specification
         and the dataset names will be as follows:
@@ -432,13 +420,8 @@ def calculate_coefficients(
 
     channel_data = channel_solar_angle = upward = downward = None
 
-    # Initialise the output group/file
-    if out_group is None:
-        fid = h5py.File(
-            "atmospheric-coefficients.h5", "w", driver="core", backing_store=False
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     res = atmospheric_results_group
     npoints = res.attrs["npoints"]
@@ -537,9 +520,6 @@ def calculate_coefficients(
             attrs=attrs,
             filter_opts=filter_opts,
         )
-
-    if out_group is None:
-        return fid
 
 
 def coefficients(

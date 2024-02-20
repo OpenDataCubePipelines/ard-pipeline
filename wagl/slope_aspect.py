@@ -2,7 +2,6 @@
 
 """Calculates the slope and aspect for a given elevation dataset."""
 
-import h5py
 import numpy as np
 
 from wagl.__slope_aspect import slope_aspect
@@ -43,9 +42,7 @@ def slope_aspect_arrays(
         Default is 8000.
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be given by the format string detailed
         by:
@@ -110,11 +107,8 @@ def slope_aspect_arrays(
     )  # yes, I did mean float64.
 
     # Output the reprojected result
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File("slope-aspect.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.SLP_ASP_GROUP.value not in fid:
         fid.create_group(GroupName.SLP_ASP_GROUP.value)
@@ -174,6 +168,3 @@ def slope_aspect_arrays(
     desc = "The aspect derived from the input elevation model."
     attrs["description"] = desc
     attach_image_attributes(aspect_dset, attrs)
-
-    if out_group is None:
-        return fid

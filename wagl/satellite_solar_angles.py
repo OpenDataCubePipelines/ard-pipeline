@@ -3,7 +3,6 @@
 import math
 
 import ephem
-import h5py
 import numpy as np
 from osgeo import osr
 
@@ -845,9 +844,7 @@ def calculate_angles(
         * DatasetName.LAT
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be as follows:
 
@@ -953,13 +950,8 @@ def calculate_angles(
         trackpoints,
     )
 
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File(
-            "satellite-solar-angles.h5", "w", driver="core", backing_store=False
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.SAT_SOL_GROUP.value not in fid:
         fid.create_group(GroupName.SAT_SOL_GROUP.value)
@@ -1135,6 +1127,3 @@ def calculate_angles(
         grp,
         acquisition.maximum_view_angle,
     )
-
-    if out_group is None:
-        return fid

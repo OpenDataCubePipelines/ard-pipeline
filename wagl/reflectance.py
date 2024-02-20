@@ -5,7 +5,6 @@ reflectance
 -----------
 """
 
-import h5py
 import numpy as np
 
 from wagl.__surface_reflectance import reflectance
@@ -105,9 +104,7 @@ def calculate_reflectance(
         Threshold for terrain correction. Fuqin to document.
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
         The dataset names will be given by the format string detailed
         by:
@@ -193,13 +190,8 @@ def calculate_reflectance(
     )
     brdf_alpha2 = ancillary_group[dname][()]
 
-    # Initialise the output file
-    if out_group is None:
-        fid = h5py.File(
-            "surface-reflectance.h5", "w", driver="core", backing_store=False
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.STANDARD_GROUP.value not in fid:
         fid.create_group(GroupName.STANDARD_GROUP.value)
@@ -341,6 +333,3 @@ def calculate_reflectance(
 
     # close any still opened files, arrays etc associated with the acquisition
     acquisition.close()
-
-    if out_group is None:
-        return fid

@@ -5,7 +5,6 @@
 import logging
 import math
 
-import h5py
 import numexpr
 import numpy as np
 from scipy.interpolate import Rbf
@@ -472,13 +471,8 @@ def interpolate(
 
     result = func_map[method](*args)
 
-    # setup the output file/group as needed
-    if out_group is None:
-        fid = h5py.File(
-            "interpolated-coefficients.h5", "w", driver="core", backing_store=False
-        )
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if GroupName.INTERP_GROUP.value not in fid:
         fid.create_group(GroupName.INTERP_GROUP.value)
@@ -512,6 +506,3 @@ def interpolate(
 
     result[result == -999] = no_data
     write_h5_image(result, dset_name, group, compression, attrs, filter_opts)
-
-    if out_group is None:
-        return fid

@@ -239,9 +239,7 @@ def collect_ancillary(
         Default is (3, 3).
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
     :param compression:
         The compression filter to use.
@@ -267,11 +265,8 @@ def collect_ancillary(
             "Use `AcquisitionsContainer.get_granule` method prior to calling this function."
         )
 
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File("ancillary.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     if filter_opts is None:
         filter_opts = {}
@@ -324,9 +319,6 @@ def collect_ancillary(
         **nbar_paths,
     )
 
-    if out_group is None:
-        return fid
-
 
 def collect_sbt_ancillary(
     acquisition,
@@ -355,9 +347,7 @@ def collect_sbt_ancillary(
         data.
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
     :param compression:
         The compression filter to use.
@@ -375,11 +365,8 @@ def collect_sbt_ancillary(
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File("sbt-ancillary.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     fid.attrs["sbt-ancillary"] = True
 
@@ -473,9 +460,6 @@ def collect_sbt_ancillary(
         )
 
         fid[pnt].attrs["lonlat"] = lonlat
-
-    if out_group is None:
-        return fid
 
 
 @attr.define
@@ -626,9 +610,7 @@ def collect_nbar_ancillary(
         * {'brdf_path': <path-to-BRDF>, 'brdf_fallback_path': <path-to-average-BRDF>}
 
     :param out_group:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
-        a writeable HDF5 `Group` object.
+        A writeable HDF5 `Group` object.
 
     :param compression:
         The compression filter to use.
@@ -652,11 +634,8 @@ def collect_nbar_ancillary(
         tables in future, therefore they can remain until we know
         for sure they'll never be used.
     """
-    # Initialise the output files
-    if out_group is None:
-        fid = h5py.File("nbar-ancillary.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = out_group
+    assert out_group is not None
+    fid = out_group
 
     acquisition = container.get_highest_resolution()[0][0]
     dt = acquisition.acquisition_datetime
@@ -689,9 +668,6 @@ def collect_nbar_ancillary(
                 )
                 brdf_value = data[param].pop("value")
                 write_scalar(brdf_value, dname, fid, data[param])
-
-    if out_group is None:
-        return fid
 
 
 def get_aerosol_data(
