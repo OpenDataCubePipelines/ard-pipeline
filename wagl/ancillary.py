@@ -11,12 +11,13 @@ from posixpath import join as ppjoin
 from typing import Dict, List, Optional, Set, Tuple, TypedDict
 
 import attr
+import fiona
 import h5py
 import numpy as np
 import pandas as pd
 from geopandas import GeoSeries
 from shapely import wkt
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, shape
 
 from wagl.acquisition import (
     Acquisition,
@@ -187,10 +188,27 @@ class NbarPathsDict(TypedDict):
     brdf_dict: BrdfDict
 
 
+def is_offshore_territory(
+    acq: Acquisition, offshore_territory_boundary_path: str
+) -> bool:
+    geobox = acq.gridded_geo_box()
+    acq_polygon = Polygon(
+        [geobox.ul_lonlat, geobox.ur_lonlat, geobox.lr_lonlat, geobox.ll_lonlat]
+    )
+
+    with fiona.open(offshore_territory_boundary_path, "r") as offshore_territory:
+        for boundary_poly in offshore_territory:
+            if shape(boundary_poly["geometry"]).contains(acq_polygon):
+                return False
+
+    return True
+
+
 def collect_ancillary(
     container: AcquisitionsContainer,
     satellite_solar_group,
     nbar_paths: NbarPathsDict,
+    offshore_territory_boundary_path: str,
     sbt_path=None,
     invariant_fname=None,
     vertices=(3, 3),
@@ -224,6 +242,10 @@ def collect_ancillary(
         * ozone_path
         * dem_path
         * brdf_dict
+
+    :param offshore_territory_boundary_path:
+        A `str` to the path of a geometry file delineating the boundary
+        the outside of which is considered "offshore"
 
     :param sbt_path:
         A `str` containing the base directory pointing to the
@@ -315,6 +337,7 @@ def collect_ancillary(
     collect_nbar_ancillary(
         container,
         out_group=group,
+        offshore=is_offshore_territory(acquisition, offshore_territory_boundary_path),
         compression=compression,
         filter_opts=filter_opts,
         **nbar_paths,
@@ -526,6 +549,7 @@ def find_needed_acquisition_ancillary(
     acquisition: Acquisition,
     config: AncillaryConfig,
     mode: Optional[BrdfMode] = None,
+    offshore: bool = False,
 ) -> Tuple[Set[str], List[str]]:
     """
     Find which Ancillary Paths are needed to process this acquisition.
@@ -553,8 +577,9 @@ def find_needed_acquisition_ancillary(
         find_water_vapour_definitive_path(acquisition, config.water_vapour_dict),
         config.ozone_path,
         dem_file_path,
-        # Always uses the ocean mask.
-        config.brdf_dict["ocean_mask_path"],
+        config.brdf_dict["ocean_mask_path"]
+        if not offshore
+        else config.brdf_dict["extended_ocean_mask_path"],
     ]
 
     tiers: Set[str] = set()
@@ -575,6 +600,7 @@ def collect_nbar_ancillary(
     ozone_path: Optional[str] = None,
     dem_path: PathWithDataset = None,
     brdf_dict: BrdfDict = None,
+    offshore: bool = False,
     out_group=None,
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
@@ -609,6 +635,9 @@ def collect_nbar_ancillary(
 
         * {'user': {<band-alias>: {'alpha_1': <value>, 'alpha_2': <value>}, ...}}
         * {'brdf_path': <path-to-BRDF>, 'brdf_fallback_path': <path-to-average-BRDF>}
+
+    :param offshore:
+        Whether the acquisition to be processed belongs to Australian offshore territories
 
     :param out_group:
         A writeable HDF5 `Group` object.
@@ -660,7 +689,9 @@ def collect_nbar_ancillary(
         for acq in container.get_acquisitions(group=group):
             if acq.band_type is not BandType.REFLECTIVE:
                 continue
-            data = get_brdf_data(acq, brdf_dict, compression=compression)
+            data = get_brdf_data(
+                acq, brdf_dict, compression=compression, offshore=offshore
+            )
 
             # output
             for param in data:
