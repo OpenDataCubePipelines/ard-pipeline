@@ -78,6 +78,7 @@ class DataStandardisation(luigi.Task):
     dem_path = luigi.Parameter(significant=False)
     ecmwf_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
+    offshore_territory_boundary_path = luigi.Parameter(significant=False)
     srtm_pathname = luigi.Parameter(significant=False)
     cop_pathname = luigi.Parameter(significant=False)
     modtran_exe = luigi.Parameter(significant=False)
@@ -115,6 +116,7 @@ class DataStandardisation(luigi.Task):
                 self.tle_path,
                 self.aerosol,
                 self.brdf,
+                self.offshore_territory_boundary_path,
                 self.ozone_path,
                 self.water_vapour,
                 self.dem_path,
