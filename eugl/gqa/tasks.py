@@ -613,7 +613,7 @@ def get_reference_imagery(path_rows, timestamp, band_id, sat_id, reference_direc
     australian = [
         entry
         for entry in path_rows
-        if 87 <= entry["path"] <= 116 and 67 <= entry["row"] <= 91
+        if 79 <= entry["path"] <= 136 and 66 <= entry["row"] <= 99
     ]
 
     if australian == []:
