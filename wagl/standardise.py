@@ -3,7 +3,6 @@
 import json
 import tempfile
 from os.path import join as pjoin
-from posixpath import join as ppjoin
 
 import h5py
 
@@ -237,12 +236,21 @@ def card4l(
             filter_opts,
         )
 
-        esun_values = stash_reflectance(
+        stash_interpolation(
             root,
             container,
             granule,
             workflow,
             method,
+            compression,
+            filter_opts,
+        )
+
+        stash_reflectance(
+            root,
+            container,
+            granule,
+            workflow,
             rori,
             normalized_solar_zenith,
             compression,
@@ -256,7 +264,6 @@ def card4l(
             workflow,
             vertices,
             buffer_distance,
-            esun_values,
             method,
             rori,
             normalized_solar_zenith,
@@ -538,17 +545,34 @@ def stash_atmospherics(
             )
 
 
-# this function calculates esun values as a byproduct
-# TODO disentangle esun_value extraction
-# TODO (probably by separating interpolation and reflectance)
-def stash_reflectance(
+def nbar_acquisitions(container, granule, grp_name):
+    acqs = container.get_acquisitions(granule=granule, group=grp_name)
+    return [acq for acq in acqs if acq.band_type == BandType.REFLECTIVE]
+
+
+def sbt_acquisitions(container, granule, grp_name):
+    acqs = container.get_acquisitions(granule=granule, group=grp_name)
+    return [acq for acq in acqs if acq.band_type == BandType.THERMAL]
+
+
+def relevant_acquisitions(container, granule, grp_name, workflow):
+    band_acqs = []
+
+    if workflow in (Workflow.STANDARD, Workflow.NBAR):
+        band_acqs.extend(nbar_acquisitions(container, granule, grp_name))
+
+    if workflow in (Workflow.STANDARD, Workflow.SBT):
+        band_acqs.extend(sbt_acquisitions(container, granule, grp_name))
+
+    return band_acqs
+
+
+def stash_interpolation(
     root,
     container,
     granule,
     workflow,
     method,
-    rori,
-    normalized_solar_zenith,
     compression,
     filter_opts,
 ):
@@ -560,7 +584,6 @@ def stash_reflectance(
     ancillary_group = root[GroupName.ANCILLARY_GROUP.value]
     results_group = root[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
     calculate_coefficients(results_group, root, compression, filter_opts)
-    esun_values = {}
 
     # interpolate coefficients
     for grp_name in container.supported_groups:
@@ -569,11 +592,6 @@ def stash_reflectance(
         )
         log.info("Interpolation")
 
-        # acquisitions and available bands for the current group level
-        acqs = container.get_acquisitions(granule=granule, group=grp_name)
-        nbar_acqs = [acq for acq in acqs if acq.band_type == BandType.REFLECTIVE]
-        sbt_acqs = [acq for acq in acqs if acq.band_type == BandType.THERMAL]
-
         res_group = root[grp_name]
         sat_sol_grp = res_group[GroupName.SAT_SOL_GROUP.value]
         comp_grp = root[GroupName.COEFFICIENTS_GROUP.value]
@@ -581,10 +599,11 @@ def stash_reflectance(
         for coefficient in workflow.atmos_coefficients:
             if coefficient is AtmosphericCoefficients.ESUN:
                 continue
+
             if coefficient in Workflow.NBAR.atmos_coefficients:
-                band_acqs = nbar_acqs
+                band_acqs = nbar_acquisitions(container, granule, grp_name)
             else:
-                band_acqs = sbt_acqs
+                band_acqs = sbt_acquisitions(container, granule, grp_name)
 
             for acq in band_acqs:
                 log.info(
@@ -604,14 +623,52 @@ def stash_reflectance(
                     method,
                 )
 
+
+def get_esun_values(
+    root,
+    container,
+    granule,
+):
+    esun_values = {}
+
+    comp_grp = root[GroupName.COEFFICIENTS_GROUP.value]
+
+    for grp_name in container.supported_groups:
+        for acq in nbar_acquisitions(container, granule, grp_name):
+            atmos_coefs = read_h5_table(comp_grp, DatasetName.NBAR_COEFFICIENTS.value)
+            esun_values[acq.band_name] = (
+                atmos_coefs[atmos_coefs.band_name == acq.band_name][
+                    AtmosphericCoefficients.ESUN.value
+                ]
+            ).values[0]
+
+    return esun_values
+
+
+def stash_reflectance(
+    root,
+    container,
+    granule,
+    workflow,
+    rori,
+    normalized_solar_zenith,
+    compression,
+    filter_opts,
+):
+    ancillary_group = root[GroupName.ANCILLARY_GROUP.value]
+    esun_values = get_esun_values(root, container, granule)
+
+    for grp_name in container.supported_groups:
+        log = STATUS_LOGGER.bind(
+            level1=container.label, granule=granule, granule_group=grp_name
+        )
+        log.info("Reflectance")
+
+        res_group = root[grp_name]
+        sat_sol_grp = res_group[GroupName.SAT_SOL_GROUP.value]
+
         # standardised products
-        band_acqs = []
-
-        if workflow in (Workflow.STANDARD, Workflow.NBAR):
-            band_acqs.extend(nbar_acqs)
-
-        if workflow in (Workflow.STANDARD, Workflow.SBT):
-            band_acqs.extend(sbt_acqs)
+        band_acqs = relevant_acquisitions(container, granule, grp_name, workflow)
 
         for acq in band_acqs:
             interp_grp = res_group[GroupName.INTERP_GROUP.value]
@@ -622,15 +679,6 @@ def stash_reflectance(
                     acq, interp_grp, res_group, compression, filter_opts
                 )
             else:
-                atmos_coefs = read_h5_table(
-                    comp_grp, DatasetName.NBAR_COEFFICIENTS.value
-                )
-                esun_values[acq.band_name] = (
-                    atmos_coefs[atmos_coefs.band_name == acq.band_name][
-                        AtmosphericCoefficients.ESUN.value
-                    ]
-                ).values[0]
-
                 slp_asp_grp = res_group[GroupName.SLP_ASP_GROUP.value]
                 rel_slp_asp = res_group[GroupName.REL_SLP_GROUP.value]
                 incident_grp = res_group[GroupName.INCIDENT_GROUP.value]
@@ -656,8 +704,6 @@ def stash_reflectance(
                     esun_values[acq.band_name],
                 )
 
-    return esun_values
-
 
 def stash_metadata(
     root,
@@ -666,26 +712,12 @@ def stash_metadata(
     workflow,
     vertices,
     buffer_distance,
-    esun_values,
     method,
     rori,
     normalized_solar_zenith,
 ):
-    def get_band_acqs(grp_name):
-        acqs = container.get_acquisitions(granule=granule, group=grp_name)
-        nbar_acqs = [acq for acq in acqs if acq.band_type == BandType.REFLECTIVE]
-        sbt_acqs = [acq for acq in acqs if acq.band_type == BandType.THERMAL]
-
-        band_acqs = []
-        if workflow in (Workflow.STANDARD, Workflow.NBAR):
-            band_acqs.extend(nbar_acqs)
-
-        if workflow in (Workflow.STANDARD, Workflow.SBT):
-            band_acqs.extend(sbt_acqs)
-
-        return band_acqs
-
     ancillary_group = root[GroupName.ANCILLARY_GROUP.value]
+    esun_values = get_esun_values(root, container, granule)
 
     # wagl parameters
     parameters = {
@@ -700,7 +732,10 @@ def stash_metadata(
     # metadata yaml's
     metadata = root.create_group(DatasetName.METADATA.value)
     create_ard_yaml(
-        {grp_name: get_band_acqs(grp_name) for grp_name in container.supported_groups},
+        {
+            grp_name: relevant_acquisitions(container, granule, grp_name, workflow)
+            for grp_name in container.supported_groups
+        },
         ancillary_group,
         metadata,
         parameters,
