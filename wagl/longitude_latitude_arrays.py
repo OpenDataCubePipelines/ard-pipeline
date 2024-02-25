@@ -2,9 +2,6 @@
 
 """Longitude and Latitude 2D grid creation."""
 
-from functools import partial
-
-import h5py
 import numpy as np
 from osgeo import osr
 
@@ -17,15 +14,11 @@ LON_DESC = "Contains the longitude values for each pixel."
 LAT_DESC = "Contains the latitude values for each pixel."
 
 
-def get_lon_coordinate(y, x, geobox, geo_crs=None, centre=False):
-    """Given an image/array y & x co-ordinate return the corresponding
-    longitude co-ordinate. The y, x style mimics Python indices.
-
-    :param y:
-        An integer representing an image/array row coordinate.
-
-    :param x:
-        An integer representing an image/array column coordinate.
+def coord_getters(geobox, geo_crs=None, centre=True):
+    """
+    Returns a pair of functions that when
+    given an image/array y & x will return the corresponding
+    longitude and latitude co-ordinates. The y, x style mimics Python indices.
 
     :param geobox:
         An instance of a GriddedGeoBox object.
@@ -38,59 +31,42 @@ def get_lon_coordinate(y, x, geobox, geo_crs=None, centre=False):
     :param centre:
         A boolean indicating whether or not the returned co-ordinate
         should reference the centre of a pixel, in which case a 0.5
-        offset is applied in the x & y directions. Default is False.
+        offset is applied in the x & y directions. Default is True.
 
     :return:
-        A floating point value representing the longitude
-        co-ordinate.
+        A function that returns the longitude and latitudes
+        when given y & x integer indices.
     """
     if geo_crs is None:
         geo_crs = osr.SpatialReference()
         geo_crs.SetFromUserInput(CRS)
 
-    xy = (x, y)
-    mapx, mapy = geobox.convert_coordinates(xy, to_map=True, centre=centre)
-    x = geobox.transform_coordinates((mapx, mapy), geo_crs)[0]
+    affine_transform = geobox.transform
 
-    return x
+    geobox.crs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    geo_crs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
+    coord_transform = osr.CoordinateTransformation(geobox.crs, geo_crs)
 
-def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
-    """Given an image/array x & y co-ordinate return the corresponding
-    latitude co-ordinate. The y, x style mimics Python indices.
+    def lon_func(y, x):
+        if centre:
+            xy = tuple(v + 0.5 for v in (x, y))
+        else:
+            xy = (x, y)
+        mapx, mapy = affine_transform * xy
+        (lon, lat, _) = coord_transform.TransformPoint(mapx, mapy)
+        return lon
 
-    :param y:
-        An integer representing an image/array row coordinate.
+    def lat_func(y, x):
+        if centre:
+            xy = tuple(v + 0.5 for v in (x, y))
+        else:
+            xy = (x, y)
+        mapx, mapy = affine_transform * xy
+        (lon, lat, _) = coord_transform.TransformPoint(mapx, mapy)
+        return lat
 
-    :param x:
-        An integer representing an image/array column coordinate.
-
-    :param geobox:
-        An instance of a GriddedGeoBox object.
-
-    :param geo_crs:
-        An instance of a defined geographic osr.SpatialReference
-        object. If set to None (Default), then geo_crs will be set
-        to WGS84.
-
-    :param centre:
-        A boolean indicating whether or not the returned co-ordinate
-        should reference the centre of a pixel, in which case a 0.5
-        offset is applied in the x & y directions. Default is False.
-
-    :return:
-        A floating point value representing the latitude
-        co-ordinate.
-    """
-    if geo_crs is None:
-        geo_crs = osr.SpatialReference()
-        geo_crs.SetFromUserInput(CRS)
-
-    xy = (x, y)
-    mapx, mapy = geobox.convert_coordinates(xy, to_map=True, centre=centre)
-    y = geobox.transform_coordinates((mapx, mapy), geo_crs)[1]
-
-    return y
+    return lon_func, lat_func
 
 
 def create_lon_lat_grids(
@@ -131,9 +107,9 @@ def create_lon_lat_grids(
         `core` driver, or on disk.
     """
     geobox = acquisition.gridded_geo_box()
+
     # Define the lon and lat transform funtions
-    lon_func = partial(get_lon_coordinate, geobox=geobox, centre=True)
-    lat_func = partial(get_lat_coordinate, geobox=geobox, centre=True)
+    lon_func, lat_func = coord_getters(geobox=geobox)
 
     # Get some basic info about the image
     shape = geobox.get_shape_yx()
@@ -171,169 +147,3 @@ def create_lon_lat_grids(
     attrs["description"] = LAT_DESC
     lat_dset = grp.create_dataset(DatasetName.LAT.value, data=result, **kwargs)
     attach_image_attributes(lat_dset, attrs)
-
-    return fid
-
-
-def create_grid(geobox, coord_fn, depth=7):
-    """Interpolates a `NumPy` array based on the input coordinate function
-    `coord_fn`.
-
-    :param geobox:
-        An instance of an `GriddedGeoBox` object.
-
-    :param coord_fn:
-        A function that maps coordinates.
-
-    :return:
-        A `NumPy` array.
-    """
-    # Define the transform funtions
-    func = partial(coord_fn, geobox=geobox, centre=True)
-
-    # Get some basic info about the image
-    shape = geobox.get_shape_yx()
-
-    # Initialise the array to contain the result
-    arr = np.zeros(shape, dtype="float64")
-    interpolate_grid(arr, func, depth=depth, origin=(0, 0), shape=shape)
-
-    return arr
-
-
-def create_lon_grid(
-    acquisition,
-    out_fname=None,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-    depth=7,
-):
-    """Create longitude grid.
-
-    :param acquisition:
-        An instance of an `Acquisition` object.
-
-    :param out_fname:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
-
-        The dataset path names will be as follows:
-
-        * contants.DatasetName.LON.value
-
-    :param compression:
-        The compression filter to use.
-        Default is H5CompressionFilter.LZF
-
-    :filter_opts:
-        A dict of key value pairs available to the given configuration
-        instance of H5CompressionFilter. For example
-        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
-        available.
-        Default is None, which will use the default settings for the
-        chosen H5CompressionFilter instance.
-
-    :return:
-        An opened `h5py.File` object, that is either in-memory using the
-        `core` driver, or on disk.
-    """
-    # Initialise the output files
-    if out_fname is None:
-        fid = h5py.File("longitude.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = h5py.File(out_fname, "w")
-
-    geobox = acquisition.gridded_geo_box()
-
-    # define some base attributes for the image datasets
-    attrs = {
-        "crs_wkt": geobox.crs.ExportToWkt(),
-        "geotransform": geobox.transform.to_gdal(),
-        "description": LON_DESC,
-    }
-
-    if filter_opts is None:
-        filter_opts = {}
-
-    filter_opts["chunks"] = acquisition.tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
-
-    lon_grid = create_grid(geobox, get_lon_coordinate, depth)
-
-    grp = fid.create_group(GroupName.LON_LAT_GROUP.value)
-    dset = grp.create_dataset(DatasetName.LON.value, data=lon_grid, **kwargs)
-    attach_image_attributes(dset, attrs)
-
-    return fid
-
-
-def create_lat_grid(
-    acquisition,
-    out_fname=None,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-    depth=7,
-):
-    """Create latitude grid.
-
-    :param acquisition:
-        An instance of an `Acquisition` object.
-
-    :param out_fname:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
-
-        The dataset path names will be as follows:
-
-        * contants.DatasetName.LAT.value
-
-    :param compression:
-        The compression filter to use.
-        Default is H5CompressionFilter.LZF
-
-    :filter_opts:
-        A dict of key value pairs available to the given configuration
-        instance of H5CompressionFilter. For example
-        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
-        available.
-        Default is None, which will use the default settings for the
-        chosen H5CompressionFilter instance.
-
-    :return:
-        An opened `h5py.File` object, that is either in-memory using the
-        `core` driver, or on disk.
-    """
-    # Initialise the output files
-    if out_fname is None:
-        fid = h5py.File("latitude.h5", "w", driver="core", backing_store=False)
-    else:
-        fid = h5py.File(out_fname, "w")
-
-    geobox = acquisition.gridded_geo_box()
-
-    # define some base attributes for the image datasets
-    attrs = {
-        "crs_wkt": geobox.crs.ExportToWkt(),
-        "geotransform": geobox.transform.to_gdal(),
-        "description": LAT_DESC,
-    }
-
-    if filter_opts is None:
-        filter_opts = {}
-
-    filter_opts["chunks"] = acquisition.tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
-
-    lat_grid = create_grid(geobox, get_lat_coordinate, depth)
-
-    grp = fid.create_group(GroupName.LON_LAT_GROUP.value)
-    dset = grp.create_dataset(DatasetName.LAT.value, data=lat_grid, **kwargs)
-    attach_image_attributes(dset, attrs)
-
-    return fid
