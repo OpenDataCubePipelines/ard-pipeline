@@ -1,5 +1,5 @@
 ! subroutine angle
-SUBROUTINE angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
+SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_elements, &
              hours,century,ntpoints,smodel,track, &
              view,azi,asol,soazi,rela_angle,tim,X_cent,N_cent,istat)
 
@@ -11,9 +11,10 @@ SUBROUTINE angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
 !   * Re-written as an F2Py subroutine by JS, Aug 2014
 
 !   Inputs:
-!       ncol
 !       nrow
-!       row_num
+!       ncol
+!       nlines
+!       row_offset
 !       col_offset
 !       alat
 !       alon
@@ -75,73 +76,69 @@ SUBROUTINE angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
 
     implicit none
 
-    integer, intent(in) :: ncol, nrow, row_num, col_offset
-    double precision, dimension(ncol), intent(in) :: alat, alon
+    integer, intent(in) :: nrow, ncol, nlines, row_offset, col_offset
+    double precision, dimension(nrow, ncol), intent(in) :: alat, alon
     double precision, dimension(4), intent(in) :: spheroid
     double precision, dimension(3), intent(in) :: orb_elements
     double precision, intent(in) :: hours, century
     integer, intent(in) :: ntpoints
     double precision, dimension(12), intent(in) :: smodel
     double precision, dimension(ntpoints,8), intent(in) :: track
-    real, dimension(ncol), intent(inout) :: view, azi, asol, soazi, rela_angle, tim
-    real, dimension(nrow), intent(inout) :: X_cent, N_cent
-    integer, intent(out) :: istat
+    real, dimension(nrow, ncol), intent(inout) :: view, azi, asol, soazi, rela_angle, tim
+    real, dimension(nlines), intent(inout) :: X_cent, N_cent
+    integer, dimension(nrow, ncol), intent(out) :: istat
     double precision delxx, tol_lam
     double precision xout, yout
     double precision phip_p, lam_p
     double precision timet, theta_p, azimuth
-    integer j
+    integer i, j, istat_elem
 
-!f2py depend(ncol), alat, alon, view, azi, asol, soazi, rela_angle, tim
-!f2py depend(nrow), X_cent, N_cent
+!f2py depend(nrow, ncol), alat, alon, view, azi, asol, soazi, rela_angle, tim
+!f2py depend(nlines), X_cent, N_cent
 !f2py depend(ntpoints), track
 
+    do i=1,nrow
     do j=1,ncol
-        xout = alon(j)
-        yout = alat(j)
+        xout = alon(i, j)
+        yout = alat(i, j)
 
 !       calculate pixel size (half)
         if (j .gt. 1) then
-            delxx = (alon(j)-alon(j-1))/2
+            delxx = (alon(i, j)-alon(i, j-1))/2
         else
-            delxx = (alon(j+1)-alon(j))/2
+            delxx = (alon(i, j+1)-alon(i, j))/2
         endif
 
         tol_lam = delxx*d2r*1.2
 
 !       calculate solar angle
-        call solar(yout*d2r, xout*d2r, century, hours, asol(j), &
-               soazi(j))
+        call solar(yout*d2r, xout*d2r, century, hours, asol(i, j), &
+               soazi(i, j))
 
 !       go through the base sequence used in the test examples
         lam_p = xout*d2r
-        call geod2geo(yout, orb_elements, spheroid, phip_p, istat)
+
+        istat_elem = 0
+        call geod2geo(yout, orb_elements, spheroid, phip_p, istat_elem)
 
         call cal_angles(lam_p, phip_p, tol_lam, orb_elements, &
                spheroid, smodel, track, ntpoints, timet, theta_p, &
-               azimuth, istat)
+               azimuth, istat_elem)
 
-!       We need a better mechanism to terminate upon error
-!       and report the failure location
-!       We'll try and use istat and let Python create an error
-!       report if it found where any istat != 0
-        if (istat .ne. 0) then
-            print*, 'cal_angles failed at i,j=', row_num, j + col_offset
-            goto 99
-        endif
+        istat(i, j) = istat_elem
 
-        tim(j) = timet
-        view(j) = theta_p*r2d
-        azi(j) = azimuth*r2d
-        rela_angle(j) = azi(j)-soazi(j)
-        if ((abs(timet) .gt. 1.0e-5) .and. (abs(view(j)) .lt. 1.0e-7) &
-          .and. (abs(azi(j)) .lt. 1.0e-7)) then
-            X_cent(row_num) = X_cent(row_num)+real(j + col_offset)
-            N_cent(row_num) = N_cent(row_num)+1.0
+        tim(i, j) = timet
+        view(i, j) = theta_p*r2d
+        azi(i, j) = azimuth*r2d
+        rela_angle(i, j) = azi(i, j)-soazi(i, j)
+        if ((abs(timet) .gt. 1.0e-5) .and. (abs(view(i, j)) .lt. 1.0e-7) &
+          .and. (abs(azi(i, j)) .lt. 1.0e-7)) then
+            X_cent(row_offset + i) = X_cent(row_offset + i)+real(j + col_offset)
+            N_cent(row_offset + i) = N_cent(row_offset + i)+1.0
         endif
     enddo
+    enddo
 
-99  continue
     return
 
 END SUBROUTINE angle

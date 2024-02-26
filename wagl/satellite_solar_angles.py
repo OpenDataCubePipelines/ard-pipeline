@@ -828,9 +828,7 @@ def calculate_angles(
 ):
     """Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
-    time grid. All grids are output as float32 ENVI files.
-    A wrapper routine for the ``angle_all`` Fortran module built via
-    ``F2Py``.
+    time grid.
 
     :param acquisition:
         An instance of an `Acquisition` object.
@@ -1060,54 +1058,52 @@ def calculate_angles(
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
         # read the lon and lat tile
-        lon_data = longitude[idx]
-        lat_data = latitude[idx]
+        lon_data = np.asfortranarray(longitude[idx])
+        lat_data = np.asfortranarray(latitude[idx])
 
         # may not be processing full row wise (all columns)
         dims = lon_data.shape
+        row_offset = idx[0].start
         col_offset = idx[1].start
 
-        view = np.full(dims, no_data, dtype=out_dtype)
-        azi = np.full(dims, no_data, dtype=out_dtype)
-        asol = np.full(dims, no_data, dtype=out_dtype)
-        soazi = np.full(dims, no_data, dtype=out_dtype)
-        rela_angle = np.full(dims, no_data, dtype=out_dtype)
-        time = np.full(dims, no_data, dtype=out_dtype)
-        # loop each row within each tile (which itself could be a single row)
-        for i in range(lon_data.shape[0]):
-            row_id = idx[0].start + i + 1  # FORTRAN 1 based index
+        view = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
+        azi = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
+        asol = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
+        soazi = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
+        rela_angle = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
+        time = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
 
-            stat = angle(
-                dims[1],
-                acquisition.lines,
-                row_id,
-                col_offset,
-                lat_data[i],
-                lon_data[i],
-                spheroid[0],
-                orbital_elements[0],
-                acquisition.decimal_hour(),
-                century,
-                trackpoints,
-                smodel[0],
-                track[0],
-                view[i],
-                azi[i],
-                asol[i],
-                soazi[i],
-                rela_angle[i],
-                time[i],
-                x_cent,
-                n_cent,
+        stat = angle(
+            dims[0],
+            dims[1],
+            acquisition.lines,
+            row_offset,
+            col_offset,
+            lat_data,
+            lon_data,
+            spheroid[0],
+            orbital_elements[0],
+            acquisition.decimal_hour(),
+            century,
+            trackpoints,
+            smodel[0],
+            track[0],
+            view,
+            azi,
+            asol,
+            soazi,
+            rela_angle,
+            time,
+            x_cent,
+            n_cent,
+        )
+
+        if np.any(stat != 0):
+            msg = (
+                "Error in calculating angles, "
+                "No interval found in track!"
             )
-            # x_cent[idx[0]], n_cent[idx[0]])
-
-            if stat != 0:
-                msg = (
-                    "Error in calculating angles at row: {}.\n"
-                    "No interval found in track!"
-                )
-                raise RuntimeError(msg.format(row_id - 1))
+            raise RuntimeError(msg)
 
         # output to disk
         sat_v_ds[idx] = view
