@@ -32,7 +32,7 @@ jobs:
                 cache-from: type=gha
                 cache-to: type=gha,mode=max
         -   name: Run Tests
-            run: docker run --rm -v ${{ github.workspace }}/tests:/tests -w /tests ard-pipeline:dev python -m pytest
+            run: docker run --rm -v ${{ github.workspace }}/tests:/tests -w /tests ard-pipeline:dev pytest
 
         -   name: Save Docker image
             run: docker save ard-pipeline:dev > ard-pipeline-image.tar
