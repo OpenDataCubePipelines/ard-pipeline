@@ -326,7 +326,7 @@ def stash_oa_bands(
                 buffer_distance,
                 root,
                 compression,
-                filter_opts
+                filter_opts,
             )
 
             # slope & aspect
