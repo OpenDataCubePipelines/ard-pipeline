@@ -46,7 +46,8 @@ sat_sol_angles_src = [
     'f90_sources/geod2geo.f90',
     'f90_sources/q_cal.f90',
     'f90_sources/compute_angles.f90',
-    'f90_sources/satellite_solar_angles_main.f90',
+    'f90_sources/satellite_angles_main.f90',
+    'f90_sources/solar_angles_main.f90',
 ]
 _sat_sol_angles_module = custom_target(
     'sat_sol_angles_module',

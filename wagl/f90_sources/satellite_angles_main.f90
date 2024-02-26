@@ -1,7 +1,7 @@
 ! subroutine angle
-SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_elements, &
-             hours,century,ntpoints,smodel,track, &
-             view,azi,asol,soazi,rela_angle,tim,X_cent,N_cent,istat)
+SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_elements, &
+             ntpoints,smodel,track, &
+             view,azi,tim,X_cent,N_cent,istat)
 
 !   program to calculate solar, view and azimuth angle from
 !   both UTM and lat/lon projection if we only know one point in the
@@ -27,8 +27,6 @@ SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_e
 !           1. Orbital inclination (degrees)
 !           2. Semi_major radius (m)
 !           3. Angular velocity (rad sec-1)
-!       hours
-!       century
 !       ntpoints (number of time points created in determining the satellite track)
 !       smodel
 !           1. phi0
@@ -54,9 +52,6 @@ SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_e
 !           8. skew
 !       view
 !       azi
-!       asol
-!       soazi
-!       rela_angle
 !       tim
 !       X_cent
 !       N_cent
@@ -64,9 +59,6 @@ SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_e
 !   Outputs
 !       view
 !       azi
-!       asol
-!       soazi
-!       rela_angle
 !       tim
 !       X_cent
 !       N_cent
@@ -80,11 +72,10 @@ SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_e
     double precision, dimension(nrow, ncol), intent(in) :: alat, alon
     double precision, dimension(4), intent(in) :: spheroid
     double precision, dimension(3), intent(in) :: orb_elements
-    double precision, intent(in) :: hours, century
     integer, intent(in) :: ntpoints
     double precision, dimension(12), intent(in) :: smodel
     double precision, dimension(ntpoints,8), intent(in) :: track
-    real, dimension(nrow, ncol), intent(inout) :: view, azi, asol, soazi, rela_angle, tim
+    real, dimension(nrow, ncol), intent(inout) :: view, azi, tim
     real, dimension(nlines), intent(inout) :: X_cent, N_cent
     integer, dimension(nrow, ncol), intent(out) :: istat
     double precision delxx, tol_lam
@@ -93,7 +84,7 @@ SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_e
     double precision timet, theta_p, azimuth
     integer i, j, istat_elem
 
-!f2py depend(nrow, ncol), alat, alon, view, azi, asol, soazi, rela_angle, tim
+!f2py depend(nrow, ncol), alat, alon, view, azi, tim
 !f2py depend(nlines), X_cent, N_cent
 !f2py depend(ntpoints), track
 
@@ -111,10 +102,6 @@ SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_e
 
         tol_lam = delxx*d2r*1.2
 
-!       calculate solar angle
-        call solar(yout*d2r, xout*d2r, century, hours, asol(i, j), &
-               soazi(i, j))
-
 !       go through the base sequence used in the test examples
         lam_p = xout*d2r
 
@@ -130,7 +117,6 @@ SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_e
         tim(i, j) = timet
         view(i, j) = theta_p*r2d
         azi(i, j) = azimuth*r2d
-        rela_angle(i, j) = azi(i, j)-soazi(i, j)
         if ((abs(timet) .gt. 1.0e-5) .and. (abs(view(i, j)) .lt. 1.0e-7) &
           .and. (abs(azi(i, j)) .lt. 1.0e-7)) then
             X_cent(row_offset + i) = X_cent(row_offset + i)+real(j + col_offset)
@@ -141,4 +127,4 @@ SUBROUTINE angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_e
 
     return
 
-END SUBROUTINE angle
+END SUBROUTINE satellite_angle

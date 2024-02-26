@@ -6,7 +6,8 @@ import ephem
 import numpy as np
 from osgeo import osr
 
-from wagl.__sat_sol_angles import angle
+from wagl.__sat_sol_angles import solar_angle as solar_angle_prim
+from wagl.__sat_sol_angles import satellite_angle as satellite_angle_prim
 from wagl.__satellite_model import set_satmod
 from wagl.__track_time_info import set_times
 from wagl.constants import DatasetName, GroupName, TrackIntersection
@@ -817,6 +818,68 @@ def _store_parameter_settings(
     attach_table_attributes(track_dset, title="Satellite Track", attrs=attrs)
 
 
+def solar_angle(
+    nrow,
+    ncol,
+    alat,
+    alon,
+    hours,
+    century,
+    asol,
+    soazi
+):
+    solar_angle_prim(
+        nrow,
+        ncol,
+        alat,
+        alon,
+        hours,
+        century,
+        asol,
+        soazi
+    )
+
+
+def satellite_angle(
+    nrow,
+    ncol,
+    nlines,
+    row_offset,
+    col_offset,
+    alat,
+    alon,
+    spheroid,
+    orb_elements,
+    ntpoints,
+    smodel,
+    track,
+    view,
+    azi,
+    tim,
+    X_cent,
+    N_cent
+):
+    return satellite_angle_prim(
+        nrow,
+        ncol,
+        nlines,
+        row_offset,
+        col_offset,
+        alat,
+        alon,
+        spheroid,
+        orb_elements,
+        ntpoints,
+        smodel,
+        track,
+        view,
+        azi,
+        tim,
+        X_cent,
+        N_cent
+    )
+
+
 def calculate_angles(
     acquisition,
     lon_lat_group,
@@ -1070,10 +1133,20 @@ def calculate_angles(
         azi = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
         asol = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
         soazi = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
-        rela_angle = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
         time = np.asfortranarray(np.full(dims, no_data, dtype=out_dtype))
 
-        stat = angle(
+        solar_angle(
+            dims[0],
+            dims[1],
+            lat_data,
+            lon_data,
+            acquisition.decimal_hour(),
+            century,
+            asol,
+            soazi,
+        )
+
+        stat = satellite_angle(
             dims[0],
             dims[1],
             acquisition.lines,
@@ -1083,16 +1156,11 @@ def calculate_angles(
             lon_data,
             spheroid[0],
             orbital_elements[0],
-            acquisition.decimal_hour(),
-            century,
             trackpoints,
             smodel[0],
             track[0],
             view,
             azi,
-            asol,
-            soazi,
-            rela_angle,
             time,
             x_cent,
             n_cent,
@@ -1110,7 +1178,7 @@ def calculate_angles(
         sat_az_ds[idx] = azi
         sol_z_ds[idx] = asol
         sol_az_ds[idx] = soazi
-        rel_az_ds[idx] = rela_angle
+        rel_az_ds[idx] = azi - soazi
         time_ds[idx] = time
 
     # outputs
