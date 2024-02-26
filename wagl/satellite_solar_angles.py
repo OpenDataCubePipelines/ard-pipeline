@@ -859,7 +859,7 @@ def satellite_angle(
     X_cent,
     N_cent
 ):
-    return satellite_angle_prim(
+    stat = satellite_angle_prim(
         nrow,
         ncol,
         nlines,
@@ -878,6 +878,13 @@ def satellite_angle(
         X_cent,
         N_cent
     )
+
+    if np.any(stat != 0):
+        msg = (
+            "Error in calculating angles, "
+            "No interval found in track!"
+        )
+        raise RuntimeError(msg)
 
 
 def calculate_angles(
@@ -1146,7 +1153,7 @@ def calculate_angles(
             soazi,
         )
 
-        stat = satellite_angle(
+        satellite_angle(
             dims[0],
             dims[1],
             acquisition.lines,
@@ -1165,13 +1172,6 @@ def calculate_angles(
             x_cent,
             n_cent,
         )
-
-        if np.any(stat != 0):
-            msg = (
-                "Error in calculating angles, "
-                "No interval found in track!"
-            )
-            raise RuntimeError(msg)
 
         # output to disk
         sat_v_ds[idx] = view
