@@ -5,6 +5,7 @@ from os.path import abspath, dirname
 from os.path import join as pjoin
 from posixpath import join as ppjoin
 
+import h5py
 import numpy as np
 import numpy.testing as npt
 from osgeo import osr
@@ -35,7 +36,12 @@ class TestLonLatArrays(unittest.TestCase):
         """
         acq = acquisitions(LS5_SCENE1).get_acquisitions()[0]
         geobox = acq.gridded_geo_box()
-        fid = create_lon_lat_grids(acq, depth=5)
+
+        fid = h5py.File(
+            "longitude-latitude.h5", "w", driver="core", backing_store=False
+        )
+
+        create_lon_lat_grids(acq, out_group=fid, depth=5)
         dataset_name = ppjoin(GroupName.LON_LAT_GROUP.value, DatasetName.LON.value)
         lon = fid[dataset_name][:]
         ids = ut.random_pixel_locations(lon.shape)
@@ -77,7 +83,11 @@ class TestLonLatArrays(unittest.TestCase):
         """
         acq = acquisitions(LS5_SCENE1).get_acquisitions()[0]
         geobox = acq.gridded_geo_box()
-        fid = create_lon_lat_grids(acq, depth=5)
+        fid = h5py.File(
+            "longitude-latitude.h5", "w", driver="core", backing_store=False
+        )
+
+        create_lon_lat_grids(acq, out_group=fid, depth=5)
         dataset_name = ppjoin(GroupName.LON_LAT_GROUP.value, DatasetName.LAT.value)
         lat = fid[dataset_name][:]
         ids = ut.random_pixel_locations(lat.shape)
