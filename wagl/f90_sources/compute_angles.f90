@@ -1,6 +1,6 @@
 ! subroutine cal_angles
 SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
-             smodel, track, &
+             smodel, track, tan_beta, &
              sin_orb_incl, cos_orb_incl, tan_orb_incl, &
              num_tpts,timet,theta_p,azimuth,istat)
 
@@ -53,6 +53,7 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 !           6. hxy
 !           7. mj
 !           8. skew
+!       tan_beta
 !       sin_orb_incl, cos_orb_incl, tan_orb_incl
 !   Outputs
 !       timet
@@ -74,10 +75,10 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
     integer, intent(in) :: num_tpts
 !   track(t,rho,phi_p,lam,beta,hxy,mj,skew)
     double precision, dimension(num_tpts,8), intent(in) :: track
-    double precision, dimension(num_tpts) :: phi_p, lam, beta
+    double precision, dimension(num_tpts) :: phi_p, lam, tan_beta
     double precision, dimension(num_tpts) :: hxy, mj
 
-!f2py depend(num_tpts), track, phi_p, lam, beta, hxy, mj
+!f2py depend(num_tpts), track, phi_p, lam, tan_beta, hxy, mj
 
     double precision orad
     double precision asph, e2
@@ -89,9 +90,9 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
     integer west, neg, hit, j, negp
     integer left, right
     double precision rho_p, t_p, lamcal, betacal, adiff
-    double precision delta_mu, tbet_p, phi_pt, lamt, dmu_prev, mjt, lam_test
+    double precision delta_mu, tbet_p, phi_pt, sin_phi_pt, lamt, dmu_prev, mjt, lam_test
     double precision phip_test, rho_c, t_c
-    double precision theta_e, rn_p, ratio, temp
+    double precision theta_e, cos_theta_e, rn_p, ratio, temp
 
 !   smodel parameters
     t0 = smodel(4)
@@ -100,7 +101,6 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 !   track parameters
     phi_p(:) = track(:,3)
     lam(:) = track(:,4)
-    beta(:) = track(:,5)
     hxy(:) = track(:,6)
     mj(:) = track(:,7)
 
@@ -200,8 +200,8 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 !   Now solve for the crossing of a line from the given point
 !   to the track interval (assumed a line joining ends)
 !   using the local heading and scaling information
-    tbet_p = (hxy(left)*tan(beta(left))+hxy(right)* &
-      tan(beta(right)))/2.0d0
+    tbet_p = (hxy(left)*tan_beta(left)+hxy(right)* &
+      tan_beta(right))/2.0d0
     mjt = mj(left)
 
     phi_pt = dble(phi_p(left))
@@ -219,11 +219,13 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 !   theta_e is angle at Earth centre
 !   theta_p is the look angle
     phi_pt = phip_test
-    theta_e = acos(sin(phip_p)*sin(phi_pt)+ &
-      cos(phip_p)*cos(phi_pt)*cos(lam_p-lamt))
+    sin_phi_pt = sin(phi_pt)
+    cos_theta_e = sin(phip_p)*sin_phi_pt+ &
+      cos(phip_p)*cos(phi_pt)*cos(lam_p-lamt)
+    theta_e = acos(cos_theta_e)
 
-    RN_p = dble(asph)/sqrt(1.0d0-dble(e2)*sin(phi_pt)**2)
-    ratio = (RN_p*cos(theta_e))/(orad-RN_p*cos(theta_e))
+    RN_p = dble(asph)/sqrt(1.0d0-dble(e2)*sin_phi_pt**2)
+    ratio = (RN_p*cos_theta_e)/(orad-RN_p*cos_theta_e)
     theta_p = atan(ratio*tan(theta_e))
     if (west.gt.0) then
         azimuth = betacal+(dble(pi)/2.0d0)
