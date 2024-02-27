@@ -1,6 +1,6 @@
 ! subroutine set_times
 SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
-             smodel,psx,psy,track,istat)
+             smodel,psx,psy,track)
 
 !   Calculate satellite track times and other info
 
@@ -48,7 +48,6 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
 !
 !   Outputs:
 !       track
-!       istat
 
     use sys_variables, only : pi, d2r, r2d
 
@@ -56,7 +55,6 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
 
     double precision, intent(in) :: ymin, ymax
     integer, intent(in) :: ntpoints
-    integer, intent(out) :: istat
 
     double precision, dimension(4), intent(in) :: spheroid
     double precision, dimension(3), intent(in) :: orb_elements
@@ -70,6 +68,7 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
     double precision t_min, t_max, phip_max, phip_min, rhocal, tcal
     double precision lamcal, betacal, delta_t
     integer j
+    integer istat   ! not used, so not going to be pedantic about usage
 
     istat = 0
 

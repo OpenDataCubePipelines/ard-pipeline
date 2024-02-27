@@ -29,7 +29,7 @@ SUBROUTINE geod2geo(yin,orb_elements,spheroid,phip,istat)
     double precision orb_elements(3), spheroid(4)
     double precision orad
     double precision asph, e2
-    double precision rn, temp
+    double precision rn, temp, sin_yin, cos_yin
     integer istat
 
 !   Satellite orbital paramaters
@@ -46,8 +46,10 @@ SUBROUTINE geod2geo(yin,orb_elements,spheroid,phip,istat)
     istat = 0
 
     temp = dble(yin)*d2r
-    RN = asph/sqrt(1.0d0-e2*sin(temp)**2)
-    phip = temp-asin(RN*e2*sin(temp)*cos(temp)/orad)
+    sin_yin = sin(temp)
+    cos_yin = cos(temp)
+    RN = asph/sqrt(1.0d0-e2*sin_yin**2)
+    phip = temp-asin(RN*e2*sin_yin*cos_yin/orad)
 
     return
 

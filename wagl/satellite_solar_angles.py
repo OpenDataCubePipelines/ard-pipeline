@@ -752,7 +752,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, psx, psy, ntpoin
                        ('lam', 'f8'), ('beta', 'f8'), ('hxy', 'f8'),
                        ('mj', 'f8'), ('skew', 'f8')]
     """
-    track, _ = set_times(
+    track = set_times(
         ymin, ymax, ntpoints, spheroid, orbital_elements, smodel, psx, psy
     )
 

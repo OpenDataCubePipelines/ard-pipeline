@@ -105,14 +105,15 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
 !       go through the base sequence used in the test examples
         lam_p = xout*d2r
 
-        istat_elem = 0
         call geod2geo(yout, orb_elements, spheroid, phip_p, istat_elem)
+
+        istat(i, j) = istat_elem
 
         call cal_angles(lam_p, phip_p, tol_lam, orb_elements, &
                spheroid, smodel, track, ntpoints, timet, theta_p, &
                azimuth, istat_elem)
 
-        istat(i, j) = istat_elem
+        if (istat(i, j) .eq. 0) istat(i, j) = istat_elem
 
         tim(i, j) = timet
         view(i, j) = theta_p*r2d
