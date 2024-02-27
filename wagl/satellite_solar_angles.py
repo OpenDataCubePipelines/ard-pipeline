@@ -6,8 +6,8 @@ import ephem
 import numpy as np
 from osgeo import osr
 
-from wagl.__sat_sol_angles import solar_angle as solar_angle_prim
 from wagl.__sat_sol_angles import satellite_angle as satellite_angle_prim
+from wagl.__sat_sol_angles import solar_angle as solar_angle_prim
 from wagl.__satellite_model import set_satmod
 from wagl.__track_time_info import set_times
 from wagl.constants import DatasetName, GroupName, TrackIntersection
@@ -818,26 +818,8 @@ def _store_parameter_settings(
     attach_table_attributes(track_dset, title="Satellite Track", attrs=attrs)
 
 
-def solar_angle(
-    nrow,
-    ncol,
-    alat,
-    alon,
-    hours,
-    century,
-    asol,
-    soazi
-):
-    solar_angle_prim(
-        nrow,
-        ncol,
-        alat,
-        alon,
-        hours,
-        century,
-        asol,
-        soazi
-    )
+def solar_angle(nrow, ncol, alat, alon, hours, century, asol, soazi):
+    solar_angle_prim(nrow, ncol, alat, alon, hours, century, asol, soazi)
 
 
 def satellite_angle(
@@ -856,8 +838,8 @@ def satellite_angle(
     view,
     azi,
     tim,
-    X_cent,
-    N_cent
+    x_cent,
+    n_cent,
 ):
     stat = satellite_angle_prim(
         nrow,
@@ -875,15 +857,12 @@ def satellite_angle(
         view,
         azi,
         tim,
-        X_cent,
-        N_cent
+        x_cent,
+        n_cent,
     )
 
     if np.any(stat != 0):
-        msg = (
-            "Error in calculating angles, "
-            "No interval found in track!"
-        )
+        msg = "Error in calculating angles, no interval found in track!"
         raise RuntimeError(msg)
 
 

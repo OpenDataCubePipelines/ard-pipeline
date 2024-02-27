@@ -31,7 +31,7 @@ SUBROUTINE solar_angle(nrow,ncol,alat,alon, &
     integer, intent(in) :: nrow, ncol
     double precision, dimension(nrow, ncol), intent(in) :: alat, alon
     double precision, intent(in) :: hours, century
-    real, dimension(nrow, ncol), intent(inout) :: asol, soazi 
+    real, dimension(nrow, ncol), intent(inout) :: asol, soazi
     double precision xout, yout
     double precision phip_p, lam_p
     double precision timet, theta_p, azimuth
