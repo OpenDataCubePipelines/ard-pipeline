@@ -1,6 +1,8 @@
 ! subroutine cal_angles
 SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
-             smodel,track,num_tpts,timet,theta_p,azimuth,istat)
+             smodel, track, &
+             sin_orb_incl, cos_orb_incl, tan_orb_incl, &
+             num_tpts,timet,theta_p,azimuth,istat)
 
 !     Cal_Angles is the main routine in the set
 !     It finds the segment of the track model where a line from a point
@@ -51,6 +53,7 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 !           6. hxy
 !           7. mj
 !           8. skew
+!       sin_orb_incl, cos_orb_incl, tan_orb_incl
 !   Outputs
 !       timet
 !       theta_p
@@ -66,6 +69,7 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
     double precision, dimension(3), intent(in) :: orb_elements
 !   smodel(phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0,N0,H0,th_ratio0)
     double precision, dimension(12), intent(in) :: smodel
+    double precision, intent(in) :: sin_orb_incl, cos_orb_incl, tan_orb_incl
 
     integer, intent(in) :: num_tpts
 !   track(t,rho,phi_p,lam,beta,hxy,mj,skew)
@@ -117,7 +121,8 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
     azimuth = 0.0
 
     temp = phip_p
-    call q_cal(temp,orb_elements,spheroid,smodel,rho_p,t_p,lamcal, &
+    call q_cal(temp,orb_elements,spheroid,smodel, &
+           sin_orb_incl, cos_orb_incl, tan_orb_incl, rho_p,t_p,lamcal, &
            betacal,istat)
 
 !   find where the azimuth of the track crossing at the same phi_p is
@@ -206,7 +211,8 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
     phip_test = phi_pt+mjt*(lam_test-lamt)
 
 !   get info at the solution
-    call q_cal(phip_test,orb_elements,spheroid,smodel,rho_c,t_c, &
+    call q_cal(phip_test,orb_elements,spheroid,smodel, &
+           sin_orb_incl, cos_orb_incl, tan_orb_incl, rho_c,t_c, &
            lamt,betacal,istat)
 
 !   calculate the return results

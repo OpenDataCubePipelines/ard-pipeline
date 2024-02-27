@@ -1,5 +1,6 @@
 ! subroutine q_cal
-SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel,rhocal,tcal, &
+SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel, &
+             sin_orb_incl, cos_orb_incl, tan_orb_incl, rhocal,tcal, &
              lamcal,betacal,istat)
 
 !   base subroutine to calculate base track information
@@ -31,6 +32,9 @@ SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel,rhocal,tcal, &
 !           10. N0
 !           11. H0
 !           12. th_ratio0
+!       sin_orb_incl
+!       cos_orb_incl
+!       tan_orb_incl
 !
 !   Outputs:
 !       rhocal is angle from apogee (rad)
@@ -46,8 +50,8 @@ SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel,rhocal,tcal, &
     double precision phip
 
     double precision orb_elements(3), spheroid(4)
-    double precision oi, ws
-    double precision we
+    double precision sin_orb_incl, cos_orb_incl, tan_orb_incl
+    double precision ws, we
 
     double precision smodel(12)
     double precision t0, gamm0
@@ -58,7 +62,6 @@ SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel,rhocal,tcal, &
 !   Satellite orbital parameters
 !   orbital inclination (degrees)
 !   angular velocity (rad sec-1)
-    oi = orb_elements(1)*d2r
     ws = orb_elements(3)
 
 !   Spheroid paramaters
@@ -72,11 +75,11 @@ SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel,rhocal,tcal, &
 !   Initialise the return status
     istat = 0
 
-    rhocal = acos(sin(phip)/sin(oi))
+    rhocal = acos(sin(phip)/sin_orb_incl)
     tcal = (rhocal+pi/2.0d0)/ws
     lamcal = gamm0-pi/2.0d0+atan(tan(rhocal)/ &
-      cos(oi))-we*(tcal-t0)
-    betacal = atan(-1.0d0/(tan(oi)*sin(rhocal)))
+      cos_orb_incl)-we*(tcal-t0)
+    betacal = atan(-1.0d0/(tan_orb_incl*sin(rhocal)))
 
     return
 

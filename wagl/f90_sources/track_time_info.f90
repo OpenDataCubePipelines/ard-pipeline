@@ -67,19 +67,28 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
     double precision, dimension(12), intent(in) :: smodel
     double precision t_min, t_max, phip_max, phip_min, rhocal, tcal
     double precision lamcal, betacal, delta_t
+    double precision orb_incl, sin_orb_incl, cos_orb_incl, tan_orb_incl
     integer j
     integer istat   ! not used, so not going to be pedantic about usage
 
     istat = 0
 
+!   Orbital inclination
+    orb_incl = orb_elements(1)*d2r
+    sin_orb_incl = sin(orb_incl)
+    cos_orb_incl = cos(orb_incl)
+    tan_orb_incl = tan(orb_incl)
+
 !   set up the time range to use for the satellite track
     call geod2geo(ymax,orb_elements,spheroid,phip_max,istat)
-    call q_cal(phip_max,orb_elements,spheroid,smodel,rhocal,tcal, &
+    call q_cal(phip_max,orb_elements,spheroid,smodel, &
+                  sin_orb_incl, cos_orb_incl, tan_orb_incl, rhocal,tcal, &
                   lamcal,betacal,istat)
     t_min = tcal-5.0d0
 
     call geod2geo(ymin,orb_elements,spheroid,phip_min,istat)
-    call q_cal(phip_min,orb_elements,spheroid,smodel,rhocal,tcal, &
+    call q_cal(phip_min,orb_elements,spheroid,smodel, &
+                  sin_orb_incl, cos_orb_incl, tan_orb_incl, rhocal,tcal, &
                   lamcal,betacal,istat)
     t_max = tcal+5.0d0
 

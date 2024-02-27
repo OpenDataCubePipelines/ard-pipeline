@@ -82,11 +82,18 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
     double precision xout, yout
     double precision phip_p, lam_p
     double precision timet, theta_p, azimuth
+    double precision orb_incl, sin_orb_incl, cos_orb_incl, tan_orb_incl
     integer i, j, istat_elem
 
 !f2py depend(nrow, ncol), alat, alon, view, azi, tim
 !f2py depend(nlines), X_cent, N_cent
 !f2py depend(ntpoints), track
+
+!   Orbital inclination
+    orb_incl = orb_elements(1)*d2r
+    sin_orb_incl = sin(orb_incl)
+    cos_orb_incl = cos(orb_incl)
+    tan_orb_incl = tan(orb_incl)
 
     do i=1,nrow
     do j=1,ncol
@@ -110,7 +117,9 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
         istat(i, j) = istat_elem
 
         call cal_angles(lam_p, phip_p, tol_lam, orb_elements, &
-               spheroid, smodel, track, ntpoints, timet, theta_p, &
+               spheroid, smodel, track, &
+               sin_orb_incl, cos_orb_incl, tan_orb_incl, &
+               ntpoints, timet, theta_p, &
                azimuth, istat_elem)
 
         if (istat(i, j) .eq. 0) istat(i, j) = istat_elem
