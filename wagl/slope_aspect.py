@@ -4,12 +4,42 @@
 
 import numpy as np
 
-from wagl.__slope_aspect import slope_aspect
+from wagl.__slope_aspect import slope_aspect as slope_aspect_prim
 from wagl.constants import DatasetName, GroupName
 from wagl.data import as_array
 from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.margins import pixel_buffer
 from wagl.satellite_solar_angles import setup_spheroid
+
+
+def slope_aspect(
+    nrow,
+    ncol,
+    nrow_alloc,
+    ncol_alloc,
+    dresx,
+    dresy,
+    spheroid,
+    alat,
+    is_utm,
+    dem,
+    theta,
+    phit,
+):
+    slope_aspect_prim(
+        nrow,
+        ncol,
+        nrow_alloc,
+        ncol_alloc,
+        dresx,
+        dresy,
+        spheroid,
+        alat,
+        is_utm,
+        dem,
+        theta,
+        phit,
+    )
 
 
 def slope_aspect_arrays(

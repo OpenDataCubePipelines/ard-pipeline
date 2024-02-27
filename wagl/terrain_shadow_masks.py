@@ -9,7 +9,7 @@ as source directions, as well as self shadow masks.
 
 import numpy as np
 
-from wagl.__cast_shadow_mask import cast_shadow_main
+from wagl.__cast_shadow_mask import cast_shadow_main as cast_shadow_prim
 from wagl.constants import DatasetName, GroupName
 from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
@@ -242,6 +242,47 @@ class CastShadowError(FortranError):
             return "matrix A does not have sufficient x margin"
 
 
+def cast_shadow_main(
+    dem_data,
+    solar_data,
+    sazi_data,
+    dresx,
+    dresy,
+    spheroid,
+    alat1,
+    alon1,
+    Aoff_x1,
+    Aoff_x2,
+    Aoff_y1,
+    Aoff_y2,
+    nlA_ori,
+    nsA_ori,
+    is_utm,
+):
+    ierr, mask = cast_shadow_prim(
+        dem_data,
+        solar_data,
+        sazi_data,
+        dresx,
+        dresy,
+        spheroid,
+        alat1,
+        alon1,
+        Aoff_x1,
+        Aoff_x2,
+        Aoff_y1,
+        Aoff_y2,
+        nlA_ori,
+        nsA_ori,
+        is_utm,
+    )
+
+    if ierr:
+        raise CastShadowError(ierr)
+
+    return mask
+
+
 def calculate_cast_shadow(
     acquisition,
     dsm_group,
@@ -374,7 +415,7 @@ def calculate_cast_shadow(
     block_height = margins.top + margins.bottom
 
     # Compute the cast shadow mask
-    ierr, mask = cast_shadow_main(
+    mask = cast_shadow_main(
         elevation,
         zenith_angle,
         azimuth_angle,
@@ -391,9 +432,6 @@ def calculate_cast_shadow(
         block_width,
         is_utm,
     )
-
-    if ierr:
-        raise CastShadowError(ierr)
 
     source_dir = "SUN" if solar_source else "SATELLITE"
 

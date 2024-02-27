@@ -4,14 +4,57 @@
 
 import numpy as np
 
-from wagl.__exiting_angle import exiting_angle
-from wagl.__incident_angle import incident_angle
+from wagl.__exiting_angle import exiting_angle as exiting_angle_prim
+from wagl.__incident_angle import incident_angle as incident_angle_prim
 from wagl.constants import DatasetName, GroupName
 from wagl.data import as_array
 from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.tiling import generate_tiles
 
+
+def incident_angle(
+    nrow,
+    ncol,
+    solar,
+    sazi,
+    theta,
+    phit,
+    it,
+    azi_it,
+):
+    incident_angle_prim(
+        nrow,
+        ncol,
+        solar,
+        sazi,
+        theta,
+        phit,
+        it,
+        azi_it,
+    )
+
+
+def exiting_angle(
+    nrow,
+    ncol,
+    view,
+    azi,
+    theta,
+    phit,
+    et,
+    azi_et,
+):
+    exiting_angle_prim(
+        nrow,
+        ncol,
+        view,
+        azi,
+        theta,
+        phit,
+        et,
+        azi_et
+    )
 
 def incident_angles(
     satellite_solar_group,
