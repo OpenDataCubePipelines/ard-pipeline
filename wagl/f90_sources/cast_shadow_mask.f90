@@ -18,7 +18,6 @@ SUBROUTINE get_proj_shadows(hx, hy, ns, nl, &
     integer tval(8)
     logical rstatus
     integer*2 mask(nlA_ori, nsA_ori)
-    integer*2 rmax, rmin
 
 !
 !   calculate the border info for the sun position
@@ -121,9 +120,6 @@ SUBROUTINE get_proj_shadows(hx, hy, ns, nl, &
             mask(i,j)=1
         enddo
     enddo
-
-    rmax=maxval(mask(1:nlA,1:nsA))
-    rmin=minval(mask(1:nlA,1:nsA))
 
 !   proj_terrain does the job of checking for occlusion
 !   along the vector from a pixel to the sun

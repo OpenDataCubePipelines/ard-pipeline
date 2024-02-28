@@ -26,7 +26,6 @@ SUBROUTINE proj_terrain(n_max, m_max, n, m, z, mask, n_off, m_off, k_max, &
     integer*2 mask(nlA_ori, nsA_ori)
     real zmax, t, tt, test, htol, xd, yd, zpos
     integer i, j, ii, jj, k, ipos, jpos
-    integer*4 itot
 
 !   loop over object matrix A and project out into buffer
 
@@ -38,7 +37,6 @@ SUBROUTINE proj_terrain(n_max, m_max, n, m, z, mask, n_off, m_off, k_max, &
 !   have to be higher than the maximum value to occlude the current test
 !   pixel (i,j) in the sub-matrix A
 
-    itot=0
     do 100 i=1,m
         ii=m_off+i
         do 110 j=1,n
@@ -58,7 +56,6 @@ SUBROUTINE proj_terrain(n_max, m_max, n, m, z, mask, n_off, m_off, k_max, &
                     test = tt-zpos
                     if (test.le.htol) then
                         mask(i,j) = 0
-                        itot = itot+1
                         goto 125
                     endif
                 else

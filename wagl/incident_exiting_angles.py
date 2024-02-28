@@ -45,16 +45,8 @@ def exiting_angle(
     et,
     azi_et,
 ):
-    exiting_angle_prim(
-        nrow,
-        ncol,
-        view,
-        azi,
-        theta,
-        phit,
-        et,
-        azi_et
-    )
+    exiting_angle_prim(nrow, ncol, view, azi, theta, phit, et, azi_et)
+
 
 def incident_angles(
     satellite_solar_group,
