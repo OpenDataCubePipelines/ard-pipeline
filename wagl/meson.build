@@ -145,6 +145,7 @@ _exiting_angle = py3.extension_module(
     subdir: 'wagl',
 )
 incident_angle_src = [
+    'f90_sources/sys_variables.f90',
     'f90_sources/incident_angle.f90',
     'f90_sources/earth_rotation.f90',
 ]
@@ -154,7 +155,7 @@ _incident_angle_module = custom_target(
     output: [
         '__incident_anglemodule.c',
         '__incident_angle-f2pywrappers.f',
-        # '__incident_angle-f2pywrappers2.f90',
+        '__incident_angle-f2pywrappers2.f90',
     ],
     command: [
         'f2py',
