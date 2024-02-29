@@ -33,7 +33,7 @@ from wagl.constants import (
     OzoneTier,
     WaterVapourTier,
 )
-from wagl.data import get_pixel
+from wagl.data import get_pixel, get_pixel_from_raster
 from wagl.hdf5 import (
     VLEN_STRING,
     H5CompressionFilter,
@@ -185,6 +185,7 @@ class NbarPathsDict(TypedDict):
     water_vapour_dict: WaterVapourDict
     ozone_path: str
     dem_path: str
+    cop_pathname: str
     brdf_dict: BrdfDict
 
 
@@ -599,6 +600,7 @@ def collect_nbar_ancillary(
     water_vapour_dict: WaterVapourDict = None,
     ozone_path: Optional[str] = None,
     dem_path: PathWithDataset = None,
+    cop_pathname: Optional[str] = None,
     brdf_dict: BrdfDict = None,
     offshore: bool = False,
     out_group=None,
@@ -680,7 +682,11 @@ def collect_nbar_ancillary(
     ozone = get_ozone_data(ozone_path, geobox.centre_lonlat, dt)
     write_scalar(ozone[0], DatasetName.OZONE.value, fid, ozone[1])
 
-    elev = get_elevation_data(geobox.centre_lonlat, dem_path)
+    if offshore:
+        dsm_path = cop_pathname
+    else:
+        dsm_path = dem_path
+    elev = get_elevation_data(geobox.centre_lonlat, dsm_path, offshore)
     write_scalar(elev[0], DatasetName.ELEVATION.value, fid, elev[1])
 
     # brdf
@@ -774,7 +780,7 @@ def get_aerosol_data(
     return data, metadata
 
 
-def get_elevation_data(lonlat: LonLat, pathname: PathWithDataset):
+def get_elevation_data(lonlat: LonLat, pathname: PathWithDataset, offshore: bool):
     """Get elevation data for a scene.
 
     :param lon_lat:
@@ -788,17 +794,18 @@ def get_elevation_data(lonlat: LonLat, pathname: PathWithDataset):
     :type dem_dir:
         str
     """
-    fname, dname = pathname.split(":")
 
     try:
-        data, md_uuid = get_pixel(fname, dname, lonlat)
+        if not offshore:
+            fname, dname = pathname.split(":")
+            data, md_uuid = get_pixel(fname, dname, lonlat)
+            metadata = {"id": np.array([md_uuid], VLEN_STRING)}
+        else:
+            data = get_pixel_from_raster(pathname, lonlat)
+            metadata = {"id": np.array(["cop-30m-dem"], VLEN_STRING)}
         data = data * 0.001  # scale to correct units
     except ValueError:
         raise AncillaryError("No Elevation data")
-
-    metadata = {
-        "id": np.array([md_uuid], VLEN_STRING),
-    }
 
     return data, metadata
 

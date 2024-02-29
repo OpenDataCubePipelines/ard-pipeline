@@ -223,6 +223,7 @@ def card4l(
             water_vapour,
             ozone_path,
             dem_path,
+            cop_pathname,
             brdf,
             offshore_territory_boundary_path,
             ecmwf_path,
@@ -428,6 +429,7 @@ def stash_ancillary(
     water_vapour,
     ozone_path,
     dem_path,
+    cop_pathname,
     brdf,
     offshore_territory_boundary_path,
     ecmwf_path,
@@ -453,6 +455,7 @@ def stash_ancillary(
         "water_vapour_dict": water_vapour,
         "ozone_path": ozone_path,
         "dem_path": dem_path,
+        "cop_pathname": cop_pathname,
         "brdf_dict": brdf,
     }
     collect_ancillary(
