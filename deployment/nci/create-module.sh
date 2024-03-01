@@ -99,10 +99,12 @@ popd
 echo
 echo "Adding utility packages"
 conda install -y jq
+
 # TODO: update these? They aren't used directly by the processor.
-# python3 -m pip install \
+# swfo-convert is needed for brdf downloads
+python3 -m pip install \
+             "git+https://github.com/OpenDataCubePipelines/swfo.git@${swfo_version}"
 #             "git+https://github.com/sixy6e/mpi-structlog@develop#egg=mpi_structlog" \
-#             "git+https://github.com/OpenDataCubePipelines/swfo.git@${swfo_version}" \
 #             "git+https://github.com/OpenDataCubePipelines/gost.git@${gost_version}"
 
 echo
