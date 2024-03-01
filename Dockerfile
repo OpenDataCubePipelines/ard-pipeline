@@ -33,7 +33,7 @@ EOF
 
 WORKDIR /build
 
-# Override the default in the conda-environment creator
+# Override the default in the conda-environment creation script
 ARG fmask_version=0.5.7
 
 COPY deployment/create-conda-environment.sh deployment/environment.yaml ./

@@ -21,6 +21,9 @@ Packaging "ard-pipeline 20230823-1426" to "/g/data/up71/modules/ard-pipeline/202
 Continue? [y/N]
 ```
 
+The script `./create-s2-module.sh` is an example of overriding variables for
+an S2 module (a specific fmask, and nbart-only)
+
 The script `./create-dev-module.sh` gives an example of calling it with a different module location.
 
 After loading the your new module, you can run `../check-environment.sh` to check that dependencies

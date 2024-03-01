@@ -19,7 +19,7 @@ yamls_dir =
 cleanup = true
 cloud_buffer_distance = 0
 cloud_shadow_buffer_distance = 0
-products = ["NBART", "NBAR"]
+products = ${ard_product_array}
 stac_base_url = s3://dea-public-data/baseline/
 explorer_base_url = https://explorer-aws.dea.ga.gov.au/
 

@@ -16,9 +16,16 @@ export LANG=C.UTF-8
 # User can set any of these bash vars before calling to override them
 echo "##########################"
 echo "module_dir = ${module_dir:=/g/data/v10/public/modules}"
+echo
 echo "swfo_version= ${swfo_version:="swfo-0.0.2"}"
 echo "gost_version = ${gost_version:="gost-0.0.3"}"
 echo "modtran_version = ${modtran_version:="6.0.1"}"
+echo
+# It thinks we're trying to quote the inner json for bash
+# shellcheck disable=SC2089
+echo "ard_product_array=${ard_product_array:='["NBART", "NBAR"]'}"
+echo "fmask_version=${fmask_version:="0.5.7"}"
+echo
 # Uppercase to match the variable that DEA modules use (If you already have it loaded, we'll take it from there).
 echo "DATACUBE_CONFIG_PATH = ${DATACUBE_CONFIG_PATH:="/g/data/v10/public/modules/dea/20221025/datacube.conf"}"
 echo "##########################"
@@ -39,7 +46,11 @@ version="${1:-$(date '+%Y%m%d-%H%M')}"
 package_name=ard-pipeline
 package_description="ARD Pipeline"
 package_dest=${module_dir}/${package_name}/${version}
-export package_name package_description package_dest version
+export package_name package_description package_dest version fmask_version
+
+# It thinks we're trying to quote the inner json for bash
+# shellcheck disable=SC2090
+export ard_product_array
 
 echo
 printf 'Packaging "%s %s" to "%s"\n' "$package_name" "$version" "$package_dest"
