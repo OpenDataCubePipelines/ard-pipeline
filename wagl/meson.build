@@ -112,69 +112,7 @@ _cast_shadow_mask = py3.extension_module(
     subdir: 'wagl',
 )
 
-exiting_angle_src = [
-    'f90_sources/sys_variables.f90',
-    'f90_sources/exiting_angle.f90',
-    'f90_sources/earth_rotation.f90',
-]
-_exiting_angle_module = custom_target(
-    'exiting_angle_module',
-    input: exiting_angle_src,
-    output: [
-        '__exiting_anglemodule.c',
-        '__exiting_angle-f2pywrappers.f',
-        '__exiting_angle-f2pywrappers2.f90',
-    ],
-    command: [
-        'f2py',
-        '-m', '__exiting_angle',
-        '@INPUT@',
-        '--build-dir', '@OUTDIR@',
-    ],
-)
-_exiting_angle = py3.extension_module(
-    '__exiting_angle',
-    [
-        _exiting_angle_module,
-        exiting_angle_src,
-    ],
 
-    install: true,
-    dependencies: [fortranobject_dep],
-    link_language: 'fortran',
-    subdir: 'wagl',
-)
-incident_angle_src = [
-    'f90_sources/incident_angle.f90',
-    'f90_sources/earth_rotation.f90',
-]
-_incident_angle_module = custom_target(
-    'incident_angle_module',
-    input: incident_angle_src,
-    output: [
-        '__incident_anglemodule.c',
-        '__incident_angle-f2pywrappers.f',
-        # '__incident_angle-f2pywrappers2.f90',
-    ],
-    command: [
-        'f2py',
-        '-m', '__incident_angle',
-        '@INPUT@',
-        '--build-dir', '@OUTDIR@',
-    ],
-)
-_incident_angle = py3.extension_module(
-    '__incident_angle',
-    [
-        _incident_angle_module,
-        incident_angle_src,
-    ],
-
-    install: true,
-    dependencies: [fortranobject_dep],
-    link_language: 'fortran',
-    subdir: 'wagl',
-)
 slope_aspect_src = [
     'f90_sources/sys_variables.f90',
     'f90_sources/slope_aspect.f90',

@@ -4,8 +4,6 @@
 
 import numpy as np
 
-from wagl.__exiting_angle import exiting_angle as exiting_angle_prim
-from wagl.__incident_angle import incident_angle as incident_angle_prim
 from wagl.constants import DatasetName, GroupName
 from wagl.data import as_array
 from wagl.geobox import GriddedGeoBox
@@ -13,39 +11,69 @@ from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.tiling import generate_tiles
 
 
+def angles_off_of_sloped_terrain(
+    theta,
+    phi,
+    slope,
+    aspect,
+):
+    cos_slope = np.cos(slope)
+    sin_slope = np.sin(slope)
+
+    cos_theta = np.cos(theta)
+    sin_theta = np.cos(theta)
+
+    pdiff = phi - aspect
+    cos_pdiff = np.cos(pdiff)
+    sin_pdiff = np.sin(pdiff)
+
+    cos_theta_out = cos_theta * cos_slope + sin_theta * sin_slope * cos_pdiff
+    cos_theta_out[cos_theta_out >= 1.0] = 1.0
+    theta_out = np.arccos(cos_theta_out)
+
+    # this is not quite phi_out yet
+    # there's going to be an offset added to this
+    sin_phi_o = sin_theta * sin_pdiff
+    cos_phi_o = cos_theta * sin_slope - sin_theta * cos_slope * cos_pdiff
+
+    offset = np.arctan(np.tan(np.pi - aspect) * cos_slope)
+    phi_out = np.arctan2(sin_phi_o, cos_phi_o) - offset
+
+    # standard interval of (-pi, pi]
+    theta_out[theta_out <= -np.pi] += 2 * np.pi
+    theta_out[theta_out > np.pi] -= 2 * np.pi
+    phi_out[phi_out <= -np.pi] += 2 * np.pi
+    phi_out[phi_out > np.pi] -= 2 * np.pi
+
+    return theta_out, phi_out
+
+
 def incident_angle(
-    nrow,
-    ncol,
     solar,
     sazi,
     theta,
     phit,
-    it,
-    azi_it,
 ):
-    incident_angle_prim(
-        nrow,
-        ncol,
+    return angles_off_of_sloped_terrain(
         solar,
         sazi,
         theta,
         phit,
-        it,
-        azi_it,
     )
 
 
 def exiting_angle(
-    nrow,
-    ncol,
     view,
     azi,
     theta,
     phit,
-    et,
-    azi_et,
 ):
-    exiting_angle_prim(nrow, ncol, view, azi, theta, phit, et, azi_et)
+    return angles_off_of_sloped_terrain(
+        view,
+        azi,
+        theta,
+        phit,
+    )
 
 
 def incident_angles(
@@ -157,10 +185,6 @@ def incident_angles(
         xend = tile[1][1]
         idx = (slice(ystart, yend), slice(xstart, xend))
 
-        # Tile size
-        ysize = yend - ystart
-        xsize = xend - xstart
-
         # Read the data for the current tile
         # Convert to required datatype and transpose
         sol_zen = as_array(solar_zenith_dataset[idx], dtype=np.float32, transpose=True)
@@ -168,25 +192,17 @@ def incident_angles(
         slope = as_array(slope_dataset[idx], dtype=np.float32, transpose=True)
         aspect = as_array(aspect_dataset[idx], dtype=np.float32, transpose=True)
 
-        # Initialise the work arrays
-        incident = np.zeros((ysize, xsize), dtype="float32")
-        azi_incident = np.zeros((ysize, xsize), dtype="float32")
-
         # Process the current tile
-        incident_angle(
-            xsize,
-            ysize,
-            sol_zen,
-            sol_azi,
-            slope,
-            aspect,
-            incident.transpose(),
-            azi_incident.transpose(),
+        incident, azi_incident = incident_angle(
+            np.radians(sol_zen),
+            np.radians(sol_azi),
+            np.radians(slope),
+            np.radians(aspect),
         )
 
         # Write the current tile to disk
-        incident_dset[idx] = incident
-        azi_inc_dset[idx] = azi_incident
+        incident_dset[idx] = np.degrees(incident.transpose())
+        azi_inc_dset[idx] = np.degrees(azi_incident.transpose())
 
 
 def exiting_angles(
@@ -298,10 +314,6 @@ def exiting_angles(
         xend = tile[1][1]
         idx = (slice(ystart, yend), slice(xstart, xend))
 
-        # Tile size
-        ysize = yend - ystart
-        xsize = xend - xstart
-
         # Read the data for the current tile
         # Convert to required datatype and transpose
         sat_view = as_array(
@@ -313,25 +325,17 @@ def exiting_angles(
         slope = as_array(slope_dataset[idx], dtype=np.float32, transpose=True)
         aspect = as_array(aspect_dataset[idx], dtype=np.float32, transpose=True)
 
-        # Initialise the work arrays
-        exiting = np.zeros((ysize, xsize), dtype="float32")
-        azi_exiting = np.zeros((ysize, xsize), dtype="float32")
-
         # Process the current tile
-        exiting_angle(
-            xsize,
-            ysize,
-            sat_view,
-            sat_azi,
-            slope,
-            aspect,
-            exiting.transpose(),
-            azi_exiting.transpose(),
+        exiting, azi_exiting = exiting_angle(
+            np.radians(sat_view),
+            np.radians(sat_azi),
+            np.radians(slope),
+            np.radians(aspect),
         )
 
         # Write the current to disk
-        exiting_dset[idx] = exiting
-        azi_exit_dset[idx] = azi_exiting
+        exiting_dset[idx] = np.degrees(exiting.transpose())
+        azi_exit_dset[idx] = np.degrees(azi_exiting.transpose())
 
 
 def relative_azimuth_slope(
