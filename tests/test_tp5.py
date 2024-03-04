@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 """Test several different configurations of the tp5 file format."""
+
 import re
 import unittest
 from os.path import abspath, dirname

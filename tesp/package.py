@@ -113,9 +113,9 @@ def package_non_standard(
                 fmask_ds.attrs["crs_wkt"] = ds.crs.wkt
                 fmask_ds.attrs["geotransform"] = ds.transform.to_gdal()
 
-                fmask_ds.attrs[
-                    "description"
-                ] = "Converted from ERDAS Imagine format to HDF5 to work with the limitations of varied formats within ODC"  # noqa E501
+                fmask_ds.attrs["description"] = (
+                    "Converted from ERDAS Imagine format to HDF5 to work with the limitations of varied formats within ODC"  # noqa E501
+                )
 
                 grid_spec = images.GridSpec(
                     shape=ds.shape,

@@ -4,7 +4,6 @@
 reference file, with the equivalent dataset from a test file.
 """
 
-
 import argparse
 import json
 from functools import partial

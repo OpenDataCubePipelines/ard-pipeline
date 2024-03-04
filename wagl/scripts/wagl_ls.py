@@ -4,7 +4,6 @@
 within a HDF5.
 """
 
-
 import argparse
 
 import h5py

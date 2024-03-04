@@ -26,11 +26,11 @@ class VincentyTestCase(unittest.TestCase):
         deg = int(phi1)
         minn = int(abs((phi1 - deg) * 60.0))
         sec = abs(phi1 * 3600 - deg * 3600) - minn * 60
-        print(" Flinders Peak =   %3i\xF8%3i' %6.3f\",  " % (deg, minn, sec), end=" ")
+        print(" Flinders Peak =   %3i\xf8%3i' %6.3f\",  " % (deg, minn, sec), end=" ")
         deg = int(lembda1)
         minn = int(abs((lembda1 - deg) * 60.0))
         sec = abs(lembda1 * 3600 - deg * 3600) - minn * 60
-        print(" %3i\xF8%3i' %6.3f\" \n" % (deg, minn, sec))
+        print(" %3i\xf8%3i' %6.3f\" \n" % (deg, minn, sec))
 
         phi2 = -((10.1561 / 60.0 + 39) / 60.0 + 37)
         lembda2 = (35.3839 / 60.0 + 55) / 60.0 + 143
@@ -39,11 +39,11 @@ class VincentyTestCase(unittest.TestCase):
         deg = int(phi2)
         minn = int(abs((phi2 - deg) * 60.0))
         sec = abs(phi2 * 3600 - deg * 3600) - minn * 60
-        print(" Buninyon      =   %3i\xF8%3i' %6.3f\",  " % (deg, minn, sec), end=" ")
+        print(" Buninyon      =   %3i\xf8%3i' %6.3f\",  " % (deg, minn, sec), end=" ")
         deg = int(lembda2)
         minn = int(abs((lembda2 - deg) * 60.0))
         sec = abs(lembda2 * 3600 - deg * 3600) - minn * 60
-        print(" %3i\xF8%3i' %6.3f\" \n" % (deg, minn, sec))
+        print(" %3i\xf8%3i' %6.3f\" \n" % (deg, minn, sec))
 
         dist, alpha12, alpha21 = vinc_dist(
             f,
@@ -65,11 +65,11 @@ class VincentyTestCase(unittest.TestCase):
         deg = int(alpha12)
         minn = int(abs((alpha12 - deg) * 60.0))
         sec = abs(alpha12 * 3600 - deg * 3600) - minn * 60
-        print(" Forward azimuth = %3i\xF8%3i' %6.3f\"\n" % (deg, minn, sec))
+        print(" Forward azimuth = %3i\xf8%3i' %6.3f\"\n" % (deg, minn, sec))
         deg = int(alpha21)
         minn = int(abs((alpha21 - deg) * 60.0))
         sec = abs(alpha21 * 3600 - deg * 3600) - minn * 60
-        print(" Reverse azimuth = %3i\xF8%3i' %6.3f\"\n" % (deg, minn, sec))
+        print(" Reverse azimuth = %3i\xf8%3i' %6.3f\"\n" % (deg, minn, sec))
 
         # Test the direct function */
         phi1 = -((3.7203 / 60.0 + 57) / 60.0 + 37)
@@ -89,17 +89,17 @@ class VincentyTestCase(unittest.TestCase):
         deg = int(phi2)
         minn = int(abs((phi2 - deg) * 60.0))
         sec = abs(phi2 * 3600 - deg * 3600) - minn * 60
-        print(" Projected Point = %3i\xF8%3i' %6.3f\", " % (deg, minn, sec), end=" ")
+        print(" Projected Point = %3i\xf8%3i' %6.3f\", " % (deg, minn, sec), end=" ")
         deg = int(lembda2)
         minn = int(abs((lembda2 - deg) * 60.0))
         sec = abs(lembda2 * 3600 - deg * 3600) - minn * 60
-        print("  %3i\xF8%3i' %6.3f\"\n" % (deg, minn, sec))
+        print("  %3i\xf8%3i' %6.3f\"\n" % (deg, minn, sec))
         print(" Should be Buninyon \n")
         print("\n Reverse azimuth = %10.6f \n" % (alpha21))
         deg = int(alpha21)
         minn = int(abs((alpha21 - deg) * 60.0))
         sec = abs(alpha21 * 3600 - deg * 3600) - minn * 60
-        print(" Reverse azimuth = %3i\xF8%3i' %6.3f\"\n\n" % (deg, minn, sec))
+        print(" Reverse azimuth = %3i\xf8%3i' %6.3f\"\n\n" % (deg, minn, sec))
 
         # lat/lon of New York
         lat1 = 40.78

@@ -1,6 +1,7 @@
 """Constants
 ---------.
 """
+
 from typing import ClassVar
 
 from wagl.constants import ArdProducts

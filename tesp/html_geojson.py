@@ -1,6 +1,7 @@
 """Execution method for creation of map.html and bounding geojson:
 python html_geojson.py ALLBANDS_20m.contiguity.img.
 """
+
 import json
 import logging
 import os

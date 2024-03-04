@@ -8,6 +8,7 @@ An `AcquisitionsContainer` provides a container like structure
 for handling scenes consisting of multiple Granules/Tiles,
 and of differing resolutions.
 """
+
 import datetime
 import json
 import os

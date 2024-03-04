@@ -1,4 +1,5 @@
 """Contains the base implementations for the acquisition and AcquisitionsContainer objects."""
+
 from __future__ import annotations
 
 import datetime

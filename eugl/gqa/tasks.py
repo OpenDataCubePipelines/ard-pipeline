@@ -8,7 +8,6 @@ Workflow settings can be configured in `luigi.cfg` file.
 # pylint: disable=missing-docstring,no-init,too-many-function-args
 # pylint: disable=too-many-locals
 
-
 import logging
 import math
 import os

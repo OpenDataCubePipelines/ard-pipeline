@@ -1,4 +1,5 @@
 """Defines the acquisition classes for the landsat satellite program for wagl."""
+
 import gzip
 import math
 import tarfile

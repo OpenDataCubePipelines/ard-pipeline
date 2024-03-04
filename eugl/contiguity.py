@@ -4,6 +4,7 @@ example usage:
     contiguity.py <allbands.vrt>
     --output /tmp/
 """
+
 import logging
 import os
 from pathlib import Path

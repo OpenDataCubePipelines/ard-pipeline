@@ -6,6 +6,7 @@ example usage:
     python search_s2.py --bounds 111 156 -45 -8 --date_start 01/11/2015 --date_stop 01/12/2015
     --product s2a_level1c_granule --config ~/.aws_datacube.conf --output /g/data/v10/tmp/output.txt
 """
+
 import logging
 import os
 from datetime import datetime

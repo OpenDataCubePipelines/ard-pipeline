@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 """Test several different configurations of the json input file format."""
+
 import json
 import os
 import tempfile
@@ -94,9 +95,9 @@ class ModtranTest(unittest.TestCase):
             with open(INPUT_JSON) as fd:
                 json_data = json.load(fd)
                 for mod_input in json_data["MODTRAN"]:
-                    mod_input["MODTRANINPUT"]["SPECTRAL"][
-                        "FILTNM"
-                    ] = SPECTRAL_RESPONSE_LS8
+                    mod_input["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = (
+                        SPECTRAL_RESPONSE_LS8
+                    )
 
             with open(
                 pjoin(run_dir, POINT_ALBEDO_FMT.format(p=point, a=albedo.value))

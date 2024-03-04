@@ -1,6 +1,7 @@
 """Acquisition info provides additional attributes to the Acquisition class
 defined in the wagl package required for quality assessment.
 """
+
 from datetime import timezone
 
 import fiona

@@ -18,7 +18,7 @@ repos:
     -   id: pretty-format-yaml
         args: [--autofix, --indent, '4']
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.2.1
+    rev: v0.3.0
     hooks:
     -   id: ruff
         args: [--fix, --show-fixes, --output-format, grouped]
@@ -30,6 +30,6 @@ repos:
     -   id: shellcheck
         exclude: ^(deployment/scripts/|deployment/overlay/scripts|deployment/nci/templates)
 -   repo: https://github.com/jazzband/pip-tools
-    rev: 7.3.0
+    rev: 7.4.0
     hooks:
     -   id: pip-compile

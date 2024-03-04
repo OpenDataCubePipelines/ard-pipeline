@@ -7,6 +7,7 @@ wagl environment set up (such as our NCI modules) you may only need to specify a
 It will output in a readable yaml format by default, but you can also specify `--paths-only`
 to get a simpler list of pure paths (suitable for typical bash commands).
 """
+
 from typing import List, Optional, Tuple
 
 import click

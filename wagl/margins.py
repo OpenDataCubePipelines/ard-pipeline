@@ -1,4 +1,5 @@
 """Defining and buffering image extents/margins."""
+
 from math import ceil
 
 
