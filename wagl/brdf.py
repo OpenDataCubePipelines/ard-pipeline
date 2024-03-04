@@ -416,6 +416,7 @@ def load_brdf_tile(
     dataset_name: str,
     fid_mask: rasterio.DatasetReader,
     satellite: str,
+    offshore: bool = False,
 ) -> BrdfTileSummary:
     """Summarize BRDF data from a single tile."""
     assert satellite in ["MODIS", "VIIRS"]
@@ -493,7 +494,7 @@ def load_brdf_tile(
 
     roi_mask = roi_mask & ocean_mask
 
-    def layer_sum(param):
+    def layer_load(param):
         if satellite == "MODIS":
             layer = ds[param][:, :]
         else:
@@ -507,20 +508,88 @@ def load_brdf_tile(
         layer = layer.astype("float32")
         layer[~common_mask] = np.nan
         layer = ds.attrs["scale_factor"] * (layer - ds.attrs["add_offset"])
+        return {param + "_layer": layer, param + "_mask": common_mask}
+
+    def layer_sum(param_value):
+        layer_mask_dict = layer_load(param_value)
+        layer, common_mask = (
+            layer_mask_dict[param_value + "_layer"],
+            layer_mask_dict[param_value + "_mask"],
+        )
         return {"sum": np.nansum(layer), "count": np.sum(common_mask)}
 
-    if satellite == "MODIS":
-        bts = BrdfTileSummary(
-            {param: layer_sum(param.value) for param in BrdfModelParameters},
-            [current_h5_metadata(fid)["id"]],
-            [fid.filename],
+    def layer_sum_filtered(BrdfModelParameters):
+        iso_layer_mask_dict = layer_load(BrdfModelParameters.ISO.value)
+        iso_layer, iso_common_mask = (
+            iso_layer_mask_dict[BrdfModelParameters.ISO.value + "_layer"],
+            iso_layer_mask_dict[BrdfModelParameters.ISO.value + "_mask"],
         )
+        vol_layer_mask_dict = layer_load(BrdfModelParameters.VOL.value)
+        vol_layer, vol_common_mask = (
+            vol_layer_mask_dict[BrdfModelParameters.VOL.value + "_layer"],
+            vol_layer_mask_dict[BrdfModelParameters.VOL.value + "_mask"],
+        )
+        geo_layer_mask_dict = layer_load(BrdfModelParameters.GEO.value)
+        geo_layer, geo_common_mask = (
+            geo_layer_mask_dict[BrdfModelParameters.GEO.value + "_layer"],
+            geo_layer_mask_dict[BrdfModelParameters.GEO.value + "_mask"],
+        )
+
+        # Keep only values where fiso > fvol and fiso > fgeo.
+        # The others are supposedly unphysical.
+        keep_mask = (iso_layer > vol_layer) & (iso_layer > geo_layer)
+
+        # Final masks
+        final_mask_iso = keep_mask & iso_common_mask
+        final_mask_vol = keep_mask & vol_common_mask
+        final_mask_geo = keep_mask & geo_common_mask
+
+        # Final layers
+        iso_layer[~final_mask_iso] = np.nan
+        vol_layer[~final_mask_vol] = np.nan
+        geo_layer[~final_mask_geo] = np.nan
+
+        return {
+            BrdfModelParameters.ISO: {
+                "sum": np.nansum(iso_layer),
+                "count": np.sum(final_mask_iso),
+            },
+            BrdfModelParameters.VOL: {
+                "sum": np.nansum(vol_layer),
+                "count": np.sum(final_mask_vol),
+            },
+            BrdfModelParameters.GEO: {
+                "sum": np.nansum(geo_layer),
+                "count": np.sum(final_mask_geo),
+            },
+        }
+
+    if not offshore:
+        if satellite == "MODIS":
+            bts = BrdfTileSummary(
+                {param: layer_sum(param.value) for param in BrdfModelParameters},
+                [current_h5_metadata(fid)["id"]],
+                [fid.filename],
+            )
+        else:
+            bts = BrdfTileSummary(
+                {param: layer_sum(param) for param in BrdfModelParameters},
+                [fid.attrs["LocalGranuleID"].decode("UTF-8")],
+                [fid.filename],
+            )
     else:
-        bts = BrdfTileSummary(
-            {param: layer_sum(param) for param in BrdfModelParameters},
-            [fid.attrs["LocalGranuleID"].decode("UTF-8")],
-            [fid.filename],
-        )
+        if satellite == "MODIS":
+            bts = BrdfTileSummary(
+                layer_sum_filtered(BrdfModelParameters),
+                [current_h5_metadata(fid)["id"]],
+                [fid.filename],
+            )
+        else:
+            bts = BrdfTileSummary(
+                layer_sum_filtered(BrdfModelParameters),
+                [fid.attrs["LocalGranuleID"].decode("UTF-8")],
+                [fid.filename],
+            )
     return bts
 
 
@@ -607,7 +676,7 @@ def get_tally(
             for tile in tile_list:
                 with h5py.File(tile, "r") as fid:
                     tally[ds] += load_brdf_tile(
-                        src_poly, src_crs, fid, ds, fid_mask, satellite
+                        src_poly, src_crs, fid, ds, fid_mask, satellite, offshore
                     )
     return tally
 
