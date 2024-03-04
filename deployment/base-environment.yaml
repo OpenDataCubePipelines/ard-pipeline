@@ -1,0 +1,43 @@
+name: base
+channels:
+-   defaults
+-   conda-forge
+dependencies:
+-   setuptools
+-   pip
+-   wheel
+-   conda-content-trust
+-   conda-libmamba-solver
+-   libarchive
+-   mamba
+-   blosc
+-   boost-cpp
+-   cairo
+-   certifi
+-   click
+-   cython
+-   gdal
+-   h5py
+-   osr
+-   lxml
+-   hdf5-external-filter-plugins-bitshuffle
+-   hdf5plugin
+-   libnetcdf
+-   lightgbm
+-   meson
+-   meson-python
+-   numpy[version='<1.24']
+-   pandas[version='<2']
+-   proj
+-   pytables
+-   pytest
+-   python-fmask
+-   rasterio
+-   scikit-image
+-   scipy
+-   ca-certificates
+-   openssl
+-   pip:
+    -   lxml
+    -   httpx
+prefix: /build/conda
