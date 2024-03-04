@@ -18,7 +18,6 @@ dependencies:
 -   cython
 -   gdal
 -   h5py
--   osr
 -   lxml
 -   hdf5-external-filter-plugins-bitshuffle
 -   hdf5plugin
@@ -26,6 +25,7 @@ dependencies:
 -   lightgbm
 -   meson
 -   meson-python
+-   netcdf4
 -   numpy[version='<1.24']
 -   pandas[version='<2']
 -   proj
