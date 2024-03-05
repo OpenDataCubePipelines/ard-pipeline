@@ -9,6 +9,6 @@ cd "$this_dir"
 version="${1:-$(date '+%Y%m%d-%H%M')}-s2"
 
 export ard_product_array='["NBART"]'
-export fmask_version="0.5.7"
+export fmask_version="0.5.5"
 
 ./create-module.sh "${version}"  "${@}"
