@@ -26,7 +26,7 @@ export LANG=C.UTF-8
 echo "##########################"
 echo "module_dir = ${module_dir:=/g/data/v10/public/modules}"
 echo
-echo "swfo_version= ${swfo_version:="swfo-0.0.2"}"
+echo "swfo_version= ${swfo_version:="761dcc19cef69573ae420aec3fc3872851cc96fa"}"
 echo "gost_version = ${gost_version:="gost-0.0.3"}"
 echo "modtran_version = ${modtran_version:="6.0.1"}"
 echo
