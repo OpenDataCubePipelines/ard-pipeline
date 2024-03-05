@@ -275,6 +275,7 @@ def card4l(
             method,
             rori,
             normalized_solar_zenith,
+            offshore_territory_boundary_path,
         )
 
 
@@ -742,6 +743,7 @@ def stash_metadata(
     method,
     rori,
     normalized_solar_zenith,
+    offshore_territory_boundary_path,
 ):
     ancillary_group = root[GroupName.ANCILLARY_GROUP.value]
     esun_values = get_esun_values(root, container, granule)
@@ -767,4 +769,5 @@ def stash_metadata(
         metadata,
         parameters,
         workflow,
+        offshore_territory_boundary_path,
     )

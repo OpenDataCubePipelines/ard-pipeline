@@ -16,13 +16,16 @@ import socket
 import uuid
 from posixpath import join as ppjoin
 
+import fiona
 import h5py
 import numpy as np
 import pandas as pd
 import rasterio
 import yaml
+from shapely.geometry import Polygon, shape
 from yaml.representer import Representer
 
+from wagl.acquisition import Acquisition
 from wagl.constants import (
     POINT_FMT,
     BandType,
@@ -115,7 +118,30 @@ def read_metadata_tags(fname, bands):
     return pd.DataFrame(tag_data)
 
 
-def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, workflow):
+def is_offshore_territory(
+    acq: Acquisition, offshore_territory_boundary_path: str
+) -> bool:
+    geobox = acq.gridded_geo_box()
+    acq_polygon = Polygon(
+        [geobox.ul_lonlat, geobox.ur_lonlat, geobox.lr_lonlat, geobox.ll_lonlat]
+    )
+
+    with fiona.open(offshore_territory_boundary_path, "r") as offshore_territory:
+        for boundary_poly in offshore_territory:
+            if shape(boundary_poly["geometry"]).contains(acq_polygon):
+                return False
+
+    return True
+
+
+def create_ard_yaml(
+    res_group_bands,
+    ancillary_group,
+    out_group,
+    parameters,
+    workflow,
+    offshore_territory_boundary_path,
+):
     """Write the NBAR metadata captured during the entire workflow to a
     HDF5 SCALAR dataset using the yaml document format.
 
@@ -134,6 +160,10 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
 
     :param workflow:
         Which workflow to run (from the `wagl.constants.Workflow` enumeration).
+
+    :param offshore_territory_boundary_path:
+        GeoJSON to determine if the processed dataset lies outside of
+        the best-quality ancillary extent.
 
     :return:
         None; The yaml document is written to the HDF5 file.
@@ -373,6 +403,10 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
         "id": str(uuid.uuid4()),
         "parameters": parameters,
     }
+
+    offshore = is_offshore_territory(acquisition, offshore_territory_boundary_path)
+    if offshore:
+        metadata["processing_region"] = "offshore_territories"
 
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)

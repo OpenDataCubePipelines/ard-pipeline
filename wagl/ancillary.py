@@ -11,13 +11,12 @@ from posixpath import join as ppjoin
 from typing import Dict, List, Optional, Set, Tuple, TypedDict
 
 import attr
-import fiona
 import h5py
 import numpy as np
 import pandas as pd
 from geopandas import GeoSeries
 from shapely import wkt
-from shapely.geometry import Point, Polygon, shape
+from shapely.geometry import Point, Polygon
 
 from wagl.acquisition import (
     Acquisition,
@@ -42,7 +41,7 @@ from wagl.hdf5 import (
     write_dataframe,
     write_scalar,
 )
-from wagl.metadata import current_h5_metadata
+from wagl.metadata import current_h5_metadata, is_offshore_territory
 from wagl.satellite_solar_angles import create_coordinator, create_vertices
 
 #: A H5 file path and dataset name, separated by a colon.
@@ -187,22 +186,6 @@ class NbarPathsDict(TypedDict):
     dem_path: str
     cop_pathname: str
     brdf_dict: BrdfDict
-
-
-def is_offshore_territory(
-    acq: Acquisition, offshore_territory_boundary_path: str
-) -> bool:
-    geobox = acq.gridded_geo_box()
-    acq_polygon = Polygon(
-        [geobox.ul_lonlat, geobox.ur_lonlat, geobox.lr_lonlat, geobox.ll_lonlat]
-    )
-
-    with fiona.open(offshore_territory_boundary_path, "r") as offshore_territory:
-        for boundary_poly in offshore_territory:
-            if shape(boundary_poly["geometry"]).contains(acq_polygon):
-                return False
-
-    return True
 
 
 def collect_ancillary(
