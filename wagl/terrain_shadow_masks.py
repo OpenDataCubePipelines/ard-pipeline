@@ -14,7 +14,6 @@ from wagl.constants import DatasetName, GroupName
 from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.margins import pixel_buffer
-from wagl.satellite_solar_angles import setup_spheroid
 from wagl.tiling import generate_tiles
 
 
@@ -248,39 +247,52 @@ def cast_shadow_main(
     sazi_data,
     dresx,
     dresy,
-    spheroid,
-    alat1,
-    alon1,
     aoff_x1,
     aoff_x2,
     aoff_y1,
     aoff_y2,
     nla_ori,
     nsa_ori,
-    is_utm,
+    mask_all,
 ):
-    ierr, mask = cast_shadow_prim(
-        dem_data,
-        solar_data,
-        sazi_data,
-        dresx,
-        dresy,
-        spheroid,
-        alat1,
-        alon1,
-        aoff_x1,
-        aoff_x2,
-        aoff_y1,
-        aoff_y2,
-        nla_ori,
-        nsa_ori,
-        is_utm,
-    )
+    # some names are from the Fortran code and so does not follow Python conventions
+    nrow, ncol = solar_data.shape
+    nl, ns = dem_data.shape
 
-    if ierr:
-        raise CastShadowError(ierr)
+    # the DEM data should have the same dimensions as the angle data
+    # but with padding
+    assert nl == aoff_y1 + nrow + aoff_y2
+    assert ns == aoff_x1 + ncol + aoff_x2
 
-    return mask
+    y_indices = [
+        slice(row, min(row + nla_ori, nrow)) for row in range(0, nrow, nla_ori)
+    ]
+    for y_idx in y_indices:
+        nla = y_idx.stop - y_idx.start
+        mmax_sub = aoff_y1 + nla + aoff_y2
+
+        solar = solar_data[y_idx, :]
+        sazi = sazi_data[y_idx, :]
+        dem = dem_data[y_idx.start : (y_idx.start + mmax_sub), :]
+
+        ierr, mask = cast_shadow_prim(
+            dem,
+            solar,
+            sazi,
+            dresx,
+            dresy,
+            aoff_x1,
+            aoff_x2,
+            aoff_y1,
+            aoff_y2,
+            nla_ori,
+            nsa_ori,
+        )
+
+        if ierr:
+            raise CastShadowError(ierr)
+
+        mask_all[y_idx, :] = mask
 
 
 def calculate_cast_shadow(
@@ -386,14 +398,6 @@ def calculate_cast_shadow(
     # Setup the geobox
     geobox = acquisition.gridded_geo_box()
     x_res, y_res = geobox.pixelsize
-    x_origin, y_origin = geobox.origin
-
-    # Are we in UTM or geographics?
-    is_utm = not geobox.crs.IsGeographic()
-
-    # Retrive the spheroid parameters
-    # (used in calculating pixel size in metres per lat/lon)
-    spheroid, _ = setup_spheroid(geobox.crs.ExportToWkt())
 
     # Define Top, Bottom, Left, Right pixel buffer margins
     margins = pixel_buffer(acquisition, buffer_distance)
@@ -405,33 +409,14 @@ def calculate_cast_shadow(
         zenith_name = DatasetName.SATELLITE_VIEW.value
         azimuth_name = DatasetName.SATELLITE_AZIMUTH.value
 
-    zenith_angle = satellite_solar_group[zenith_name][:]
-    azimuth_angle = satellite_solar_group[azimuth_name][:]
-    elevation = dsm_group[DatasetName.DSM_SMOOTHED.value][:]
+    zenith_angle = satellite_solar_group[zenith_name]
+    azimuth_angle = satellite_solar_group[azimuth_name]
+    elevation = dsm_group[DatasetName.DSM_SMOOTHED.value]
 
     # block height and width of the window/submatrix used in the cast
     # shadow algorithm
     block_width = margins.left + margins.right
     block_height = margins.top + margins.bottom
-
-    # Compute the cast shadow mask
-    mask = cast_shadow_main(
-        elevation,
-        zenith_angle,
-        azimuth_angle,
-        x_res,
-        y_res,
-        spheroid,
-        y_origin,
-        x_origin,
-        margins.left,
-        margins.right,
-        margins.top,
-        margins.bottom,
-        block_height,
-        block_width,
-        is_utm,
-    )
 
     source_dir = "SUN" if solar_source else "SATELLITE"
 
@@ -454,7 +439,9 @@ def calculate_cast_shadow(
 
     dname_fmt = DatasetName.CAST_SHADOW_FMT.value
     out_dset = grp.create_dataset(
-        dname_fmt.format(source=source_dir), data=mask, **kwargs
+        dname_fmt.format(source=source_dir),
+        shape=zenith_angle.shape,
+        **kwargs,
     )
 
     # attach some attributes to the image datasets
@@ -469,6 +456,22 @@ def calculate_cast_shadow(
     attrs["description"] = desc
     attrs["alias"] = f"cast-shadow-{source_dir}".lower()
     attach_image_attributes(out_dset, attrs)
+
+    # Compute the cast shadow mask
+    cast_shadow_main(
+        elevation,
+        zenith_angle,
+        azimuth_angle,
+        x_res,
+        y_res,
+        margins.left,
+        margins.right,
+        margins.top,
+        margins.bottom,
+        block_height,
+        block_width,
+        out_dset,
+    )
 
 
 def combine_shadow_masks(

@@ -1,11 +1,10 @@
 SUBROUTINE cast_shadow_main( &
     dem_data, solar_data, sazi_data, &
-    dresx, dresy, spheroid, alat1, alon1, &
+    dresx, dresy, &
     Aoff_x1, Aoff_x2, Aoff_y1, Aoff_y2, &
     nlA_ori, nsA_ori, &
-    is_utm, &
     nrow, ncol, nl, ns, dem_nr, dem_nc, &
-    a, solar, sazi, dem, alat, alon, mask, &
+    a, solar, sazi, dem, mask, &
     ierr, mask_all)
 
     implicit none
@@ -48,16 +47,8 @@ SUBROUTINE cast_shadow_main( &
 !   dem_nr and dem_nc are the number of rows and columns in 'one chunk' of a submatrix (includes the boundary padding).
 !   dresx is the x cell size.
 !   dresy is the y cell size.
-!   spheroid is the spheroidal parameters.
-!       1. Spheroid major axis
-!       2. Inverse flattening
-!       3. Eccentricity squared
-!       4. Earth rotational angular velocity rad/sec
-!
 !   ierr provides a spot for the a return error code.
-!   alat and alon are the lattitude and longitude of the origin of the region.
 !   nlA_ori, nsA_ori are the sub-matrix lines and columns.
-!   is_utm are the inputs in UTM (.true. == 'yes').
 !   mask_all holds the result mask.
 !   Aoff_x1 is the pixel number before the Landsat image and Aoff_x2 is pixel number after the Landsat image
 !   Aoff_y1 is the line number before the Landsat image starts and Aoff_y2 is line number after teh Landsat image end
@@ -82,8 +73,7 @@ SUBROUTINE cast_shadow_main( &
     real*4 dem_data(nl, ns) !
     real*4 solar_data(nrow, ncol) !
     real*4 sazi_data(nrow, ncol) !
-    real*8 spheroid(4)
-    real*8 dresx, dresy, alat1, alon1
+    real*8 dresx, dresy
     integer*4 Aoff_x1, Aoff_x2, Aoff_y1, Aoff_y2
     integer*4 nlA_ori, nsA_ori
     logical is_utm
@@ -92,8 +82,6 @@ SUBROUTINE cast_shadow_main( &
     real*4 solar(nlA_ori, ncol) !
     real*4 sazi(nlA_ori, ncol) !
     real*4 dem(dem_nr, ns) !
-    real*8 alat(nlA_ori) !
-    real*8 alon(ncol) !
     integer*2 mask(nlA_ori, nsA_ori) !
     integer*2 mask_all(nrow, ncol) !
     integer*4 ierr
@@ -113,14 +101,14 @@ SUBROUTINE cast_shadow_main( &
     logical exists
 
 !f2py intent(in) dem_data, solar_data, sazi_data
-!f2py intent(in) dresx, dresy, spheroid, alat1, alon1
+!f2py intent(in) dresx, dresy
 !f2py intent(in) Aoff_x1, Aoff_x2, Aoff_y1, Aoff_y2
 !f2py intent(in) nlA_ori, nsA_ori
 !f2py intent(in) is_utm
 !f2py integer intent(hide),depend(solar_data) :: nrow=shape(solar_data,0), ncol=shape(solar_data,1)
 !f2py integer intent(hide),depend(dem_data) :: nl=shape(dem_data,0), ns=shape(dem_data,1)
 !f2py integer intent(hide),depend(Aoff_y1,nlA_ori,Aoff_y2,Aoff_x1,nsA_ori,Aoff_x2) :: dem_nr=Aoff_y1+nlA_ori+Aoff_y2, dem_nc=Aoff_x1+nsA_ori+Aoff_x2
-!f2py intent(hide) :: a, solar, sazi, dem, alat, alon, mask
+!f2py intent(hide) :: a, solar, sazi, dem, mask
 !f2py intent(out) ierr
 !f2py intent(out) mask_all
 
@@ -128,15 +116,8 @@ SUBROUTINE cast_shadow_main( &
 !   (usually >0 and less than 10.0m)
     htol=1.0
 
-    if(is_utm) then
-        hx = dresx
-        hy = dresy
-    else
-        !       calculate longitude for each pixel of the line
-        do j=1,ncol
-            alon(j)=alon1+(j-1)*dresx
-        enddo
-    endif
+    hx = dresx
+    hy = dresy
 
 !--------------------------------------------------------------
 !   kky for line and kkx for column
@@ -198,15 +179,6 @@ SUBROUTINE cast_shadow_main( &
         enddo
 
         ii=nlA/2
-
-        if(.not.is_utm) then
-!           calculate latitude for each line
-            do i=1,nlA
-                alat(i)=alat1-((k-1)*nlA_ori+i-1)*dresy
-            enddo
-            call geo2metres_pixel_size(alat(ii), dresx, dresy, &
-                                       spheroid, hx, hy, istat)
-        endif
 
 !       divide seveal sub_matrix according to columns
 !write(*,*)"about to start cols: kkx = ",kkx
@@ -391,16 +363,6 @@ SUBROUTINE cast_shadow_main( &
         enddo
 
         ii=nlA/2
-
-        if(.not.is_utm) then
-!           calculate latitude and longitude for sub_matrix
-            do i=1,nlA
-                alat(i)=alat1-(kky*nlA_ori+i-1)*dresy
-            enddo
-
-            call geo2metres_pixel_size(alat(ii), dresx, dresy, &
-                                       spheroid, hx, hy, istat)
-        endif
 
 !       divide seveal sub_matrix according to columns
         do l=1,kkx

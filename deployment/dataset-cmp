@@ -34,6 +34,16 @@ def find_yaml_file(path: Path) -> List[Path]:
     return fs
 
 
+def show(result):
+    if result is None or result["diff"] == 0:
+        secho("identical", fg="green")
+    else:
+        secho(
+            f'\t{result["diff"]} pixels differ ({result["same"]} same), max difference {result["max_diff"]}',
+            fg="red",
+        )
+
+
 def compare(original_pkg: Path, new_package: Path):
     failures = 0
     original_yamls = find_yaml_file(original_pkg)
@@ -84,10 +94,7 @@ def compare(original_pkg: Path, new_package: Path):
             result = compare_images(new_image_path, old_image_path)
 
             if result["diff"] > 0:
-                secho(
-                    f'\t{result["diff"]} pixels differ ({result["same"]} same), max difference {result["max_diff"]}',
-                    fg="red",
-                )
+                show(result)
                 failures += 1
 
     if failures:
@@ -147,16 +154,6 @@ def display_difference(difference, i, j, chunk_size):
         f"Difference between the two images (chunk from {i},{j} to {i + chunk_size[0]},{j + chunk_size[1]})"
     )
     plt.show()
-
-
-def show(result):
-    if result is None:
-        secho("identical", fg="green")
-    else:
-        secho(
-            f"not identical! max diff: {result['max_diff']}, same: {result['same']}, diff: {result['diff']}",
-            fg="red",
-        )
 
 
 @click.command(help=__doc__)
