@@ -406,7 +406,7 @@ def create_ard_yaml(
 
     offshore = is_offshore_territory(acquisition, offshore_territory_boundary_path)
     if offshore:
-        metadata["processing_region"] = "offshore_territories"
+        metadata["final_ancillaries"] = "nonstandard"
 
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)
