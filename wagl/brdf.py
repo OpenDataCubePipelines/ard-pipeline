@@ -573,7 +573,7 @@ def load_brdf_tile(
             )
         else:
             bts = BrdfTileSummary(
-                {param: layer_sum(param) for param in BrdfModelParameters},
+                {param: layer_sum(param.value) for param in BrdfModelParameters},
                 [fid.attrs["LocalGranuleID"].decode("UTF-8")],
                 [fid.filename],
             )
