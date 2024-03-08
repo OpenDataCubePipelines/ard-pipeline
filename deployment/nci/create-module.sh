@@ -81,10 +81,12 @@ export conda_root="${package_dest}/conda"
 "${this_dir}/../create-conda-environment.sh" "${conda_root}"
 
 set +u
+
+# We cannot use `activate`, as it tries to use the caller's script parameters ("$@"), causing spurious failures.
 # dynamic, so shellcheck can't check it.
 # shellcheck source=/dev/null
-. "${conda_root}/bin/activate"
-# conda activate ard
+source "${conda_root}/etc/profile.d/conda.sh"
+conda activate base
 
 # this seems to be killing conda?
 # set -u
