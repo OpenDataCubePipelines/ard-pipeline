@@ -743,13 +743,14 @@ def expected_wagl_output(tmp_path):
 
 def test_package(tmp_path, expected_wagl_output: dict):
     for eods_granule in Granule.for_path(
-        WAGL_INPUT_PATH,
-        granule_names,
-        L1_METADATA_PATH,
-        FMASK_IMAGE_PATH,
-        FMASK_DOC_PATH,
-        GQA_DOC_PATH,
-        TESP_DOC_PATH,
+        wagl_hdf5=WAGL_INPUT_PATH,
+        granule_names=granule_names,
+        level1_metadata_path=L1_METADATA_PATH,
+        level1_data_path=None,
+        fmask_image_path=FMASK_IMAGE_PATH,
+        fmask_doc_path=FMASK_DOC_PATH,
+        gqa_doc_path=GQA_DOC_PATH,
+        tesp_doc_path=TESP_DOC_PATH,
     ):
         ds_id, md_path = package_non_standard(tmp_path, eods_granule)
         with md_path.open("r") as f:
