@@ -100,6 +100,7 @@ SUBROUTINE reflectance( &
     real vt, vd,angle, edir_t, eadj, edif_t, rdir, rdif, rtotal
     real RL_brdf, black_sky, white_sky
     real cosslope, rth
+    real cos_it, cos_solar, cos_angle
     external RL_brdf, black_sky, white_sky
 
 !   li-sparse parameters
@@ -114,7 +115,7 @@ SUBROUTINE reflectance( &
 !   calculate white sky albedo
     aa_white = white_sky(1.0, norm_1, norm_2)
 !   calcualte BRDF at 45 solar angle and 0 view angle
-    fnn = RL_brdf(norm_solar_zenith * pib, 0.0, 0.0, hb, br, 1.0, norm_1, norm_2)
+    fnn = RL_brdf(norm_solar_zenith * pib, 0.0, 0.0, hb, br, 1.0, norm_1, norm_2, pi)
 !    print*,fnn
 
 !   Now loop over the cols of the images
@@ -186,7 +187,7 @@ SUBROUTINE reflectance( &
                 iref_brdf(i, j) = 1
             else
 !               calculate normalized BRDF shape function
-                ann_f = RL_brdf(solar, view, ra_lm, hb, br, 1.0, norm_1, norm_2)
+                ann_f = RL_brdf(solar, view, ra_lm, hb, br, 1.0, norm_1, norm_2, pi)
 !               calculate black sky albedo for sloar angle
                 aa_solarf = black_sky(1.0, norm_1, norm_2, solar)
 !               calculate black sky albedo for view angle
@@ -227,6 +228,8 @@ SUBROUTINE reflectance( &
                 .and. (et_angle(i, j) .lt. 90.0)) then
 !----------------------------------------------------------
                 cosslope = cos(slope)
+                cos_it = cos(it)
+                cos_solar = cos(solar)
 !               calculate vd and vt
                 vd = 0.5 * (1.0 + cosslope)
                 vt = 1.0 - vd
@@ -234,7 +237,7 @@ SUBROUTINE reflectance( &
 !               calculate direct irradiance
 !               Note the account taken of threshold
 
-                edir_t = edir_h(i, j) * cos(it) / cos(solar)
+                edir_t = edir_h(i, j) * cos_it / cos_solar
 !               calculate adjacent irradiance for anisotropical surface
 !               see Iqbal, 1983 "an introduction to solar
 !               radiation"
@@ -244,7 +247,7 @@ SUBROUTINE reflectance( &
 !               sky diffuse irradiation for anisotropical surface
 !               see Iqbal, 1983 "an introduction to solar
 !               radiation" Hay model
-                edif_t = edif_h(i, j) * (ts(i, j) * cos(it) / cos(solar) + &
+                edif_t = edif_h(i, j) * (ts(i, j) * cos_it / cos_solar + &
                          vd * (1 - ts(i, j))) + eadj
                 rdir = edir_t / (edir_h(i, j) + edif_h(i, j))
                 rdif = edif_t / (edir_h(i, j) + edif_h(i, j))
@@ -254,8 +257,8 @@ SUBROUTINE reflectance( &
                       ref_lm(i))
 
                 if (rtotal .le. rth) then
-                    bb_angle = fs(i, j) / cos(solar) + (1 - fs(i, j)) * &
-                               ts(i, j) / cos(solar)
+                    bb_angle = fs(i, j) / cos_solar + (1 - fs(i, j)) * &
+                               ts(i, j) / cos_solar
                     cc_angle = -rth + (1.0 - fs(i, j)) * vd * &
                                (1.0 - ts(i, j)) + &
                                eadj / (edir_h(i, j) + edif_h(i, j))
@@ -264,15 +267,16 @@ SUBROUTINE reflectance( &
                     if (tttt .lt. -1.0) tttt = -1.0
                     angle_th = acos(tttt) * 180.0 / pi
                     angle = 90.0 - it_angle(i, j) + angle_th
-                    edir_t = edir_h(i, j) * (cos(it) + cos(angle * pib)) / &
-                             (cos(solar) +cos(angle * pib))
+                    cos_angle = cos(angle * pib)
+                    edir_t = edir_h(i, j) * (cos_it + cos_angle) / &
+                             (cos_solar +cos_angle)
                     rdir = edir_t/(edir_h(i, j)+edif_h(i, j))
                     rtotal = (edir_t+edif_t)/(edir_h(i, j)+edif_h(i, j))
                 endif
 
 !----------------------------------------------------------------
 !               calculate normalized BRDF shape function for sloping surface
-                ann_s = RL_brdf(it_brdf,et_brdf,ra_sl,hb,br,1.0,norm_1,norm_2)
+                ann_s = RL_brdf(it_brdf,et_brdf,ra_sl,hb,br,1.0,norm_1,norm_2, pi)
 !----------------------------------------------------------------
 !               calculate black sky albedo for sloar angle
                 aa_solars = black_sky(1.0,norm_1,norm_2,it_bk)
