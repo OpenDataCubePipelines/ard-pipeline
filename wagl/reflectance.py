@@ -7,7 +7,7 @@ reflectance
 
 import numpy as np
 
-from wagl.__surface_reflectance import reflectance
+from wagl.__surface_reflectance import reflectance as reflectance_prim
 from wagl.constants import ArdProducts as AP
 from wagl.constants import AtmosphericCoefficients as AC
 from wagl.constants import BrdfDirectionalParameters, DatasetName, GroupName
@@ -16,6 +16,79 @@ from wagl.hdf5 import (
     H5CompressionFilter,
     attach_image_attributes,
 )
+
+
+def reflectance_python(
+    nrow,
+    ncol,
+    rori,
+    norm_1,
+    norm_2,
+    ref_adj,
+    no_data,
+    radiance,
+    shadow_mask,
+    solar_angle,
+    sazi_angle,
+    view_angle,
+    rela_angle,
+    slope_angle,
+    aspect_angle,
+    it_angle,
+    et_angle,
+    rela_slope,
+    a_mod,
+    b_mod,
+    s_mod,
+    fs,
+    fv,
+    ts,
+    edir_h,
+    edif_h,
+    ref_lm,
+    ref_brdf,
+    ref_terrain,
+    iref_lm,
+    iref_brdf,
+    iref_terrain,
+    norm_solar_zenith,
+):
+    reflectance_prim(
+        nrow,
+        ncol,
+        rori,
+        norm_1,
+        norm_2,
+        ref_adj,
+        no_data,
+        radiance,
+        shadow_mask,
+        solar_angle,
+        sazi_angle,
+        view_angle,
+        rela_angle,
+        slope_angle,
+        aspect_angle,
+        it_angle,
+        et_angle,
+        rela_slope,
+        a_mod,
+        b_mod,
+        s_mod,
+        fs,
+        fv,
+        ts,
+        edir_h,
+        edif_h,
+        ref_lm,
+        ref_brdf,
+        ref_terrain,
+        iref_lm,
+        iref_brdf,
+        iref_terrain,
+        norm_solar_zenith,
+    )
+
 
 NO_DATA_VALUE = -999
 
@@ -259,6 +332,12 @@ def calculate_reflectance(
         # Convert the datatype if required and transpose
         band_data = as_array(acquisition.radiance_data(**acq_args), **f32_args)
 
+        if np.all(band_data == NO_DATA_VALUE):
+            lmbrt_dset[idx] = NO_DATA_VALUE
+            nbar_dset[idx] = NO_DATA_VALUE
+            nbart_dset[idx] = NO_DATA_VALUE
+            continue
+
         shadow = as_array(shadow_dataset[idx], np.int8, transpose=True)
         solar_zenith = as_array(solar_zenith_dset[idx], **f32_args)
         solar_azimuth = as_array(solar_azimuth_dset[idx], **f32_args)
@@ -290,7 +369,7 @@ def calculate_reflectance(
         ref_terrain_work = np.zeros(xsize, dtype="float32")
 
         # Run terrain correction
-        reflectance(
+        reflectance_python(
             xsize,
             ysize,
             rori,
