@@ -143,12 +143,6 @@ def slope_aspect_arrays(
     if GroupName.SLP_ASP_GROUP.value not in fid:
         fid.create_group(GroupName.SLP_ASP_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-    else:
-        filter_opts = filter_opts.copy()
-    filter_opts["chunks"] = acquisition.tile_size
-
     group = fid[GroupName.SLP_ASP_GROUP.value]
 
     # metadata for calculation
@@ -156,7 +150,7 @@ def slope_aspect_arrays(
     param_group.attrs["dsm_index"] = ((ystart, ystop), (xstart, xstop))
     param_group.attrs["pixel_buffer"] = "1 pixel"
 
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=acquisition.tile_size)
     no_data = -999
     kwargs["fillvalue"] = no_data
 

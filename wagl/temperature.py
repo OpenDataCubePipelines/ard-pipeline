@@ -97,14 +97,8 @@ def surface_brightness_temperature(
     if GroupName.STANDARD_GROUP.value not in fid:
         fid.create_group(GroupName.STANDARD_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-    else:
-        filter_opts = filter_opts.copy()
-    filter_opts["chunks"] = acq.tile_size
-
     group = fid[GroupName.STANDARD_GROUP.value]
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=acq.tile_size)
     kwargs["shape"] = (acq.lines, acq.samples)
     kwargs["fillvalue"] = NO_DATA_VALUE
     kwargs["dtype"] = "float32"

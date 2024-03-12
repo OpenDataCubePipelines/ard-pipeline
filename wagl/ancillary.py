@@ -275,10 +275,6 @@ def collect_ancillary(
     assert out_group is not None
     fid = out_group
 
-    if filter_opts is None:
-        filter_opts = {}
-
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     group = fid.create_group(GroupName.ANCILLARY_GROUP.value)
 
     acquisition = container.get_highest_resolution()[0][0]
@@ -292,7 +288,7 @@ def collect_ancillary(
         "atmospheric calculations."
     )
     attrs = {"description": desc, "array_coordinate_offset": 0}
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts)
     dset_name = DatasetName.COORDINATOR.value
     coord_dset = group.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
@@ -322,8 +318,6 @@ def collect_ancillary(
         container,
         out_group=group,
         offshore=is_offshore_territory(acquisition, offshore_territory_boundary_path),
-        compression=compression,
-        filter_opts=filter_opts,
         **nbar_paths,
     )
 
@@ -587,8 +581,6 @@ def collect_nbar_ancillary(
     brdf_dict: BrdfDict = None,
     offshore: bool = False,
     out_group=None,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
 ):
     """Collects the ancillary information required to create NBAR.
 
@@ -627,27 +619,9 @@ def collect_nbar_ancillary(
     :param out_group:
         A writeable HDF5 `Group` object.
 
-    :param compression:
-        The compression filter to use.
-        Default is H5CompressionFilter.LZF
-
-    :filter_opts:
-        A dict of key value pairs available to the given configuration
-        instance of H5CompressionFilter. For example
-        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
-        available.
-        Default is None, which will use the default settings for the
-        chosen H5CompressionFilter instance.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
-
-    :notes:
-        The keywords compression and filter_opts aren't used as we no
-        longer save the BRDF imagery. However, we may need to store
-        tables in future, therefore they can remain until we know
-        for sure they'll never be used.
     """
     assert out_group is not None
     fid = out_group
@@ -678,9 +652,7 @@ def collect_nbar_ancillary(
         for acq in container.get_acquisitions(group=group):
             if acq.band_type is not BandType.REFLECTIVE:
                 continue
-            data = get_brdf_data(
-                acq, brdf_dict, compression=compression, offshore=offshore
-            )
+            data = get_brdf_data(acq, brdf_dict, offshore=offshore)
 
             # output
             for param in data:

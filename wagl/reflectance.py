@@ -269,13 +269,7 @@ def calculate_reflectance(
     if GroupName.STANDARD_GROUP.value not in fid:
         fid.create_group(GroupName.STANDARD_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-    else:
-        filter_opts = filter_opts.copy()
-    filter_opts["chunks"] = acquisition.tile_size
-
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=acquisition.tile_size)
     grp = fid[GroupName.STANDARD_GROUP.value]
     kwargs["shape"] = (acquisition.lines, acquisition.samples)
     kwargs["fillvalue"] = NO_DATA_VALUE

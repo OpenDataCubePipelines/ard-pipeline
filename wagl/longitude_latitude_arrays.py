@@ -133,11 +133,7 @@ def create_lon_lat_grids(
         "description": LON_DESC,
     }
 
-    if filter_opts is None:
-        filter_opts = {}
-
-    filter_opts["chunks"] = acquisition.tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=acquisition.tile_size)
     lon_dset = grp.create_dataset(DatasetName.LON.value, data=result, **kwargs)
     attach_image_attributes(lon_dset, attrs)
 

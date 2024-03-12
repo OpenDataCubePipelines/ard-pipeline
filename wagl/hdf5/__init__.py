@@ -149,10 +149,7 @@ def create_image_dataset(
     :return:
         A h5py.Dataset with IMAGE CLASS attributes set.
     """
-    if filter_opts is None:
-        filter_opts = {}
-
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts)
 
     dset = fid.create_dataset(dataset_name, shape=shape, dtype=dtype, **kwargs)
 
@@ -204,10 +201,7 @@ def write_h5_image(
     :return:
         None
     """
-    if filter_opts is None:
-        filter_opts = {}
-
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts)
     dset = group.create_dataset(dset_name, data=data, **kwargs)
 
     # make a copy so as not to modify the users data
@@ -270,10 +264,7 @@ def write_h5_table(
         Default is None, which will use the default settings for the
         chosen H5CompressionFilter instance.
     """
-    if filter_opts is None:
-        filter_opts = {}
-
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts)
     dset = group.create_dataset(dset_name, data=data, **kwargs)
     attach_table_attributes(dset, title, attrs)
 
@@ -382,10 +373,7 @@ def write_dataframe(
 
     dtype = numpy.dtype(dtype)
 
-    if filter_opts is None:
-        filter_opts = {}
-
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts)
     kwargs["shape"] = (df.shape[0],)
     kwargs["dtype"] = dtype
     dset = group.create_dataset(dset_name, **kwargs)

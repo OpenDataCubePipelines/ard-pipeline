@@ -1003,12 +1003,6 @@ def calculate_angles(
     if GroupName.SAT_SOL_GROUP.value not in fid:
         fid.create_group(GroupName.SAT_SOL_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-    else:
-        filter_opts = filter_opts.copy()
-    filter_opts["chunks"] = acquisition.tile_size
-
     grp = fid[GroupName.SAT_SOL_GROUP.value]
 
     # store the parameter settings used with the satellite and solar angles
@@ -1032,7 +1026,7 @@ def calculate_angles(
 
     out_dtype = "float32"
     no_data = np.nan
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=acquisition.tile_size)
     kwargs["shape"] = (acquisition.lines, acquisition.samples)
     kwargs["fillvalue"] = no_data
     kwargs["dtype"] = out_dtype

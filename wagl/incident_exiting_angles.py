@@ -114,13 +114,9 @@ def incident_angles(
     if GroupName.INCIDENT_GROUP.value not in fid:
         fid.create_group(GroupName.INCIDENT_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-
     grp = fid[GroupName.INCIDENT_GROUP.value]
     tile_size = solar_zenith_dataset.chunks
-    filter_opts["chunks"] = tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=tile_size)
     no_data = np.nan
     kwargs["shape"] = shape
     kwargs["fillvalue"] = no_data
@@ -255,13 +251,9 @@ def exiting_angles(
     if GroupName.EXITING_GROUP.value not in fid:
         fid.create_group(GroupName.EXITING_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-
     grp = fid[GroupName.EXITING_GROUP.value]
     tile_size = satellite_view_dataset.chunks
-    filter_opts["chunks"] = tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=tile_size)
     no_data = np.nan
     kwargs["shape"] = shape
     kwargs["fillvalue"] = no_data
@@ -395,13 +387,9 @@ def relative_azimuth_slope(
     if GroupName.REL_SLP_GROUP.value not in fid:
         fid.create_group(GroupName.REL_SLP_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-
     grp = fid[GroupName.REL_SLP_GROUP.value]
     tile_size = azimuth_incident_dataset.chunks
-    filter_opts["chunks"] = tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=tile_size)
     no_data = np.nan
     kwargs["shape"] = shape
     kwargs["fillvalue"] = no_data

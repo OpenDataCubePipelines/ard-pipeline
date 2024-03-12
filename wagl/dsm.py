@@ -168,20 +168,16 @@ def get_dsm(
     assert out_group is not None
     fid = out_group
 
-    if filter_opts is None:
-        filter_opts = {}
-    else:
-        filter_opts = filter_opts.copy()
-
-    if acquisition.tile_size[0] == 1:
-        filter_opts["chunks"] = (1, dem_cols)
-    else:
-        # TODO: rework the tiling regime for larger dsm
-        # for non single row based tiles, we won't have ideal
-        # matching reads for tiled processing between the acquisition
-        # and the DEM
-        filter_opts["chunks"] = acquisition.tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    # TODO: rework the tiling regime for larger dsm
+    # for non single row based tiles, we won't have ideal
+    # matching reads for tiled processing between the acquisition
+    # and the DEM
+    kwargs = compression.settings(
+        filter_opts,
+        chunks=(
+            (1, dem_cols) if acquisition.tile_size[0] == 1 else acquisition.tile_size
+        ),
+    )
 
     group = fid.create_group(GroupName.ELEVATION_GROUP.value)
 

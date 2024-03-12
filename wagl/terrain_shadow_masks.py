@@ -67,19 +67,13 @@ def self_shadow(
     assert out_group is not None
     fid = out_group
 
-    if filter_opts is None:
-        filter_opts = {}
-    else:
-        filter_opts = filter_opts.copy()
-
     if GroupName.SHADOW_GROUP.value not in fid:
         fid.create_group(GroupName.SHADOW_GROUP.value)
 
     grp = fid[GroupName.SHADOW_GROUP.value]
 
     tile_size = exiting_angle.chunks
-    filter_opts["chunks"] = tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=tile_size)
     cols, rows = geobox.get_shape_xy()
     kwargs["shape"] = (rows, cols)
     kwargs["dtype"] = "bool"
@@ -426,15 +420,9 @@ def calculate_cast_shadow(
     if GroupName.SHADOW_GROUP.value not in fid:
         fid.create_group(GroupName.SHADOW_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-    else:
-        filter_opts = filter_opts.copy()
-
     grp = fid[GroupName.SHADOW_GROUP.value]
     tile_size = satellite_solar_group[zenith_name].chunks
-    filter_opts["chunks"] = tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=tile_size)
     kwargs["dtype"] = "bool"
 
     dname_fmt = DatasetName.CAST_SHADOW_FMT.value
@@ -543,15 +531,9 @@ def combine_shadow_masks(
     if GroupName.SHADOW_GROUP.value not in fid:
         fid.create_group(GroupName.SHADOW_GROUP.value)
 
-    if filter_opts is None:
-        filter_opts = {}
-    else:
-        filter_opts = filter_opts.copy()
-
     grp = fid[GroupName.SHADOW_GROUP.value]
     tile_size = cast_sun.chunks
-    filter_opts["chunks"] = tile_size
-    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    kwargs = compression.settings(filter_opts, chunks=tile_size)
     cols, rows = geobox.get_shape_xy()
     kwargs["shape"] = (rows, cols)
     kwargs["dtype"] = "bool"

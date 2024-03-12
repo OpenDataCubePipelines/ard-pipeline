@@ -74,6 +74,14 @@ class H5CompressionFilter(IntEnum):
 
         return switch.get(self)(compression_filter=self, **kwargs)
 
+    def settings(self, filter_opts, **overrides):
+        if filter_opts is None:
+            filter_opts = {}
+        else:
+            filter_opts = filter_opts.copy()
+        filter_opts.update(overrides)
+        return self.config(**filter_opts).dataset_compression_kwargs()
+
 
 class BloscCompression(IntEnum):
     """Comression filter ids for the blosc metafamily of compressors."""

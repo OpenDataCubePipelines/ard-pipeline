@@ -43,7 +43,7 @@ from skimage.transform import downscale_local_mean
 from wagl.acquisition import Acquisition
 from wagl.constants import BrdfDirectionalParameters, BrdfModelParameters, BrdfTier
 from wagl.data import read_subset
-from wagl.hdf5 import VLEN_STRING, H5CompressionFilter
+from wagl.hdf5 import VLEN_STRING
 from wagl.metadata import current_h5_metadata
 
 _LOG = logging.getLogger(__name__)
@@ -707,8 +707,6 @@ def get_brdf_data(
     brdf_config: BrdfDict,
     mode: Optional[BrdfMode] = None,
     offshore: bool = False,
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
 ) -> Dict[BrdfDirectionalParameters, LoadedBrdfCoverageDict]:
     """Calculates the mean BRDF value for the given acquisition,
     for each BRDF parameter ['geo', 'iso', 'vol'] that covers
@@ -735,18 +733,6 @@ def get_brdf_data(
         to your ocean mask file. To be used for masking ocean pixels from  BRDF data
         all acquisitions.
 
-    :param compression:
-        The compression filter to use.
-        Default is H5CompressionFilter.LZF
-
-    :filter_opts:
-        A dict of key value pairs available to the given configuration
-        instance of H5CompressionFilter. For example
-        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
-        available.
-        Default is None, which will use the default settings for the
-        chosen H5CompressionFilter instance.
-
     :return:
         A `dict` with the keys:
 
@@ -755,12 +741,6 @@ def get_brdf_data(
 
         Values for each BRDF Parameter are accessed via the key named
         `value`.
-
-    :notes:
-        The keywords compression and filter_opts aren't used as we no
-        longer save the BRDF imagery. However, we may need to store
-        tables in the future, therefore they can remain until we know
-        for sure they'll never be used.
     """
 
     if "user" in brdf_config:
