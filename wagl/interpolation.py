@@ -7,7 +7,6 @@ import math
 
 import numexpr
 import numpy as np
-from scipy.interpolate import Rbf
 
 from wagl.constants import DatasetName, GroupName, Method, Workflow
 from wagl.hdf5 import (
@@ -245,27 +244,6 @@ def fortran_bilinear_interpolate(
     return output
 
 
-def rbf_interpolate(
-    cols, rows, locations, samples, *_, chunking=True, kernel="gaussian"
-):
-    """Scipy radial basis function interpolation."""
-    xbar = samples.mean()
-    rbf = Rbf(locations[:, 1], locations[:, 0], samples - xbar, function=kernel)
-
-    if not chunking:
-        raster = rbf(*np.mgrid[:cols, :rows]).astype(np.float32) + xbar
-    else:
-        xchunks, ychunks = cols // 100 + 1, rows // 100 + 1
-        raster = np.empty((rows, cols), dtype=np.float32)
-        for y in np.array_split(np.arange(rows), ychunks):
-            for x in np.array_split(np.arange(cols), xchunks):
-                xy = np.meshgrid(x, y)  # note sparse not supported by scipy
-                r = rbf(*xy).astype(np.float32) + xbar
-                raster[y[0] : y[-1] + 1, x[0] : x[-1] + 1] = r
-
-    return raster
-
-
 def sheared_bilinear_interpolate(
     cols,
     rows,
@@ -458,7 +436,6 @@ def interpolate(
         Method.FBILINEAR: fortran_bilinear_interpolate,
         Method.SHEAR: sheared_bilinear_interpolate,
         Method.SHEARB: sheared_bilinear_interpolate,
-        Method.RBF: rbf_interpolate,
     }
 
     args = [cols, rows, coord, samples, start, end, centre]

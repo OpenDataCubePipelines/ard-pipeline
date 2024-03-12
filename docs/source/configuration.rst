@@ -199,7 +199,7 @@ If you're a user that would like to intersect any part of the dependency tree, t
    band_name =
 
    # The interpolation method to use;
-   # *bilinear*, *FBILINEAR*, *SHEAR*, *SHEARB*, or *RBF*
+   # *bilinear*, *FBILINEAR*, *SHEAR*, or *SHEARB*
    # internally defaults to SHEAR
    method = SHEAR
 
@@ -214,7 +214,7 @@ If you're a user that would like to intersect any part of the dependency tree, t
    compression = lzf
 
    # The interpolation method to use;
-   # *BILINEAR*, *FBILINEAR*, *SHEAR*, *SHEARB*, or *RBF*
+   # *BILINEAR*, *FBILINEAR*, *SHEAR*, or *SHEARB*
    method = SHEAR
 
    [DEMExctraction]
@@ -302,7 +302,7 @@ If you're a user that would like to intersect any part of the dependency tree, t
    pixel_quality = false
 
    # The interpolation method to use;
-   # *BILINEAR*, *FBILINEAR*, *SHEAR*, *SHEARB*, or *RBF*
+   # *BILINEAR*, *FBILINEAR*, *SHEAR*, or *SHEARB*
    method = SHEAR
 
    [ARD]
@@ -317,5 +317,5 @@ If you're a user that would like to intersect any part of the dependency tree, t
    pixel_quality = false
 
    # The interpolation method to use;
-   # *BILINEAR*, *FBILINEAR*, *SHEAR*, *SHEARB*, or *RBF*
+   # *BILINEAR*, *FBILINEAR*, *SHEAR*, or *SHEARB*
    method = SHEAR

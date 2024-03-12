@@ -195,7 +195,6 @@ class Method(Enum):
     FBILINEAR = 1
     SHEAR = 2
     SHEARB = 3
-    RBF = 4
 
 
 class BrdfModelParameters(Enum):
