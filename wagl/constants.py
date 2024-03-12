@@ -192,7 +192,6 @@ class Method(Enum):
     """
 
     BILINEAR = 0
-    FBILINEAR = 1
     SHEAR = 2
     SHEARB = 3
 

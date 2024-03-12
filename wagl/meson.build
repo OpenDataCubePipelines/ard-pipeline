@@ -309,36 +309,3 @@ _track_time_info = py3.extension_module(
     link_language: 'fortran',
     subdir: 'wagl',
 )
-
-
-bilinear_interpolation_src = [
-    'f90_sources/bilinear_interpolation.f90',
-
-]
-_bilinear_interpolation_module = custom_target(
-    'bilinear_interpolation_module',
-    input: bilinear_interpolation_src,
-    output: [
-        '__bilinear_interpolationmodule.c',
-        '__bilinear_interpolation-f2pywrappers.f',
-        # '__bilinear_interpolation-f2pywrappers2.f90',
-    ],
-    command: [
-        'f2py',
-        '-m', '__bilinear_interpolation',
-        '@INPUT@',
-        '--build-dir', '@OUTDIR@',
-    ],
-)
-_bilinear_interpolation = py3.extension_module(
-    '__bilinear_interpolation',
-    [
-        _bilinear_interpolation_module,
-        bilinear_interpolation_src,
-    ],
-
-    install: true,
-    dependencies: [fortranobject_dep],
-    link_language: 'fortran',
-    subdir: 'wagl',
-)

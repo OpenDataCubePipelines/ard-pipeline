@@ -219,31 +219,6 @@ def __interpolate_grid_inner(grid, eval_func, depth, origin, shape):
             __interpolate_grid_inner(grid, eval_func, depth - 1, kUL, block_shape)
 
 
-def fortran_bilinear_interpolate(
-    cols, rows, locations, samples, row_start, row_end, row_centre
-):
-    """Original NBAR interpolation scheme.
-    Sheared 4-cell bilinear, implemented in fortran.
-    """
-    from wagl.__bilinear_interpolation import bilinear_interpolation as fortran
-
-    assert len(samples) == 3 * 3
-    assert len(locations) == len(samples)
-
-    s1 = samples[[0, 1, 3, 4]]
-    s2 = samples[[1, 2, 4, 5]]
-    s3 = samples[[3, 4, 6, 7]]
-    s4 = samples[[4, 5, 7, 8]]
-
-    output = np.empty((rows, cols), dtype=np.float32)
-
-    fortran(
-        cols, rows, locations, s1, s2, s3, s4, row_start, row_end, row_centre, output.T
-    )
-
-    return output
-
-
 def sheared_bilinear_interpolate(
     cols,
     rows,
@@ -257,11 +232,8 @@ def sheared_bilinear_interpolate(
 ):
     """Generalisation of the original NBAR interpolation scheme.
 
-    Same interface as:
-        wagl.interpolation.fortran_bilinear_interpolate
-    with following exceptions:
-        -   locations/samples may be greater than 9 (e.g. 25, 49, etc)
-        -   two additional configuation options:
+    -   locations/samples may be greater than 9 (e.g. 25, 49, etc)
+    -   two additional configuation options:
 
     :bool shear:
         If false then apply textbook bilinear interpolation. Note this
@@ -433,7 +405,6 @@ def interpolate(
 
     func_map = {
         Method.BILINEAR: sheared_bilinear_interpolate,
-        Method.FBILINEAR: fortran_bilinear_interpolate,
         Method.SHEAR: sheared_bilinear_interpolate,
         Method.SHEARB: sheared_bilinear_interpolate,
     }
