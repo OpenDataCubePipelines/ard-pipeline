@@ -7,6 +7,7 @@ import math
 
 import numexpr
 import numpy as np
+from scipy.interpolate import LinearNDInterpolator
 
 from wagl.constants import DatasetName, GroupName, Method, Workflow
 from wagl.hdf5 import (
@@ -359,6 +360,25 @@ def sheared_bilinear_interpolate(
     return result
 
 
+def scipy_interpolate(
+    cols,
+    rows,
+    locations,
+    samples,
+    row_start,
+    row_end,
+    row_centre,
+):
+    # would np.mgrid be faster somehow?
+    # but it uses too much memory so have to process tile-by-tile
+    y, x = np.ogrid[:rows, :cols]
+    # the memory usage with np.grid can reach upto 6GB
+    # probably a good idea to do tiled processing anyway
+    interpolator = LinearNDInterpolator(locations, samples)
+    result = interpolator(y, x)
+    return result.astype(np.float32)
+
+
 def interpolate(
     acq,
     coefficient,
@@ -407,6 +427,7 @@ def interpolate(
         Method.BILINEAR: sheared_bilinear_interpolate,
         Method.SHEAR: sheared_bilinear_interpolate,
         Method.SHEARB: sheared_bilinear_interpolate,
+        Method.SCIPY: scipy_interpolate,
     }
 
     args = [cols, rows, coord, samples, start, end, centre]

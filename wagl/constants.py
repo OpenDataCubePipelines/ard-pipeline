@@ -194,6 +194,7 @@ class Method(Enum):
     BILINEAR = 0
     SHEAR = 2
     SHEARB = 3
+    SCIPY = 4
 
 
 class BrdfModelParameters(Enum):
