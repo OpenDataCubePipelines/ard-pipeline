@@ -606,10 +606,14 @@ def build_vrt(reference_images: List[CSR], out_file: str, work_dir: str):
     reprojected = [abspath(image.filename) for image in reprojected_images()]
 
     crs = common_csr.crs
+    epsg = crs.to_epsg()
+    if not epsg:
+        # TODO: Do we need a fallback?
+        raise RuntimeError(f"Cannot determine EPSG code for {crs}")
     command = [
         "gdalbuildvrt",
         "-a_srs",
-        f"EPSG:{crs.to_epsg()}",
+        f"EPSG:{epsg}",
         "-srcnodata",
         "0",
         "-vrtnodata",
