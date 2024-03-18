@@ -58,3 +58,5 @@ setenv LD_PRELOAD $::env(OPENMPI_ROOT)/lib/libmpi.so
 
 setenv LUIGI_CONFIG_PATH ${package_dest}/etc/luigi.cfg
 setenv DATACUBE_CONFIG_PATH ${package_dest}/etc/datacube.conf
+
+setenv PROJ_DATA /g/data/v10/eoancillarydata-2/proj
