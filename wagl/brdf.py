@@ -494,21 +494,21 @@ def load_brdf_tile(
 
     roi_mask = roi_mask & ocean_mask
 
-    def layer_load(param):
+    def layer_load(param_value):
         if satellite == "MODIS":
-            layer = ds[param][:, :]
+            layer = ds[param_value][:, :]
         else:
             map_dict = {
-                BrdfModelParameters.ISO: 0,
-                BrdfModelParameters.VOL: 1,
-                BrdfModelParameters.GEO: 2,
+                BrdfModelParameters.ISO.value: 0,
+                BrdfModelParameters.VOL.value: 1,
+                BrdfModelParameters.GEO.value: 2,
             }
-            layer = ds[:, :, map_dict[param]]
+            layer = ds[:, :, map_dict[param_value]]
         common_mask = roi_mask & (layer != ds.attrs["_FillValue"])
         layer = layer.astype("float32")
         layer[~common_mask] = np.nan
         layer = ds.attrs["scale_factor"] * (layer - ds.attrs["add_offset"])
-        return {param + "_layer": layer, param + "_mask": common_mask}
+        return {param_value + "_layer": layer, param_value + "_mask": common_mask}
 
     def layer_sum(param_value):
         layer_mask_dict = layer_load(param_value)
