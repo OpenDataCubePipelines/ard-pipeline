@@ -733,8 +733,8 @@ def acquisitions_via_safe(pathname: str) -> AcquisitionsContainer:
                 attrs["solar_irradiance"] = solar_irradiance[band_id]
                 attrs["d2"] = 1 / u
                 attrs["qv"] = qv
-                if band_id in offsets:
-                    attrs["offset"] = offsets[band_id]
+            if band_id in offsets:
+                attrs["offset"] = offsets[band_id]
 
             # Required attribute for packaging
             attrs["granule_xml"] = granule_xml
