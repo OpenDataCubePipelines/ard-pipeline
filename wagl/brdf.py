@@ -835,6 +835,10 @@ def get_brdf_data(
         tally = get_tally2(mode, dt)
         fallback_brdf = True if mode == "fallback" else False
 
+    # purely ocean datasets are ok for the offshore territories
+    if offshore and all(tally[ds].is_empty() for ds in tally):
+        fallback_brdf = False
+
     spatial_averages = {}
     for ds in tally:
         spatial_averages[ds] = tally[ds].mean()
