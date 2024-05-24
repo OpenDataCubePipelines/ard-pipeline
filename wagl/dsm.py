@@ -46,7 +46,7 @@ def get_dsm(
     acquisition,
     srtm_pathname,
     cop_pathname,
-    buffer_distance=8000,
+    buffer_distance=12000,
     out_group=None,
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
