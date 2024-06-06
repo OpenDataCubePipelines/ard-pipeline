@@ -67,7 +67,7 @@ SUBROUTINE cast_shadow_main( &
 !   ierr = 74: 'matrix A does not have sufficient x buffer'
 
     integer*4 k_setting
-    parameter (k_setting=1500)
+    parameter (k_setting=2000)
 
 ! arguments
     real*4 dem_data(nl, ns) !

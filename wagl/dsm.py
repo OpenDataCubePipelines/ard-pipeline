@@ -46,7 +46,7 @@ def get_dsm(
     acquisition,
     srtm_pathname,
     cop_pathname,
-    buffer_distance=12000,
+    buffer_distance=15000,
     out_group=None,
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
@@ -71,7 +71,7 @@ def get_dsm(
         A number representing the desired distance (in the same
         units as the acquisition) in which to calculate the extra
         number of pixels required to buffer an image.
-        Default is 8000.
+        Default is 15000.
 
     :param out_group:
         A writeable HDF5 `Group` object.

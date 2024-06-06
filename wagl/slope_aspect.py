@@ -69,7 +69,6 @@ def slope_aspect_arrays(
         A number representing the desired distance (in the same
         units as the acquisition) in which to calculate the extra
         number of pixels required to buffer an image.
-        Default is 8000.
 
     :param out_group:
         A writeable HDF5 `Group` object.

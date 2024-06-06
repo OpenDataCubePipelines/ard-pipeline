@@ -89,7 +89,7 @@ class DataStandardisation(luigi.Task):
     )
     filter_opts = luigi.DictParameter(default=None, significant=False)
     acq_parser_hint = luigi.OptionalParameter(default="")
-    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
+    buffer_distance = luigi.FloatParameter(default=15000, significant=False)
     h5_driver = luigi.OptionalParameter(default="", significant=False)
     normalized_solar_zenith = luigi.FloatParameter(default=45.0)
 
