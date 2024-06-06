@@ -46,7 +46,7 @@ SUMMARY_TEMPLATE = """{pbs_resources}
 #PBS -W depend=afterany:{jobids}
 
 source {env}
-batch_summary --indir {indir} --outdir {outdir}
+ard_batch_summary --indir {indir} --outdir {outdir}
 
 # jq queries
 # concatenate logs to enable querying on a single file
