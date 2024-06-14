@@ -41,7 +41,7 @@ class ImageMargins:
         return msg
 
 
-def pixel_buffer(acquisition, distance=15000):
+def pixel_buffer(acquisition, distance):
     """Determine a buffer in pixel units given an `Acquisition` and
     distance.
     If the acquistion's pixel units are in metres, then a distance
@@ -61,7 +61,6 @@ def pixel_buffer(acquisition, distance=15000):
         A number representing the desired distance (in the same
         units as the acquisition) in which to calculate the extra
         number of pixels required to buffer an image.
-        Default is 15000.
 
     :return:
         An instance of an `ImageMargins` object with each of:
