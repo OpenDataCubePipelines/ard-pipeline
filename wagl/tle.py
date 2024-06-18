@@ -62,7 +62,7 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
     name = acquisition.platform_id.replace("_", "").upper()
 
     tle_archive_path = os.path.join(
-        data_root, name, "TLE", "%s_ARCHIVE.txt" % acquisition.tag
+        data_root, name, "TLE", f"{acquisition.tag}_ARCHIVE.txt"
     )
 
     text = ""
@@ -124,7 +124,7 @@ def load_tle_from_files(acquisition, data_root, day_range=45):
         data_root,
         name,
         "TLE",
-        "%s_YEAR" % acquisition.tag,
+        f"{acquisition.tag}_YEAR",
         "%4d" % center_datetime.year,
     )
 
@@ -142,7 +142,7 @@ def load_tle_from_files(acquisition, data_root, day_range=45):
         for s in [-1, 1]:
             dt = center_datetime + (ddelta * s)
             tle_dir = os.path.join(
-                data_root, name, "TLE", "%s_YEAR" % acquisition.tag, "%4d" % dt.year
+                data_root, name, "TLE", f"{acquisition.tag}_YEAR", "%4d" % dt.year
             )
             tle_file = acquisition.tle_format % (dt.year, dt.strftime("%j"))
             tle_path = os.path.join(tle_dir, tle_file)

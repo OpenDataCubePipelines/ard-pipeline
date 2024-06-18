@@ -15,8 +15,8 @@ class VincentyTestCase(unittest.TestCase):
         b = 6356752.3142
         f = (a - b) / a
 
-        print("\n Ellipsoidal major axis =  %12.3f metres\n" % (a))
-        print("\n Inverse flattening     =  %15.9f\n" % (1.0 / f))
+        print(f"\n Ellipsoidal major axis =  {a:12.3f} metres\n")
+        print(f"\n Inverse flattening     =  {1.0 / f:15.9f}\n")
 
         print("\n Test Flinders Peak to Buninyon")
         print("\n ****************************** \n")
@@ -26,11 +26,11 @@ class VincentyTestCase(unittest.TestCase):
         deg = int(phi1)
         minn = int(abs((phi1 - deg) * 60.0))
         sec = abs(phi1 * 3600 - deg * 3600) - minn * 60
-        print(" Flinders Peak =   %3i\xf8%3i' %6.3f\",  " % (deg, minn, sec), end=" ")
+        print(f" Flinders Peak =   {deg:3d}\xf8{minn:3d}' {sec:6.3f}\",  ", end=" ")
         deg = int(lembda1)
         minn = int(abs((lembda1 - deg) * 60.0))
         sec = abs(lembda1 * 3600 - deg * 3600) - minn * 60
-        print(" %3i\xf8%3i' %6.3f\" \n" % (deg, minn, sec))
+        print(f" {deg:3d}\xf8{minn:3d}' {sec:6.3f}\" \n")
 
         phi2 = -((10.1561 / 60.0 + 39) / 60.0 + 37)
         lembda2 = (35.3839 / 60.0 + 55) / 60.0 + 143
@@ -39,11 +39,11 @@ class VincentyTestCase(unittest.TestCase):
         deg = int(phi2)
         minn = int(abs((phi2 - deg) * 60.0))
         sec = abs(phi2 * 3600 - deg * 3600) - minn * 60
-        print(" Buninyon      =   %3i\xf8%3i' %6.3f\",  " % (deg, minn, sec), end=" ")
+        print(f" Buninyon      =   {deg:3d}\xf8{minn:3d}' {sec:6.3f}\",  ", end=" ")
         deg = int(lembda2)
         minn = int(abs((lembda2 - deg) * 60.0))
         sec = abs(lembda2 * 3600 - deg * 3600) - minn * 60
-        print(" %3i\xf8%3i' %6.3f\" \n" % (deg, minn, sec))
+        print(f" {deg:3d}\xf8{minn:3d}' {sec:6.3f}\" \n")
 
         dist, alpha12, alpha21 = vinc_dist(
             f,
@@ -58,8 +58,8 @@ class VincentyTestCase(unittest.TestCase):
         alpha21 = math.degrees(alpha21)
 
         print(
-            "\n Ellipsoidal Distance = %15.3f metres\n            should be         54972.271 m\n"
-            % (dist)
+            f"\n Ellipsoidal Distance = {dist:15.3f} metres\n"
+            f"            should be         54972.271 m\n"
         )
         print(f"\n Forward and back azimuths = {alpha12:15.6f}, {alpha21:15.6f} \n")
         deg = int(alpha12)
@@ -89,17 +89,17 @@ class VincentyTestCase(unittest.TestCase):
         deg = int(phi2)
         minn = int(abs((phi2 - deg) * 60.0))
         sec = abs(phi2 * 3600 - deg * 3600) - minn * 60
-        print(" Projected Point = %3i\xf8%3i' %6.3f\", " % (deg, minn, sec), end=" ")
+        print(f" Projected Point = {deg:3d}\xf8{minn:3d}' {sec:6.3f}\", ", end=" ")
         deg = int(lembda2)
         minn = int(abs((lembda2 - deg) * 60.0))
         sec = abs(lembda2 * 3600 - deg * 3600) - minn * 60
         print("  %3i\xf8%3i' %6.3f\"\n" % (deg, minn, sec))
         print(" Should be Buninyon \n")
-        print("\n Reverse azimuth = %10.6f \n" % (alpha21))
+        print(f"\n Reverse azimuth = {alpha21:10.6f} \n")
         deg = int(alpha21)
         minn = int(abs((alpha21 - deg) * 60.0))
         sec = abs(alpha21 * 3600 - deg * 3600) - minn * 60
-        print(" Reverse azimuth = %3i\xf8%3i' %6.3f\"\n\n" % (deg, minn, sec))
+        print(f" Reverse azimuth = {deg:3d}\xf8{minn:3d}' {sec:6.3f}\"\n\n")
 
         # lat/lon of New York
         lat1 = 40.78

@@ -172,7 +172,7 @@ def interpolate_grid(
     #  depth can be derived by bit length
     max_depth = min(shape[0].bit_length(), shape[1].bit_length()) - 2
     if max_depth < 0:
-        raise ValueError("Unable to interpolate grid of %s" % str(shape))
+        raise ValueError(f"Unable to interpolate grid of {shape!s}")
     elif max_depth < depth:
         _LOG.warning(
             f"Requested depth of {depth} but maximum interpolated depth is {max_depth};"

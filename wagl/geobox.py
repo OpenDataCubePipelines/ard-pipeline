@@ -68,8 +68,8 @@ class GriddedGeoBox:
             return GriddedGeoBox.from_h5_dataset(dataset)
         else:
             raise ValueError(
-                "GriddedGeoBox.from_dataset() expects"
-                " GDAL or rasterio dataset, not %s" % type(dataset)
+                f"GriddedGeoBox.from_dataset() expects "
+                f"GDAL or rasterio dataset, not {type(dataset)}"
             )
 
     @staticmethod

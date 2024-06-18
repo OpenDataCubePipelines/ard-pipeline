@@ -190,14 +190,14 @@ def preliminary_acquisitions_data_via_mtl(pathname: str) -> Tuple[str, dict]:
                     data = load_mtl(fmem)
                 prefix_name = f"tar://{os.path.abspath(pathname)}!"
             except StopIteration:
-                raise OSError("Cannot find MTL file in %s" % pathname)
+                raise OSError(f"Cannot find MTL file in {pathname}")
     else:
         if isdir(pathname):
             filename = find_in(pathname, "MTL")
         else:
             filename = pathname
         if filename is None:
-            raise OSError("Cannot find MTL file in %s" % pathname)
+            raise OSError(f"Cannot find MTL file in {pathname}")
         data = load_mtl(filename)
         prefix_name = os.path.dirname(os.path.abspath(filename))
 
@@ -225,7 +225,7 @@ def preliminary_worldview2_acquisition_data_via_xml(pathname: str) -> ElementTre
                 xml_file = os.path.join(root, f)
 
     if xml_file is None:
-        raise OSError("Cannot find XML file in %s" % pathname)
+        raise OSError(f"Cannot find XML file in {pathname}")
 
     with open(xml_file) as fl:
         root = ElementTree.XML(fl.read())
@@ -256,7 +256,7 @@ def worldview2_acquisitions_via_xml(pathname: str) -> AcquisitionsContainer:
                 tile_file = os.path.join(root, f)
 
     if tile_file is None:
-        raise OSError("Cannot find TIL file in %s" % pathname)
+        raise OSError(f"Cannot find TIL file in {pathname}")
 
     WV2 = WorldView2MultiAcquisition
 

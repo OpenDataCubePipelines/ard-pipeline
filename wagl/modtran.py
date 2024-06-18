@@ -705,7 +705,7 @@ def _get_solar_angles(tp6_fname):
                 break
         else:
             raise ValueError(
-                ("Not able to locate solar zenith angles " "in tp6 file:%s") % tp6_fname
+                f"Cannot locate solar zenith angles in tp6 file: {tp6_fname}"
             )
 
         # TODO dynamically configure the number of atmospheric layers

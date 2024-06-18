@@ -99,7 +99,7 @@ def main(output, bounds, date_start, date_stop, config, product):
 
     search_result = open(outfile, "w")
     for item in unique:
-        search_result.write("%s\n" % item)
+        search_result.write(f"{item}\n")
 
 
 if __name__ == "__main__":
