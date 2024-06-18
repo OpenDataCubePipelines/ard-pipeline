@@ -105,6 +105,7 @@ select = [
     "ICN",  # Use standard import names, like np for numpy
     "N",  # pep8-naming
     "NPY",  # Numpy
+    "NPY201",  # Numpy 2 support
     "RUF",  # Ruf-specific python rules
     # "S",  # Bandit (security) -- explore warnings and enable in future?
     "UP"  # pyupgrade
