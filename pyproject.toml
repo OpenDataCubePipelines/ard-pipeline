@@ -8,7 +8,7 @@ requires = [
     "setuptools_scm[toml]>=6.2,<8",
     'meson-python',
     # For f2py
-    'numpy'
+    'numpy<2'
 ]
 
 [project]
