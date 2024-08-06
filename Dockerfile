@@ -76,6 +76,7 @@ RUN --mount=type=cache,target=/var/cache/dnf,id=dnfprod <<EOF
         findutils \
         jq \
         xmlstarlet \
+        perl \
         unzip \
         which
 EOF
