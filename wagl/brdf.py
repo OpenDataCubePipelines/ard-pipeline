@@ -409,6 +409,42 @@ def VIIRS_crs():
     return prj
 
 
+def segmentize_polygon(src_poly, length_scale):
+    src_poly_geom = ogr.CreateGeometryFromWkt(src_poly.wkt)
+    src_poly_geom.Segmentize(length_scale)
+    return wkt.loads(src_poly_geom.ExportToWkt())
+
+
+def only_ocean_pixels(src_poly, src_crs, fid_mask):
+    # TODO there is much code common between this function and load_brdf_tile
+
+    dst_geotransform = fid_mask.transform
+    dst_crs = fid_mask.crs
+
+    # assumes the length scales are the same (m)
+    dst_poly = ops.transform(
+        coord_transformer(src_crs, dst_crs),
+        segmentize_polygon(src_poly, np.sqrt(np.abs(dst_geotransform.determinant))),
+    )
+
+    ocean_poly = ops.transform(
+        lambda x, y: fid_mask.transform * (x, y),
+        box(0.0, 0.0, fid_mask.width, fid_mask.height),
+    )
+
+    if not ocean_poly.intersects(dst_poly):
+        return True
+
+    # read ocean mask file for correspoing tile window
+    # land=1, ocean=0
+    dst_envelope = box(*dst_poly.bounds)
+    bound_poly_coords = list(dst_envelope.exterior.coords)[:4]
+    ocean_mask, _ = read_subset(fid_mask, *bound_poly_coords)
+    ocean_mask = ocean_mask.astype(bool)
+
+    return np.sum(ocean_mask) == 0
+
+
 def load_brdf_tile(
     src_poly,
     src_crs,
@@ -436,15 +472,10 @@ def load_brdf_tile(
         dst_geotransform = rasterio.transform.Affine.from_gdal(*gt)
         dst_crs = CRS.from_wkt(VIIRS_crs())
 
-    def segmentize_src_poly(length_scale):
-        src_poly_geom = ogr.CreateGeometryFromWkt(src_poly.wkt)
-        src_poly_geom.Segmentize(length_scale)
-        return wkt.loads(src_poly_geom.ExportToWkt())
-
     # assumes the length scales are the same (m)
     dst_poly = ops.transform(
         coord_transformer(src_crs, dst_crs),
-        segmentize_src_poly(np.sqrt(np.abs(dst_geotransform.determinant))),
+        segmentize_polygon(src_poly, np.sqrt(np.abs(dst_geotransform.determinant))),
     )
 
     bound_poly = ops.transform(
@@ -673,6 +704,7 @@ def get_tally(
     with rasterio.open(ocean_mask_path_to_use, "r") as fid_mask:
         for ds in datasets:
             tally[ds] = BrdfTileSummary.empty()
+
             for tile in tile_list:
                 with h5py.File(tile, "r") as fid:
                     tally[ds] += load_brdf_tile(
@@ -766,7 +798,29 @@ def get_brdf_data(
     else:
         viirs_datasets = None
 
+    if not offshore:
+        ocean_mask_path_to_use = brdf_config["ocean_mask_path"]
+    else:
+        ocean_mask_path_to_use = brdf_config["extended_ocean_mask_path"]
+
+    with rasterio.open(ocean_mask_path_to_use, "r") as fid_mask:
+        only_ocean = only_ocean_pixels(src_poly, src_crs, fid_mask)
+
     def get_tally2(mode: BrdfMode, dt: datetime.date):
+        if only_ocean:
+            # do not load BRDF data because ocean is going to mask it anyway
+            # just fill in blank
+            if mode == "MODIS":
+                datasets = brdf_datasets
+            else:
+                datasets = next(iter(viirs_datasets.values()))
+
+            tally = {}
+            for ds in datasets:
+                tally[ds] = BrdfTileSummary.empty()
+
+            return tally
+
         # brdf_config, brdf_datasets, and viirs datasets are "constants"
         # for the purpose of choosing the data to use (MODIS vs VIIRS vs fallback)
         result = get_tally(
@@ -836,7 +890,7 @@ def get_brdf_data(
         fallback_brdf = True if mode == "fallback" else False
 
     # purely ocean datasets are ok for the offshore territories
-    if offshore and all(tally[ds].is_empty() for ds in tally):
+    if only_ocean or (offshore and all(tally[ds].is_empty() for ds in tally)):
         fallback_brdf = False
 
     spatial_averages = {}
