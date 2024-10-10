@@ -30,6 +30,23 @@ COP30M_CRS.ImportFromEPSG(4326)  # WGS84
 test_cache = Path.home() / "cop30_cache"
 test_cache.mkdir(parents=True, exist_ok=True)
 
+def tile_rounding(value: float|int):
+    """
+    Rounds lat/lon coordinates into the Cop tile index.
+
+    Cop DSM 30 and 90 datasets all use 1x1deg tiles, each assigned an latitude/longitude degree/index.
+
+    All positive latitude/longitudes contain data for [x, x+1)
+    All negative latitude/longitudes contain data for (x-1, x]
+    The 0deg latitudes/longitude tiles contain data for 0..1
+
+    TODO: Examples
+    """
+    if value >= 0.0:
+        return int(value)
+    else:
+        return int(value)-1
+
 def get_cop30m_for_extent(
     from_lat: int|float,
     to_lat: int|float,
@@ -37,7 +54,7 @@ def get_cop30m_for_extent(
     to_lon: int|float,
     *,
     cop30_bucket: str = COP30M_BUCKET_NAME
-) -> tuple[npt.NDArray[np.float32]|npt.NDArray[np.float64], Affine, osr.SpatialReference, tuple[int, int]]:
+) -> tuple[npt.NDArray[np.float32]|npt.NDArray[np.float64], Affine, osr.SpatialReference, float]:
     """
     Downloads Copernicus 30m DEM tiles that cover the lat/lon range requested.
 
@@ -46,15 +63,12 @@ def get_cop30m_for_extent(
 
     Input lat/lon coords are interpreted in the WGS 84 CRS.
     """
-    # Round lat/lon extent, as cop30 DEM tiles include [x-1..x, y..y+1]
-    # - we need to round x up (eg: 1.2 becomes 2 because tile 1,y contains 0..1, not 1..2)
-    # - we need to round y down (eg: 1.2 becomes 1, because tile x,1 contains 1..2)
-    from_lat = int(from_lat)
-    to_lat = int(to_lat)-1
-    from_lon = int(from_lon)
-    to_lon = int(to_lon)
+    from_lat = tile_rounding(from_lat)
+    to_lat = tile_rounding(to_lat)
+    from_lon = tile_rounding(from_lon)
+    to_lon = tile_rounding(to_lon)
 
-    # Produce list of 'tiles' (1x1deg regions the Cop 30 DEM is divided into)
+    # Produce list of 'tiles' (1x1arcsecond regions the Cop 30 DEM is divided into)
     tiles: list[tuple[int, int]] = []
     for lat in range(from_lat, to_lat+1):
         for lon in range(from_lon, to_lon+1):
@@ -65,6 +79,10 @@ def get_cop30m_for_extent(
     ds_res: list[tuple[int, int]] = []
     ds_nodata: list[tuple[int, int]] = []
 
+    print("lat from:", from_lat, "to", to_lat)
+    print("lon from:", from_lon, "to", to_lon)
+    print("tiles:", tiles)
+
     s3 = boto3.client("s3")
 
     for tile_idx, (lat, lon) in enumerate(tiles):
@@ -72,15 +90,15 @@ def get_cop30m_for_extent(
         lon_str = f"E{abs(lon):03d}" if lon >= 0 else f"W{abs(lon):03d}"
         key_id = f"Copernicus_DSM_COG_10_{lat_str}_00_{lon_str}_00_DEM"
         key = f"{key_id}/{key_id}.tif"
+        print(key_id)
 
         # TODO: extract to function
         try:
             # Download tile geotiff data directly into memory (~40MiB per tile)
             
-            # TEMP / REMOVE-ME: cahcing locally to disk to avoid hammering cop S3 bucket while testing
             cache_path = test_cache / key
             if cache_path.exists():
-                print("Using cached", cache_path)
+                #print("Using cached", cache_path)
                 buffer = MemoryFile(cache_path.read_bytes(), filename=os.path.basename(key))
 
             else:
@@ -111,7 +129,7 @@ def get_cop30m_for_extent(
     # NOTE: These shouldn't happen with the current cop DEM spec, but
     # just in case future versions allow for separate CRS across regional
     # areas... check and throw.
-    #
+    # 
     # If these trigger in the future, work will need to be done to decide
     # what CRS/resolution to convert them all into first to minimise errors
     # during reprojection/resampling.
@@ -129,6 +147,8 @@ def get_cop30m_for_extent(
     # NOTE: no extra arguments are needed if all the input datasets have
     # the same crs/resolution/nodata... it just does a basic painting
     # algorithm into an array with an extended resolution to fit all the data
+    #
+    # FIXME: somehow... this doesn't add all the tiles? (west bound column missing...)
     with ExitStack() as stack:
         src_tiles = [stack.enter_context(i.open()) for i in datasets]
         mosaic_data, mosaic_transform = merge(src_tiles)
@@ -152,6 +172,7 @@ def write_mosaic_tiff(
     crs: osr.SpatialReference,
     nodata_value: float
 ):
+    print("WRITING", filename, mosaic_data.shape, mosaic_data.dtype)
     # Create a mosaic dataset from the mosaic data
     mosaic_profile = {
         'driver': 'GTiff',
@@ -162,9 +183,9 @@ def write_mosaic_tiff(
         'count': 1,
         'crs': crs.ExportToWkt(),
         'transform': mosaic_transform,
-        # Write a plain old untiled uncompressed tiff
+        # Write a plain old untiled tiff
         'tiled': False,
-        'compress': 'NONE'
+        'compress': 'LZW'
     }
 
     with rasterio.open(filename, 'w', **mosaic_profile) as dst:
@@ -199,6 +220,20 @@ def get_dem_for_acquisition(
     ds_ll = ds_geobox.ll
     ds_ur = ds_geobox.ur
 
+    print(f"acquisition {dataset.band_name} ({dataset.band_id})")
+    print("acquisition pixels", dataset.samples, dataset.lines)
+    print("acquisition resolution", dataset.resolution)
+
+    print("DEBUG CRS extent ll ur", ds_ll, ds_ur)
+    print("DEBUG CRS border ll ur", ds_border)
+    print("DEBUG WGS84 extent ll ur", border_extent)
+    print("DEBUG WGS84 border ll ur", border_ll, border_ur)
+
+    #print("extent width", ds_ur[0] - ds_ll[0])
+    #print("extent degrees", border_extent[2] - border_extent[0])
+    #print("bordered width", ds_border[2] - ds_border[0])
+    #print("bordered degrees", border_ur[0] - border_ll[0])
+
     # Note: This is... not perfectly accurate (technically this is for the south-west)
     # - we are assuming equal border pixels on both sides...
     # (west, south, east, north)
@@ -222,16 +257,34 @@ def get_dem_for_acquisition(
         (border_ur[1] - border_extent[3])
     )
 
+    #print("(west, south, east, north)")
+    #print("ds_border_size:", ds_border_size)
+    #print("ds_border_size_px:", ds_border_size_px)
+    #print("ds_border_size_deg:", ds_border_size_deg)
+
     # Get DEM for acquisition
     extent = (border_ll[1], border_ur[1], border_ll[0], border_ur[0])
     dem_data, dem_transform, dem_crs, dem_nodata = get_cop30m_for_extent(*extent)
 
-    write_mosaic_tiff(str(test_cache / "test_mosaic.tif"), dem_data, dem_transform, dem_crs, dem_nodata)
+    print("==========")
+    print("==========")
+    print("dem shape:", dem_data.shape)
+    print("dem dtype:", dem_data.dtype)
+    print("dem nodata:", dem_nodata)
+    #print("dem crs:", dem_crs)
+    #print("dem transform:", dem_transform)
+
+    write_mosaic_tiff(
+        str(test_cache / "test_mosaic_{border_degrees}deg_border.tif"),
+        dem_data, dem_transform, dem_crs, dem_nodata
+    )
 
     # Create geobox for DEM
     dem_origin = dem_transform * (0,0)
+    print("dem origin:", dem_origin)
     dem_origin_ur = dem_transform * (1,1)
     dem_pixelsize = (dem_origin_ur[0] - dem_origin[0], dem_origin[1] - dem_origin_ur[1])
+    print("dem pixelsize:", dem_pixelsize)
     dem_geobox = GriddedGeoBox(
         shape=dem_data.shape,
         origin=dem_origin,
@@ -239,12 +292,17 @@ def get_dem_for_acquisition(
         crs=dem_crs
     )
 
+    print("test CRS dem pixel size", _crs_transform(dem_origin_ur, COP30M_CRS, ds_geobox.crs)[0] - _crs_transform(dem_origin, COP30M_CRS, ds_geobox.crs)[0])
+
     # Reproject DEM into same CRS and pixel size as acquisition
     new_dem_shape = (
         ds_geobox.x_size() + ds_border_size_px[0] + ds_border_size_px[2],
         ds_geobox.y_size() + ds_border_size_px[1] + ds_border_size_px[3]
     )
 
+    print("reprojecting...")
+    print("new_dem_shape:", new_dem_shape)
+    
     new_dem_geobox = GriddedGeoBox(
         shape=new_dem_shape,
         origin=ds_geobox.convert_coordinates((-ds_border_size_px[0], -ds_border_size_px[1])),
@@ -261,7 +319,11 @@ def get_dem_for_acquisition(
         resampling=Resampling.bilinear
     )
 
-    write_mosaic_tiff(str(test_cache / "test_reproj.tif"), new_dem_data.reshape((1, new_dem_shape[0], new_dem_shape[1])), new_dem_geobox.transform, new_dem_geobox.crs, dem_nodata)
+    write_mosaic_tiff(
+        str(test_cache / "test_reproj_{border_degrees}deg_border.tif"),
+        new_dem_data.reshape((1, new_dem_shape[0], new_dem_shape[1])),
+        new_dem_geobox.transform, new_dem_geobox.crs, dem_nodata
+    )
 
     return new_dem_data, new_dem_geobox
 
