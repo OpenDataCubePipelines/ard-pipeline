@@ -173,6 +173,11 @@ def write_mosaic_tiff(
     nodata_value: float
 ):
     print("WRITING", filename, mosaic_data.shape, mosaic_data.dtype)
+    if len(mosaic_data.shape) == 2:
+        print("FROM shape", mosaic_data.shape)
+        mosaic_data = mosaic_data.reshape(((1, mosaic_data.shape[0], mosaic_data.shape[1])))
+        print("TO shape", mosaic_data.shape)
+
     # Create a mosaic dataset from the mosaic data
     mosaic_profile = {
         'driver': 'GTiff',
