@@ -1,6 +1,7 @@
 from enum import Enum, auto
 import datetime as dt
 from pathlib import Path
+import zipfile
 
 # Note: while this is the official CDS API... their own forums & the git repo indicate this is
 # potentially 
@@ -21,6 +22,14 @@ from wagl.acquisition.copernicus_dem import write_mosaic_tiff, _crs_transform
 
 test_cache = Path.home() / "ecmwf_cache"
 test_cache.mkdir(parents=True, exist_ok=True)
+
+
+# TODO: for integration into WAGL... CDS/ADS credentials to be loaded from somewhere..
+CDS_ERA5_URL = "https://cds.climate.copernicus.eu/api"
+CDS_ERA5_KEY = "<CDS API key goes here>"
+
+ADS_CAMS_URL = "https://ads.atmosphere.copernicus.eu/api"
+ADS_CAMS_KEY = "<CDS API key goes here>"
 
 # ERA5 NetCDF data is effectively WGS84
 # Reference: https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation#ERA5:datadocumentation-SpatialgridSpatialGrid
@@ -73,14 +82,15 @@ def get_ecmwf_params_for_product_extent(
     elif product == ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm:
         dataset = "cams-global-atmospheric-composition-forecasts"
         date_str = timestamp.strftime("%Y-%m-%d")
+        # CAMS TOAD only has 00:00 and 12:00 forecasts
+        time_str = "00:00" if timestamp.hour < 12 else "12:00"
+
         request = {
             'variable': ['total_aerosol_optical_depth_550nm'],
             'date': [f"{date_str}/{date_str}"], # eg: ['2024-09-22/2024-09-22'],
-            'time': [timestamp.strftime("%H:00")], # eg: ['12:00'],
+            'time': [time_str], # eg: ['12:00'],
             'leadtime_hour': ['0'],
             'type': ['forecast'],
-            # NOTE: you never get a .zip file if you only request a single product
-            # - we always get the .nc file directly
             'data_format': 'netcdf_zip', # eg: 'netcdf_zip',
             'area': [to_lat, from_lon, from_lat, to_lon] # eg: [-29.13, 139.33, -40.53, 153.29]
         }
@@ -105,12 +115,10 @@ def get_ecmwf_for_extent(
         from_lat, to_lat, from_lon, to_lon
     )
 
-    # FIXME: ECMWF's API doesn't support anything besides downloading to physical files
-    # - so we can't download into memory with this approach (their HTTP API is trivial though,
-    # - could do what the API does and just do the HTTP GET ourselves...)
-    # FIXME: temp.nc needs to be unique and in a tempdir
     print(f"Downloading {product.name} for {request['area']}")
 
+    # TODO: for integration into wagl... this funtion will need a path to a scratch dir to write files to
+    # - because the CDS API unfortunately only allows downloading to a file (not into an in-memory stream/buffer)
     filename = f'temp_{product.name}_{from_lat}_{to_lat}_to_{from_lon}_{to_lon}.nc'
     cache_path = test_cache / filename
     if cache_path.exists():
@@ -122,8 +130,27 @@ def get_ecmwf_for_extent(
         #
         # This means by default, this client can .retrieve().download() and the API itself
         # takes care of waiting for the request before attempting the download.
-        client = cdsapi.Client()
+        if product == ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm:
+            client = cdsapi.Client(url=ADS_CAMS_URL, key=ADS_CAMS_KEY)
+        else:
+            client = cdsapi.Client(url=CDS_ERA5_URL, key=CDS_ERA5_KEY)
+
+        # FIXME: ECMWF's API doesn't support anything besides downloading to physical files
+        # - so we can't download into memory with this approach (their HTTP API is trivial though,
+        # - could do what the API does and just do the HTTP GET ourselves...)
         client.retrieve(dataset, request).download(str(cache_path))
+
+        # Handle zip files (which only ever contain a single .nc file)
+        if req.location.endswith(".zip"):
+            zip_path = cache_path.rename(cache_path.with_suffix(".nc.zip"))
+
+            with zip_path.open("rb") as zf:
+                zip = zipfile.ZipFile(zf)
+                filenames = zip.namelist()
+                if len(filenames) != 1:
+                    raise Exception("Unexpected zip file, found more than one file in archive!")
+                
+                cache_path.write_bytes(zip.read(filenames[0]))
 
     # Read and return the NetCDF data (just a simple single band raster image)
     with rasterio.open(cache_path) as ds:
@@ -208,28 +235,40 @@ def get_ecmwf_for_acquisition(
         crs=aux_crs
     )
 
-    return aux_data, aux_geobox
+    return aux_data, aux_nodata, aux_geobox
 
 def test():
-    scene_path = "/usr/src/wagl/LC80400332013190LGN03"
+    scene_path = "/usr/src/wagl/LC08_L1TP_028030_20221018_20221031_02_T1"
 
     acqs = acquisitions(scene_path)
     band = acqs.get_all_acquisitions()[0]
 
-    ozone, ozone_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.ERA5_OZONE, 1.0)
+    ozone, ozone_nodata, ozone_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.ERA5_OZONE, 1.0)
     print("ozone origin:", ozone_geobox.ul)
     print("ozone pixelsize:", ozone_geobox.pixelsize)
     print("ozone mean", ozone.mean())
+    write_mosaic_tiff(
+        "ozone.tif",
+        ozone, ozone_geobox.transform, ozone_geobox.crs, ozone_nodata
+    )
 
-    water_vapour, water_vapour_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.ERA5_WATER_VAPOUR, 1.0)
+    water_vapour, water_vapour_nodata, water_vapour_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.ERA5_WATER_VAPOUR, 1.0)
     print("water vapour origin:", water_vapour_geobox.ul)
     print("water vapour pixelsize:", water_vapour_geobox.pixelsize)
     print("water vapour mean", water_vapour.mean())
+    write_mosaic_tiff(
+        "water_vapour.tif",
+        water_vapour, water_vapour_geobox.transform, water_vapour_geobox.crs, water_vapour_nodata
+    )
 
-    total_aerosol, total_aerosol_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm, 1.0)
+    total_aerosol, total_aerosol_nodata, total_aerosol_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm, 1.0)
     print("total aerosol origin:", total_aerosol_geobox.ul)
     print("total aerosol pixelsize:", total_aerosol_geobox.pixelsize)
     print("total aerosol mean", total_aerosol.mean())
+    write_mosaic_tiff(
+        "total_aerosol.tif",
+        total_aerosol, total_aerosol_geobox.transform, total_aerosol_geobox.crs, total_aerosol_nodata
+    )
 
     # TODO: sample with grid, produce mean, etc - like wagl does
 
