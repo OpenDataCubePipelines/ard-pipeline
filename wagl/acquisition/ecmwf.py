@@ -8,8 +8,6 @@ import zipfile
 import cdsapi
 from osgeo import osr
 import rasterio
-from rasterio.io import MemoryFile
-from rasterio.enums import Resampling
 from rasterio.transform import Affine
 
 import numpy as np
@@ -26,10 +24,10 @@ test_cache.mkdir(parents=True, exist_ok=True)
 
 # TODO: for integration into WAGL... CDS/ADS credentials to be loaded from somewhere..
 CDS_ERA5_URL = "https://cds.climate.copernicus.eu/api"
-CDS_ERA5_KEY = "<CDS API key goes here>"
+CDS_ERA5_KEY = "***REMOVED***"
 
 ADS_CAMS_URL = "https://ads.atmosphere.copernicus.eu/api"
-ADS_CAMS_KEY = "<CDS API key goes here>"
+ADS_CAMS_KEY = "***REMOVED***"
 
 # ERA5 NetCDF data is effectively WGS84
 # Reference: https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation#ERA5:datadocumentation-SpatialgridSpatialGrid
@@ -41,10 +39,61 @@ ECMWF_CRS.ImportFromEPSG(4326)  # WGS84
 
 
 class ECMWFProduct(Enum):
-    ERA5_OZONE = auto()
-    ERA5_WATER_VAPOUR = auto()
-    CAMS_GLOBAL_FORECAST_TAOD_550nm = auto()
+    """
+    The set of supported ECMWF (European Centre for Medium-Range Weather Forecasts)
+    auxilliary data products that can be acquired.
 
+    A small subset of products from both the ERA5 and CAMS datasets are available from
+    the CDS and ADS respectively.
+
+    CDS documentation: https://confluence.ecmwf.int/display/CKB/CDS+dataset+documentation
+
+    ERA5 = ECMWF Reanalysis v5 (global ECMWF atmospheric reanalysis, version 5)
+    CDS = Climate Data Store
+    CAMS = Copernicus Atmosphere Monitoring Service
+    ADS = Atmospheric Data Store
+    """
+
+    ERA5_OZONE = auto()
+    """
+    This is an ozone data product, with source data values in kilogram square millimeter,
+    but then transformed into ATM-CM units (that MODTRAN expects).
+
+    CDS dataset: reanalysis-era5-single-levels
+    CDS product: total_column_ozone
+    CDS description:
+        This parameter is the total amount of ozone in a column of air extending
+        from the surface of the Earth to the top of the atmosphere.
+
+    Portal Link:
+    https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=overview
+    """
+
+    ERA5_WATER_VAPOUR = auto()
+    """
+    This is a water vapour product, with source data values in kilogram square millimeter,
+    but then transformed into gram square centimeters (that MODTRAN expects).
+
+    CDS dataset: reanalysis-era5-single-levels
+    CDS product: total_column_water_vapour
+    CDS description:
+        This parameter is the total amount of water vapour in a column extending
+        from the surface of the Earth to the top of the atmosphere.
+
+    Portal Link:
+    https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=overview
+    """
+
+    CAMS_GLOBAL_FORECAST_TAOD_550nm = auto()
+    """
+    Total aerosol optical depth at 550nm, acquired from the CAMS ADS.
+
+    ADS dataset: cams-global-atmospheric-composition-forecasts
+    ADS product: total_aerosol_optical_depth_550nm
+
+    Portal Link:
+    https://ads.atmosphere.copernicus.eu/datasets/cams-global-atmospheric-composition-forecasts?tab=overview
+    """
 
 def get_ecmwf_params_for_product_extent(
     product: ECMWFProduct,
@@ -54,6 +103,28 @@ def get_ecmwf_params_for_product_extent(
     from_lon: int|float,
     to_lon: int|float,
 ) -> tuple[str, dict[str, object]]:
+    """
+    Prepares the CDS API request parameters for downloading the specified
+    ECMWF auxilliary data from the CDS/ADS service for a given acquisition
+    time & lat/lon (WGS84) region.
+
+    :param product:
+        The data product to download.
+    :param timestamp:
+        The time of the acquisition to download the data for.
+    :param from_lat:
+        The southern latitude for the region of the data to download.
+    :param to_lat:
+        The northern latitude for the region of the data to download.
+    :param from_lon:
+        The western longitude for the region of the data to download.
+    :param to_lon:
+        The eastern longitude for the region of the data to download.
+    :return:
+        A tuple of (dataset_id, api_request_params) to be passed into
+        the CDS API client retrieve function.
+    """
+
     if product == ECMWFProduct.ERA5_OZONE or product == ECMWFProduct.ERA5_WATER_VAPOUR:
         dataset = "reanalysis-era5-single-levels"
 
@@ -98,7 +169,7 @@ def get_ecmwf_params_for_product_extent(
         return dataset, request
 
     else:
-        raise Exception("Unsupported WCMWF product")
+        raise Exception("Unsupported ECMWF product")
 
 
 def get_ecmwf_for_extent(
@@ -109,6 +180,40 @@ def get_ecmwf_for_extent(
     from_lon: int|float,
     to_lon: int|float
 ) -> tuple[npt.NDArray[np.float32]|npt.NDArray[np.float64], Affine, osr.SpatialReference, float]:
+    """
+    Downloads the specified ECMWF auxilliary data from the CDS/ADS service
+    for a given acquisition time & lat/lon (WGS84) region.
+
+    The returned data will be automatically transformed into units that
+    MODTRAN expects as inputs, so should be directly useable as-is.
+
+    The returned data is *not* reprojected, as the auxilliary datasets
+    in question are often point samples (not regional averages) and as such
+    the pixels in the data probably should not be resampled.  Instead, it is
+    recommended that users sample the data directly in it's own CRS (a.k.a.
+    transform sample coordinates from acquisition CRS into auxilliary CRS).
+    This is especially true given the auxilliary datasets are often very low
+    resolution (e.g.: less than ~20x20 pixels for a Landsat 8/9 scene) and
+    reprojecting/resampling into a resolution matching a satellite acquisition
+    would be very costly and largely pointless when wagl only samples a small
+    NxN grid of points from these auxilliary datasets.
+
+    :param product:
+        The data product to download.
+    :param timestamp:
+        The time of the acquisition to download the data for.
+    :param from_lat:
+        The southern latitude for the region of the data to download.
+    :param to_lat:
+        The northern latitude for the region of the data to download.
+    :param from_lon:
+        The western longitude for the region of the data to download.
+    :param to_lon:
+        The eastern longitude for the region of the data to download.
+    :returns:
+        A tuple of (aux_data, aux_transform, aux_csr, aux_nodata_value) for
+        the downloaded auxilliary data.
+    """
 
     dataset, request = get_ecmwf_params_for_product_extent(
         product, timestamp,
@@ -162,7 +267,7 @@ def get_ecmwf_for_extent(
         # all data though.  See ECMWF_CRS comment for reference.
         crs = ECMWF_CRS
 
-        # Apply data tarnsformations from ERA5 units into MODTRAN units
+        # Apply data transformation from ERA5 units into MODTRAN units
         if product == ECMWFProduct.ERA5_OZONE:
             # From Fuqin:
             #    unit: kg m^-2. Need to convert. The conversion is: 1 DU = 2.1415E-5 kg m^-2 
@@ -176,8 +281,9 @@ def get_ecmwf_for_extent(
 
         elif product == ECMWFProduct.ERA5_WATER_VAPOUR:
             # From Fuqin:
-            #    unit: kg m^-2 
-            #    MODTRAN uses g / cm^2.  1 kg m^-2 = 10 g / cm^2
+            #    unit: kg m^-2 (a.k.a. kilogram square millimeter)
+            #    MODTRAN uses g / cm^2 (a.k.a. gram square centimeter)
+            #    1 kg m^-2 = 10 g / cm^2
             #    Therefore the data need to divide 10 to convert to g / cm^2
             #    Data range is usually 0-5 g / cm^2
 
@@ -203,6 +309,18 @@ def get_ecmwf_for_acquisition(
     this is intentional - the ECMWF ancillary data is spatially very low
     resolution and as such it's better to sample this data directly than reproject
     and resample it into the acquisition's CRS and/or resolution.
+    See :func:`get_ecmwf_for_extent` for more details.
+
+    :param dataset:
+        The satellite acquisition to acquire auxilliary data for.
+    :param product:
+        The type of auxilliary data product to acquire.
+    :param border_degrees:
+        An optional buffer/border of data to acquire around the dataset's
+        region of interest, in decimal degrees.
+    :return:
+        A tuple of (aux_data, aux_nodata, aux_geobox) for the acquired
+        auxilliary data.
     """
     # NOTE: In this function, using ds_ prefix for variables in dataset CRS coordinates
     # and border_ prefix for variables in WGS84 lat/lon coordinates.
