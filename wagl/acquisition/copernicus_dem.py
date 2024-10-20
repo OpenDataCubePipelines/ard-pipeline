@@ -1,6 +1,4 @@
 from pathlib import Path
-import math
-import io
 import os
 from contextlib import ExitStack
 
@@ -30,7 +28,7 @@ COP30M_CRS.ImportFromEPSG(4326)  # WGS84
 test_cache = Path.home() / "cop30_cache"
 test_cache.mkdir(parents=True, exist_ok=True)
 
-def tile_rounding(value: float|int):
+def tile_rounding(value: float|int) -> int:
     """
     Rounds lat/lon coordinates into the Cop tile index.
 
@@ -41,6 +39,11 @@ def tile_rounding(value: float|int):
     The 0deg latitudes/longitude tiles contain data for 0..1
 
     TODO: Examples
+
+    :param value:
+        The value to be rounded into a tile coordinate.
+    :return:
+        The rounded tile index for the given coordinate.
     """
     if value >= 0.0:
         return int(value)
@@ -62,6 +65,18 @@ def get_cop30m_for_extent(
     partially cover the required bounds are acquired.
 
     Input lat/lon coords are interpreted in the WGS 84 CRS.
+
+    :param from_lat:
+        The southern latitude for the region of the data to download.
+    :param to_lat:
+        The northern latitude for the region of the data to download.
+    :param from_lon:
+        The western longitude for the region of the data to download.
+    :param to_lon:
+        The eastern longitude for the region of the data to download.
+    :param cop30_bucket:
+        The S3 bucket name that hosts a copy of the COP 30 data to
+        acquire DEM data from.
     """
     from_lat = tile_rounding(from_lat)
     to_lat = tile_rounding(to_lat)
@@ -85,7 +100,7 @@ def get_cop30m_for_extent(
 
     s3 = boto3.client("s3")
 
-    for tile_idx, (lat, lon) in enumerate(tiles):
+    for (lat, lon) in tiles:
         lat_str = f"N{abs(lat):02d}" if lat >= 0 else f"S{abs(lat):02d}"
         lon_str = f"E{abs(lon):03d}" if lon >= 0 else f"W{abs(lon):03d}"
         key_id = f"Copernicus_DSM_COG_10_{lat_str}_00_{lon_str}_00_DEM"
@@ -126,9 +141,9 @@ def get_cop30m_for_extent(
 
     # Sanity check all of the tiles are in the same CRS and resolution...
     #
-    # NOTE: These shouldn't happen with the current cop DEM spec, but
+    # NOTE: These shouldn't fail with the current cop DEM spec, but
     # just in case future versions allow for separate CRS across regional
-    # areas... check and throw.
+    # areas... it's easy check and throw to catch possible future changes.
     # 
     # If these trigger in the future, work will need to be done to decide
     # what CRS/resolution to convert them all into first to minimise errors
@@ -140,7 +155,7 @@ def get_cop30m_for_extent(
         raise Exception("Inconsistent resolution detected in DEM tiles")
     
     if any(i != ds_nodata[0] for i in ds_nodata[1:]):
-        raise Exception("Inconsistent resolution detected in DEM tiles")
+        raise Exception("Inconsistent nodata value detected in DEM tiles")
 
     # Mosaic the datasets
     #
@@ -196,11 +211,26 @@ def write_mosaic_tiff(
     with rasterio.open(filename, 'w', **mosaic_profile) as dst:
         dst.write(mosaic_data)
 
+
 def _crs_transform(
     point: tuple[int|float, int|float],
     from_crs: osr.SpatialReference,
     to_crs: osr.SpatialReference
 ) -> tuple[float, float]:
+    """
+    A simple utility for transforming a point from one CRS into another
+    without needing a GeoBox.
+
+    :param point:
+        The point to be trasnformed from `from_crs` to `to_crs`.
+    :param from_crs:
+        The spatial reference that `point` is in / being transformed from.
+    :param to_crs:
+        The spatial reference that `point` being transferred to.
+    :return:
+        The transformed point in the `to_crs` reference frame.
+    """
+
     from_crs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
     to_crs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
     transform = osr.CoordinateTransformation(from_crs, to_crs)
@@ -209,10 +239,25 @@ def _crs_transform(
 
     return (x, y)
 
+
 def get_dem_for_acquisition(
     dataset: Acquisition,
     border_degrees: float
 ):
+    """
+    Get Copernicus DEM for a specified data acquisition.
+
+    The returned data will be the mosaic of multiple DEM tiles, and transformed
+    into the same CRS as the input acquisition the DEM was acquired for.
+
+    :param dataset:
+        The satellite acquisition to acquire the DEM data for.
+    :param border_degrees:
+        An optional buffer/border of data to acquire around the dataset's
+        region of interest, in decimal degrees.
+    :return:
+        A tuple of (dem_data, dem_geobox) for the acquired DEM data.
+    """
     # NOTE: In this function, using ds_ prefix for variables in dataset CRS coordinates
     # and border_ prefix for variables in WGS84 lat/lon coordinates.
 
@@ -333,7 +378,8 @@ def get_dem_for_acquisition(
     return new_dem_data, new_dem_geobox
 
 def test():
-    scene_path = "/usr/src/wagl/LC80400332013190LGN03"
+    #scene_path = "/usr/src/wagl/LC80400332013190LGN03"
+    scene_path = "/usr/src/wagl/LC08_L1TP_028030_20221018_20221031_02_T1"
 
     acqs = acquisitions(scene_path)
     band = acqs.get_all_acquisitions()[0]
