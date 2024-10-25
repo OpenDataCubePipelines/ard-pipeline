@@ -2,9 +2,12 @@ from pathlib import Path
 import os
 from contextlib import ExitStack
 
+from wagl.constants import DatasetName, GroupName
 from wagl.acquisition import acquisitions, Acquisition
-from wagl.data import reproject_array_to_array
+from wagl.data import reproject_array_to_array, read_subset
+from wagl.hdf5 import VLEN_STRING, H5CompressionFilter, attach_image_attributes
 from wagl.geobox import GriddedGeoBox
+from wagl.dsm import filter_dsm
 
 import boto3
 import rasterio
@@ -13,6 +16,7 @@ from rasterio.io import MemoryFile
 from rasterio.merge import merge
 from rasterio.enums import Resampling
 from rasterio.transform import Affine
+from rasterio.warp import reproject, calculate_default_transform
 import numpy as np
 import numpy.typing as npt
 
@@ -94,10 +98,6 @@ def get_cop30m_for_extent(
     ds_res: list[tuple[int, int]] = []
     ds_nodata: list[tuple[int, int]] = []
 
-    print("lat from:", from_lat, "to", to_lat)
-    print("lon from:", from_lon, "to", to_lon)
-    print("tiles:", tiles)
-
     s3 = boto3.client("s3")
 
     for (lat, lon) in tiles:
@@ -105,7 +105,6 @@ def get_cop30m_for_extent(
         lon_str = f"E{abs(lon):03d}" if lon >= 0 else f"W{abs(lon):03d}"
         key_id = f"Copernicus_DSM_COG_10_{lat_str}_00_{lon_str}_00_DEM"
         key = f"{key_id}/{key_id}.tif"
-        print(key_id)
 
         # TODO: extract to function
         try:
@@ -113,15 +112,12 @@ def get_cop30m_for_extent(
             
             cache_path = test_cache / key
             if cache_path.exists():
-                #print("Using cached", cache_path)
                 buffer = MemoryFile(cache_path.read_bytes(), filename=os.path.basename(key))
 
             else:
-                print("Downloading tile", key)
                 buffer = MemoryFile(filename=os.path.basename(key))
                 s3.download_fileobj(cop30_bucket, key, buffer)
 
-                print("... caching.")
                 cache_path.parent.mkdir(parents=True, exist_ok=True)
                 cache_path.touch()
                 cache_path.write_bytes(buffer.getbuffer())
@@ -187,11 +183,8 @@ def write_mosaic_tiff(
     crs: osr.SpatialReference,
     nodata_value: float
 ):
-    print("WRITING", filename, mosaic_data.shape, mosaic_data.dtype)
     if len(mosaic_data.shape) == 2:
-        print("FROM shape", mosaic_data.shape)
         mosaic_data = mosaic_data.reshape(((1, mosaic_data.shape[0], mosaic_data.shape[1])))
-        print("TO shape", mosaic_data.shape)
 
     # Create a mosaic dataset from the mosaic data
     mosaic_profile = {
@@ -263,86 +256,47 @@ def get_dem_for_acquisition(
 
     # Get the lat/lon extents of the acquisition (in degrees)
     ds_geobox = dataset.gridded_geo_box()
+    ds_extent = ds_geobox.project_extents(ds_geobox.crs)
     border_extent = ds_geobox.project_extents(COP30M_CRS)
     border_ll: tuple[float, float] = (border_extent[0]-border_degrees, border_extent[1]-border_degrees)
     border_ur: tuple[float, float] = (border_extent[2]+border_degrees, border_extent[3]+border_degrees)
+
+    # Calculate the border size around the original dataset so we know what
+    # size the new reprojected DEM will need to be in the the new CRS.
     ds_border = [*_crs_transform(border_ll, COP30M_CRS, ds_geobox.crs), *_crs_transform(border_ur, COP30M_CRS, ds_geobox.crs)]
-    ds_ll = ds_geobox.ll
-    ds_ur = ds_geobox.ur
 
-    print(f"acquisition {dataset.band_name} ({dataset.band_id})")
-    print("acquisition pixels", dataset.samples, dataset.lines)
-    print("acquisition resolution", dataset.resolution)
-
-    print("DEBUG CRS extent ll ur", ds_ll, ds_ur)
-    print("DEBUG CRS border ll ur", ds_border)
-    print("DEBUG WGS84 extent ll ur", border_extent)
-    print("DEBUG WGS84 border ll ur", border_ll, border_ur)
-
-    #print("extent width", ds_ur[0] - ds_ll[0])
-    #print("extent degrees", border_extent[2] - border_extent[0])
-    #print("bordered width", ds_border[2] - ds_border[0])
-    #print("bordered degrees", border_ur[0] - border_ll[0])
-
-    # Note: This is... not perfectly accurate (technically this is for the south-west)
-    # - we are assuming equal border pixels on both sides...
-    # (west, south, east, north)
     ds_border_size = (
-        (ds_ll[0] - ds_border[0]),
-        (ds_ll[1] - ds_border[1]),
-        (ds_border[2] - ds_ur[0]),
-        (ds_border[3] - ds_ur[1])
+        (ds_extent[0] - ds_border[0]),
+        (ds_extent[1] - ds_border[1]),
+        (ds_border[2] - ds_extent[2]),
+        (ds_border[3] - ds_extent[3])
     )
 
-    # TBD: not sure what the preferred rounding is here, probably doesn't matter..?
     ds_border_size_px = (
         int(ds_border_size[0] / dataset.resolution[0]), int(ds_border_size[1] / dataset.resolution[1]),
         int(ds_border_size[2] / dataset.resolution[0]), int(ds_border_size[3] / dataset.resolution[1])
     )
 
-    ds_border_size_deg = (
-        border_extent[0] - border_ll[0],
-        border_extent[1] - border_ll[1],
-        (border_ur[0] - border_extent[2]),
-        (border_ur[1] - border_extent[3])
-    )
-
-    #print("(west, south, east, north)")
-    #print("ds_border_size:", ds_border_size)
-    #print("ds_border_size_px:", ds_border_size_px)
-    #print("ds_border_size_deg:", ds_border_size_deg)
-
     # Get DEM for acquisition
     extent = (border_ll[1], border_ur[1], border_ll[0], border_ur[0])
     dem_data, dem_transform, dem_crs, dem_nodata = get_cop30m_for_extent(*extent)
 
-    print("==========")
-    print("==========")
-    print("dem shape:", dem_data.shape)
-    print("dem dtype:", dem_data.dtype)
-    print("dem nodata:", dem_nodata)
-    #print("dem crs:", dem_crs)
-    #print("dem transform:", dem_transform)
-
-    write_mosaic_tiff(
-        str(test_cache / "test_mosaic_{border_degrees}deg_border.tif"),
-        dem_data, dem_transform, dem_crs, dem_nodata
-    )
+    if False:
+        write_mosaic_tiff(
+            str(test_cache / "test_mosaic_{border_degrees}deg_border.tif"),
+            dem_data, dem_transform, dem_crs, dem_nodata
+        )
 
     # Create geobox for DEM
-    dem_origin = dem_transform * (0,0)
-    print("dem origin:", dem_origin)
-    dem_origin_ur = dem_transform * (1,1)
-    dem_pixelsize = (dem_origin_ur[0] - dem_origin[0], dem_origin[1] - dem_origin_ur[1])
-    print("dem pixelsize:", dem_pixelsize)
+    dem_px00_point = dem_transform * (0,0)
+    dem_px11_point = dem_transform * (1,1)
+    dem_pixelsize = (dem_px11_point[0] - dem_px00_point[0], dem_px00_point[1] - dem_px11_point[1])
     dem_geobox = GriddedGeoBox(
         shape=dem_data.shape,
-        origin=dem_origin,
+        origin=dem_px00_point,
         pixelsize=dem_pixelsize,
         crs=dem_crs
     )
-
-    print("test CRS dem pixel size", _crs_transform(dem_origin_ur, COP30M_CRS, ds_geobox.crs)[0] - _crs_transform(dem_origin, COP30M_CRS, ds_geobox.crs)[0])
 
     # Reproject DEM into same CRS and pixel size as acquisition
     new_dem_shape = (
@@ -350,32 +304,212 @@ def get_dem_for_acquisition(
         ds_geobox.y_size() + ds_border_size_px[1] + ds_border_size_px[3]
     )
 
-    print("reprojecting...")
-    print("new_dem_shape:", new_dem_shape)
-    
-    new_dem_geobox = GriddedGeoBox(
-        shape=new_dem_shape,
-        origin=ds_geobox.convert_coordinates((-ds_border_size_px[0], -ds_border_size_px[1])),
-        pixelsize=ds_geobox.pixelsize,
-        crs=ds_geobox.crs.ExportToWkt()
-    )
+    # I couldn't get the GriddedGeoBox that I wanted doing things the wagl
+    # way easily... so I opted to use rasterio/GDAL in the end which produces
+    # a transform that's what I wanted (with at least one, ideally 2... of the
+    # corner points matching the extents exactly...  the GGB approach only
+    # gets the westing aligned but all other coordinates are quote far off the
+    # desired extents (way off on the easting) in my testing.  The GDAL approach
+    # ensures the north west corner always matches, and often 2 other corners are
+    # VERY close... with the final corner of course being a bit off depending on CRS'
+    use_gdal_transform = True
 
-    new_dem_data = reproject_array_to_array(
-        dem_data,
-        dem_geobox,
-        new_dem_geobox,
-        src_nodata=dem_nodata,
-        dst_nodata=dem_nodata,
-        resampling=Resampling.bilinear
-    )
+    if use_gdal_transform:
+        new_dem_transform, new_dem_width, new_dem_height = calculate_default_transform(
+            dem_crs.ExportToWkt(), ds_geobox.crs.ExportToWkt(),
+            dem_data.shape[-1], dem_data.shape[-2],
+            border_ll[0], border_ll[1], border_ur[0], border_ur[1],
+            dst_width=new_dem_shape[-1], dst_height=new_dem_shape[-2]
+        )
+
+        if new_dem_width != new_dem_shape[-1] or new_dem_height != new_dem_shape[-2]:
+            raise Exception("rasterio failed to calculate expected transform")
+
+        new_dem_data, new_dem_transform = reproject(
+            dem_data, destination=np.empty(new_dem_shape, dtype=dem_data.dtype),
+            src_transform=dem_transform,
+            dst_transform=new_dem_transform,
+            src_crs=dem_crs.ExportToWkt(),
+            dst_crs=ds_geobox.crs.ExportToWkt(),
+            src_nodata=dem_nodata,
+            dst_nodata=dem_nodata,
+            resampling=Resampling.bilinear
+        )
+
+        new_dem_px00_point = new_dem_transform * (0,0)
+        # Pixel size should be the distance from pixel 0,0 to 1,1 - in the new projection which is assumed
+        # to be compatible with the GGB (north-up with uniform pixel sizing across the whole image).
+        new_dem_px11_point = new_dem_transform * (1,1)
+        new_dem_pixelsize = (new_dem_px11_point[0] - new_dem_px00_point[0], new_dem_px00_point[1] - new_dem_px11_point[1])
+        new_dem_geobox = GriddedGeoBox(
+            shape=new_dem_data.shape,
+            origin=new_dem_px00_point,
+            pixelsize=new_dem_pixelsize,
+            crs=ds_geobox.crs.ExportToWkt()
+        )
+
+    else:
+        new_dem_geobox = GriddedGeoBox(
+            shape=new_dem_shape,
+            origin=ds_geobox.convert_coordinates((-ds_border_size_px[0], -ds_border_size_px[1])),
+            pixelsize=ds_geobox.pixelsize,
+            crs=ds_geobox.crs.ExportToWkt()
+        )
+
+        new_dem_data = reproject_array_to_array(
+            dem_data,
+            dem_geobox,
+            new_dem_geobox,
+            src_nodata=dem_nodata,
+            dst_nodata=dem_nodata,
+            resampling=Resampling.bilinear
+        )
+
+    # Free original mosaic
+    del dem_data
 
     write_mosaic_tiff(
-        str(test_cache / "test_reproj_{border_degrees}deg_border.tif"),
+        str(test_cache / ("test_reproj_gdal_border.tif" if use_gdal_transform else "test_reproj_raa_border.tif")),
         new_dem_data.reshape((1, new_dem_shape[0], new_dem_shape[1])),
         new_dem_geobox.transform, new_dem_geobox.crs, dem_nodata
     )
 
     return new_dem_data, new_dem_geobox
+
+
+def get_dem_for_acquisition_wagl_slow(
+    dataset: Acquisition,
+    border_degrees: float
+):
+    """
+    This is same as get_dem_for_acquisition but using wagl functions...
+
+    Unfortunately it's very inefficient as read_subset requires a file,
+    so we need to duplicate the DEM mosaic into a tiff and then subset it.
+    """
+
+    # Get the lat/lon extents of the acquisition (in degrees)
+    ds_geobox = dataset.gridded_geo_box()
+    ds_extent = ds_geobox.project_extents(ds_geobox.crs)
+    border_extent = ds_geobox.project_extents(COP30M_CRS)
+    border_ll: tuple[float, float] = (border_extent[0]-border_degrees, border_extent[1]-border_degrees)
+    border_ur: tuple[float, float] = (border_extent[2]+border_degrees, border_extent[3]+border_degrees)
+
+    # Calculate the border size around the original dataset so we know what
+    # size the new reprojected DEM will need to be in the the new CRS.
+    ds_border = [*_crs_transform(border_ll, COP30M_CRS, ds_geobox.crs), *_crs_transform(border_ur, COP30M_CRS, ds_geobox.crs)]
+
+    ds_border_size = (
+        (ds_extent[0] - ds_border[0]),
+        (ds_extent[1] - ds_border[1]),
+        (ds_border[2] - ds_extent[2]),
+        (ds_border[3] - ds_extent[3])
+    )
+
+    ds_border_size_px = (
+        int(ds_border_size[0] / dataset.resolution[0]), int(ds_border_size[1] / dataset.resolution[1]),
+        int(ds_border_size[2] / dataset.resolution[0]), int(ds_border_size[3] / dataset.resolution[1])
+    )
+
+    # Get DEM for acquisition
+    extent = (border_ll[1], border_ur[1], border_ll[0], border_ur[0])
+    mosaic_data, mosaic_transform, dem_crs, dem_nodata = get_cop30m_for_extent(*extent)
+
+    # Write to tiff
+    mosaic_tiff = MemoryFile()
+    write_mosaic_tiff(mosaic_tiff, mosaic_data, mosaic_transform, dem_crs, dem_nodata)
+    del mosaic_data
+
+    # Subset tiff
+    ul_xy = (border_ll[0], border_ur[1])
+    ur_xy = (border_ur[0], border_ur[1])
+    lr_xy = (border_ur[0], border_ll[1])
+    ll_xy = (border_ll[0], border_ll[1])
+    with mosaic_tiff.open() as mosaic_reader:
+        dem_subset_data, dem_subset_geobox = read_subset(
+            mosaic_reader, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
+        )
+
+    # Reproject DEM into same CRS and pixel size as acquisition
+    dem_shape = (
+        ds_geobox.x_size() + ds_border_size_px[0] + ds_border_size_px[2],
+        ds_geobox.y_size() + ds_border_size_px[1] + ds_border_size_px[3]
+    )
+
+    # Retrive the DSM data
+    reproj_dem_origin = ds_geobox.convert_coordinates((-ds_border_size_px[0], -ds_border_size_px[3]))
+    reproj_dem_geobox = GriddedGeoBox(
+        shape=dem_shape,
+        origin=reproj_dem_origin,
+        pixelsize=ds_geobox.pixelsize,
+        crs=ds_geobox.crs.ExportToWkt()
+    )
+
+    reproj_dem_data = reproject_array_to_array(
+        dem_subset_data, dem_subset_geobox, reproj_dem_geobox, resampling=Resampling.bilinear
+    )
+
+    write_mosaic_tiff(
+        str(test_cache / "test_reproj_wagl_border.tif"),
+        reproj_dem_data.reshape((1, dem_shape[0], dem_shape[1])),
+        reproj_dem_geobox.transform, reproj_dem_geobox.crs, dem_nodata
+    )
+
+    return reproj_dem_data, reproj_dem_geobox
+
+
+def get_dsm_hdf_for_aquisition(
+    dataset: Acquisition,
+    border_degrees: float,
+    use_wagl: bool = False,
+    out_group=None,
+    compression: H5CompressionFilter = H5CompressionFilter.LZF,
+    filter_opts: object = None
+):
+    if use_wagl:
+        dem_data, dem_geobox = get_dem_for_acquisition_wagl_slow(dataset, border_degrees)
+    else:
+        dem_data, dem_geobox = get_dem_for_acquisition(dataset, border_degrees)
+
+    # Output the reprojected result
+    assert out_group is not None
+    fid = out_group
+
+    # TODO: rework the tiling regime for larger dsm
+    # for non single row based tiles, we won't have ideal
+    # matching reads for tiled processing between the acquisition
+    # and the DEM
+    kwargs = compression.settings(
+        filter_opts,
+        chunks=(
+            (1, dem_cols) if acquisition.tile_size[0] == 1 else acquisition.tile_size
+        ),
+    )
+
+    group = fid.create_group(GroupName.ELEVATION_GROUP.value)
+
+    # TODO: this isn't exposed from get_dem_for_acquisition yet
+    #param_grp = group.create_group("PARAMETERS")
+    #param_grp.attrs["left_buffer"] = margins.left
+    #param_grp.attrs["right_buffer"] = margins.right
+    #param_grp.attrs["top_buffer"] = margins.top
+    #param_grp.attrs["bottom_buffer"] = margins.bottom
+
+    # dataset attributes
+    attrs = {
+        "crs_wkt": dem_geobox.crs.ExportToWkt(),
+        "geotransform": dem_geobox.transform.to_gdal(),
+    }
+
+    # Smooth the DSM
+    dem_data = filter_dsm(dem_data)
+    dname = DatasetName.DSM_SMOOTHED.value
+    out_sm_dset = group.create_dataset(dname, data=dem_data, **kwargs)
+    desc = "A subset of a Digital Surface Model smoothed with a gaussian " "kernel."
+    attrs["description"] = desc
+    attrs["id"] = np.array([metadata["id"]], VLEN_STRING)
+    attach_image_attributes(out_sm_dset, attrs)
+
 
 def test():
     #scene_path = "/usr/src/wagl/LC80400332013190LGN03"
@@ -385,6 +519,7 @@ def test():
     band = acqs.get_all_acquisitions()[0]
 
     get_dem_for_acquisition(band, 1.0)
+    #get_dem_for_acquisition_wagl_slow(band, 1.0)
 
 if __name__ == "__main__":
     test()
