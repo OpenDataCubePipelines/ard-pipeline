@@ -24,10 +24,10 @@ test_cache.mkdir(parents=True, exist_ok=True)
 
 # TODO: for integration into WAGL... CDS/ADS credentials to be loaded from somewhere..
 CDS_ERA5_URL = "https://cds.climate.copernicus.eu/api"
-CDS_ERA5_KEY = "***REMOVED***"
+CDS_ERA5_KEY = "<key goes here>"
 
 ADS_CAMS_URL = "https://ads.atmosphere.copernicus.eu/api"
-ADS_CAMS_KEY = "***REMOVED***"
+ADS_CAMS_KEY = "<key goes here>"
 
 # ERA5 NetCDF data is effectively WGS84
 # Reference: https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation#ERA5:datadocumentation-SpatialgridSpatialGrid
@@ -125,7 +125,7 @@ def get_ecmwf_params_for_product_extent(
         the CDS API client retrieve function.
     """
 
-    if product == ECMWFProduct.ERA5_OZONE or product == ECMWFProduct.ERA5_WATER_VAPOUR:
+    if product in (ECMWFProduct.ERA5_OZONE, ECMWFProduct.ERA5_WATER_VAPOUR):
         dataset = "reanalysis-era5-single-levels"
 
         if product == ECMWFProduct.ERA5_OZONE:
