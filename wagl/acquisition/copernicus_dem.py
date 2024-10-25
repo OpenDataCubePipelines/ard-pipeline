@@ -7,7 +7,7 @@ from wagl.acquisition import acquisitions, Acquisition
 from wagl.data import reproject_array_to_array, read_subset
 from wagl.hdf5 import VLEN_STRING, H5CompressionFilter, attach_image_attributes
 from wagl.geobox import GriddedGeoBox
-from wagl.dsm import filter_dsm
+from wagl.dsm import filter_dsm, pixel_buffer
 
 import boto3
 import rasterio
@@ -232,6 +232,131 @@ def _crs_transform(
 
     return (x, y)
 
+# NOTE: This is probably the version ard-pipeline wants?
+# - CRS units for the buffer distance
+# - still has the same reproject_array_to_array issues though
+def get_dem_for_acquisition_crs_buffer(
+    dataset: Acquisition,
+    buffer_distance=15000
+):
+    """
+    Get Copernicus DEM for a specified data acquisition.
+
+    The returned data will be the mosaic of multiple DEM tiles, and transformed
+    into the same CRS as the input acquisition the DEM was acquired for.
+
+    :param dataset:
+        The satellite acquisition to acquire the DEM data for.
+
+    :param buffer_distance:
+        A number representing the desired distance (in the same
+        units as the acquisition) in which to calculate the extra
+        number of pixels required to buffer an image.
+        Default is 15000.
+
+    :return:
+        A tuple of (dem_data, dem_geobox) for the acquired DEM data.
+    """
+    # NOTE: In this function, using ds_ prefix for variables in dataset CRS coordinates
+    # and border_ prefix for variables in WGS84 lat/lon coordinates.
+
+    # Get the lat/lon extents of the acquisition (in degrees)
+    geobox = dataset.gridded_geo_box()
+    shape = geobox.get_shape_yx()
+
+    # buffered image extents/margins
+    margins = pixel_buffer(dataset, buffer_distance)
+
+    # Get the dimensions and geobox of the new image
+    dem_cols = shape[1] + margins.left + margins.right
+    dem_rows = shape[0] + margins.top + margins.bottom
+    dem_shape = (dem_rows, dem_cols)
+    dem_origin = geobox.convert_coordinates((0 - margins.left, 0 - margins.top))
+    dem_origin_latlon = geobox.transform_coordinates(dem_origin, COP30M_CRS)
+    dem_corner = geobox.convert_coordinates(dem_shape)
+    dem_corner_latlon = geobox.transform_coordinates(dem_corner, COP30M_CRS)
+    dem_geobox = GriddedGeoBox(
+        dem_shape,
+        origin=dem_origin,
+        pixelsize=geobox.pixelsize,
+        crs=geobox.crs.ExportToWkt(),
+    )
+
+    # Get DEM for acquisition
+    mosaic_data, mosaic_transform, mosaic_crs, mosaic_nodata = get_cop30m_for_extent(
+        dem_corner_latlon[1], dem_origin_latlon[1],
+        dem_origin_latlon[0], dem_corner_latlon[0]
+    )
+    mosaic_px00_point = mosaic_transform * (0,0)
+    mosaic_px11_point = mosaic_transform * (1,1)
+    mosaic_pixelsize = (mosaic_px11_point[0] - mosaic_px00_point[0], mosaic_px00_point[1] - mosaic_px11_point[1])
+
+    mosaic_geobox = GriddedGeoBox(
+        shape=mosaic_data.shape,
+        origin=mosaic_px00_point,
+        pixelsize=mosaic_pixelsize,
+        crs=mosaic_crs
+    )
+
+    # Reproject DEM into same CRS and pixel size as acquisition
+    use_gdal_transform = True
+
+    if use_gdal_transform:
+        dem_transform, dem_width, dem_height = calculate_default_transform(
+            mosaic_crs.ExportToWkt(), geobox.crs.ExportToWkt(),
+            mosaic_data.shape[-1], mosaic_data.shape[-2],
+            dem_origin_latlon[0], dem_corner_latlon[1], dem_corner_latlon[0], dem_origin_latlon[1],
+            dst_width=dem_shape[-1], dst_height=dem_shape[-2]
+        )
+
+        if dem_width != dem_shape[-1] or dem_height != dem_shape[-2]:
+            raise Exception("rasterio failed to calculate expected transform")
+
+        dem_data, dem_transform = reproject(
+            mosaic_data, destination=np.empty(dem_shape, dtype=mosaic_data.dtype),
+            src_transform=mosaic_transform,
+            dst_transform=dem_transform,
+            src_crs=mosaic_crs.ExportToWkt(),
+            dst_crs=geobox.crs.ExportToWkt(),
+            src_nodata=mosaic_nodata,
+            dst_nodata=mosaic_nodata,
+            resampling=Resampling.bilinear
+        )
+
+        dem_px00_point = dem_transform * (0,0)
+        # Pixel size should be the distance from pixel 0,0 to 1,1 - in the new projection which is assumed
+        # to be compatible with the GGB (north-up with uniform pixel sizing across the whole image).
+        dem_px11_point = dem_transform * (1,1)
+        dem_pixelsize = (dem_px11_point[0] - dem_px00_point[0], dem_px00_point[1] - dem_px11_point[1])
+        new_dem_geobox = GriddedGeoBox(
+            shape=dem_data.shape,
+            origin=dem_px00_point,
+            pixelsize=dem_pixelsize,
+            crs=geobox.crs.ExportToWkt()
+        )
+
+    else:
+        new_dem_geobox = dem_geobox
+
+        dem_data = reproject_array_to_array(
+            mosaic_data,
+            mosaic_geobox,
+            dem_geobox,
+            src_nodata=mosaic_nodata,
+            dst_nodata=mosaic_nodata,
+            resampling=Resampling.bilinear
+        )
+
+    # Free original mosaic
+    del mosaic_data
+
+    write_mosaic_tiff(
+        str(test_cache / ("test_reproj2_gdal_border.tif" if use_gdal_transform else "test_reproj2_raa_border.tif")),
+        dem_data.reshape((1, dem_data.shape[0], dem_data.shape[1])),
+        new_dem_geobox.transform, new_dem_geobox.crs, mosaic_nodata
+    )
+
+    return dem_data, new_dem_geobox
 
 def get_dem_for_acquisition(
     dataset: Acquisition,
@@ -518,8 +643,9 @@ def test():
     acqs = acquisitions(scene_path)
     band = acqs.get_all_acquisitions()[0]
 
-    get_dem_for_acquisition(band, 1.0)
+    #get_dem_for_acquisition(band, 1.0)
     #get_dem_for_acquisition_wagl_slow(band, 1.0)
+    get_dem_for_acquisition_crs_buffer(band)
 
 if __name__ == "__main__":
     test()
