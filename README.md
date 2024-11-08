@@ -54,7 +54,7 @@ A script is provided to build Conda with dependencies:
 
     # Activate the environment in the current shell
     . ~/conda/bin/activate
-    
+
     # Ensure build dependencies are installed
     pip install "setuptools_scm[toml]>=6.2,<8"
 
@@ -95,7 +95,7 @@ Run checks locally using the `./check-code.sh` file.
 The `./check-code.sh` script can fail like:
 
 ```Bash
-$ ./deployment/check-environment.sh 
+$ ./deployment/check-environment.sh
 Checking environment...
 Trying rasterio... ✅ 1.3.9
 Trying luigi... ✅ 3.5.0
@@ -108,10 +108,10 @@ Attempting load of fortran-based modules... Traceback (most recent call last):
 ModuleNotFoundError: No module named 'wagl._version'
 ```
 
-This indicates the `setuptools_scm` dependency is too _new_. Check the installed version with:  
+This indicates the `setuptools_scm` dependency is too _new_. Check the installed version with:
 
 ```Bash
-$ pip freeze | grep setuptools_scm 
+$ pip freeze | grep setuptools_scm
 ```
 
 If installed, this will display output like `setuptools-scm==8.1.0`.
@@ -120,7 +120,7 @@ The current workaround is to check the desired version of `setuptools-scm` from 
 
 ```Bash
 $ pip install "setuptools_scm[toml]>=6.2,<8"
-``` 
+```
 
 ### Additional HDF5 compression filters (optional)
 
