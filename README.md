@@ -49,12 +49,15 @@ native dependencies.
 
 A script is provided to build Conda with dependencies:
 
-```
+```Bash
     # Create environment in ~/conda directory
     ./deployment/create-conda-environment.sh ~/conda
 
     # Activate the environment in the current shell
     . ~/conda/bin/activate
+    
+    # Ensure build dependencies are installed
+    pip install "setuptools_scm[toml]>=6.2,<8"
 
     # Install ARD for development
     pip install --no-build-isolation --editable .
@@ -79,7 +82,7 @@ in the repo.
 You can avoid this, and still maintain live editing, by
 doing a non-isolated editable install:
 
-```
+```Bash
     python3 -m pip install --no-build-isolation --editable .
 ```
 
@@ -87,6 +90,38 @@ Meson will then auto-build the native modules as needed and
 you can run directly from your source directory.
 
 Run checks locally using the `./check-code.sh` file.
+
+**setuptools_scm dependency**
+
+The `./check-code.sh` script can fail like:
+
+```Bash
+$ ./deployment/check-environment.sh 
+Checking environment...
+Trying rasterio... ✅ 1.3.9
+Trying luigi... ✅ 3.5.0
+Trying wagl... x
+        No module named 'wagl._version'
+Attempting load of fortran-based modules... Traceback (most recent call last):
+  File "<stdin>", line 29, in <module>
+  File "/g/data/u46/users/bpd578/projects/ard-pipeline/wagl/__init__.py", line 5, in <module>
+    from ._version import __version__
+ModuleNotFoundError: No module named 'wagl._version'
+```
+
+This indicates the `setuptools_scm` dependency is too _new_. Check the installed version with:  
+
+```Bash
+$ pip freeze | grep setuptools_scm 
+```
+
+If installed, this will display output like `setuptools-scm==8.1.0`.
+
+The current workaround is to check the desired version of `setuptools-scm` from the `pyproject.toml` configuration. If the installed version is higher than the `pyproject.toml` version, uninstall the new version & install an older version, e.g.:
+
+```Bash
+$ pip install "setuptools_scm[toml]>=6.2,<8"
+``` 
 
 ### Additional HDF5 compression filters (optional)
 Additional compression filters can be used via HDF5's
