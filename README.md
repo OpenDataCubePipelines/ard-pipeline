@@ -1,5 +1,4 @@
 # ARD Pipeline
-------
 
 A Python package for producing standarised imagery in the form of:
 
@@ -13,14 +12,14 @@ The luigi task workflow for producing NBAR for a Landsat 5TM scene is given belo
 ![](docs/source/diagrams/luigi-task-visualiser-reduced.png)
 
 ## Supported Satellites and Sensors
------------------------------------
+
 * Landsat 5 TM
 * Landsat 7 ETM
 * Landsat 8+9 OLI+TIRS
 * Sentinel 2a+b
 
 ## Development
----------------
+
 
 A [Justfile](https://github.com/casey/just) is included in the repo for running common commands.
 
@@ -124,6 +123,7 @@ $ pip install "setuptools_scm[toml]>=6.2,<8"
 ``` 
 
 ### Additional HDF5 compression filters (optional)
+
 Additional compression filters can be used via HDF5's
 [dynamically loaded filters](https://support.hdfgroup.org/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5DynamicallyLoadedFilters.pdf).
 Essentially the filter needs to be compiled against the HDF5 library, and
@@ -133,11 +133,13 @@ accessible by HDF5 via the [integer code](https://support.hdfgroup.org/services/
 assigned to the filter.
 
 #### Mafisc compression filter
+
 Mafisc combines both a bitshuffling filter and lzma compression filter in order
 to get the best compression possible at the cost of lower compression speeds.
 To install the `mafisc` compression filter, follow these [instructions](https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc).
 
 #### Bitshuffle
+
 The [bitshuffle filter](https://github.com/kiyo-masui/bitshuffle) can be installed
 from source, or conda via the supplied [conda recipe](https://github.com/kiyo-masui/bitshuffle/tree/master/conda-recipe).
 It utilises a bitshuffling filter on top of either a lz4 or lzf compression filter.
