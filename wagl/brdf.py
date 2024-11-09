@@ -439,10 +439,18 @@ def only_ocean_pixels(src_poly, src_crs, fid_mask):
     # land=1, ocean=0
     dst_envelope = box(*dst_poly.bounds)
     bound_poly_coords = list(dst_envelope.exterior.coords)[:4]
-    ocean_mask, _ = read_subset(fid_mask, *bound_poly_coords)
+    ocean_mask, ocean_mask_geobox = read_subset(fid_mask, *bound_poly_coords)
     ocean_mask = ocean_mask.astype(bool)
 
-    return np.sum(ocean_mask) == 0
+    roi_mask = rasterize(
+        [(dst_poly, 1)],
+        fill=0,
+        out_shape=ocean_mask.shape,
+        transform=ocean_mask_geobox.transform,
+    )
+    roi_mask = roi_mask.astype(bool)
+
+    return np.sum(ocean_mask & roi_mask) == 0
 
 
 def load_brdf_tile(
