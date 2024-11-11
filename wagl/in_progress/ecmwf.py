@@ -1,22 +1,19 @@
-from enum import Enum, auto
 import datetime as dt
+from enum import Enum, auto
 from pathlib import Path
-import zipfile
 
 # Note: while this is the official CDS API... their own forums & the git repo indicate this is
-# potentially 
+# potentially
 import cdsapi
-from osgeo import osr
-import rasterio
-from rasterio.transform import Affine
-
 import numpy as np
 import numpy.typing as npt
+import rasterio
+from osgeo import osr
+from rasterio.transform import Affine
 
-from wagl.acquisition import acquisitions, Acquisition
-from wagl.data import reproject_array_to_array
+from wagl.acquisition import Acquisition, acquisitions
+from wagl.acquisition.copernicus_dem import write_mosaic_tiff
 from wagl.geobox import GriddedGeoBox
-from wagl.acquisition.copernicus_dem import write_mosaic_tiff, _crs_transform
 
 test_cache = Path.home() / "ecmwf_cache"
 test_cache.mkdir(parents=True, exist_ok=True)
@@ -95,13 +92,14 @@ class ECMWFProduct(Enum):
     https://ads.atmosphere.copernicus.eu/datasets/cams-global-atmospheric-composition-forecasts?tab=overview
     """
 
+
 def get_ecmwf_params_for_product_extent(
     product: ECMWFProduct,
     timestamp: dt.datetime,
-    from_lat: int|float,
-    to_lat: int|float,
-    from_lon: int|float,
-    to_lon: int|float,
+    from_lat: int | float,
+    to_lat: int | float,
+    from_lon: int | float,
+    to_lon: int | float,
 ) -> tuple[str, dict[str, object]]:
     """
     Prepares the CDS API request parameters for downloading the specified
@@ -129,23 +127,28 @@ def get_ecmwf_params_for_product_extent(
         dataset = "reanalysis-era5-single-levels"
 
         if product == ECMWFProduct.ERA5_OZONE:
-            product_var_name = 'total_column_ozone'
+            product_var_name = "total_column_ozone"
         elif product == ECMWFProduct.ERA5_WATER_VAPOUR:
-            product_var_name = 'total_column_water_vapour'
+            product_var_name = "total_column_water_vapour"
         else:
             raise Exception("Usupported product")
 
         request = {
-            'product_type': ['reanalysis'],
-            'variable': [product_var_name],
-            'year': [str(timestamp.year)], # eg: ['2023'],
-            'month': [f"{timestamp.month:02d}"], # eg: ['04'],
-            'day': [f"{timestamp.day:02d}"], # eg: ['19'],
-            'time': [timestamp.strftime("%H:00")], # eg: ['08:00'],
-            'data_format': 'netcdf',
-            'download_format': 'unarchived',
+            "product_type": ["reanalysis"],
+            "variable": [product_var_name],
+            "year": [str(timestamp.year)],  # eg: ['2023'],
+            "month": [f"{timestamp.month:02d}"],  # eg: ['04'],
+            "day": [f"{timestamp.day:02d}"],  # eg: ['19'],
+            "time": [timestamp.strftime("%H:00")],  # eg: ['08:00'],
+            "data_format": "netcdf",
+            "download_format": "unarchived",
             # [north, west, south, east]
-            'area': [to_lat, from_lon, from_lat, to_lon], # eg: [-30.74, 137.71, -42.07, 153.57]
+            "area": [
+                to_lat,
+                from_lon,
+                from_lat,
+                to_lon,
+            ],  # eg: [-30.74, 137.71, -42.07, 153.57]
         }
 
         return dataset, request
@@ -157,13 +160,18 @@ def get_ecmwf_params_for_product_extent(
         time_str = "00:00" if timestamp.hour < 12 else "12:00"
 
         request = {
-            'variable': ['total_aerosol_optical_depth_550nm'],
-            'date': [f"{date_str}/{date_str}"], # eg: ['2024-09-22/2024-09-22'],
-            'time': [time_str], # eg: ['12:00'],
-            'leadtime_hour': ['0'],
-            'type': ['forecast'],
-            'data_format': 'netcdf_zip', # eg: 'netcdf_zip',
-            'area': [to_lat, from_lon, from_lat, to_lon] # eg: [-29.13, 139.33, -40.53, 153.29]
+            "variable": ["total_aerosol_optical_depth_550nm"],
+            "date": [f"{date_str}/{date_str}"],  # eg: ['2024-09-22/2024-09-22'],
+            "time": [time_str],  # eg: ['12:00'],
+            "leadtime_hour": ["0"],
+            "type": ["forecast"],
+            "data_format": "netcdf_zip",  # eg: 'netcdf_zip',
+            "area": [
+                to_lat,
+                from_lon,
+                from_lat,
+                to_lon,
+            ],  # eg: [-29.13, 139.33, -40.53, 153.29]
         }
 
         return dataset, request
@@ -175,11 +183,16 @@ def get_ecmwf_params_for_product_extent(
 def get_ecmwf_for_extent(
     product: ECMWFProduct,
     timestamp: dt.datetime,
-    from_lat: int|float,
-    to_lat: int|float,
-    from_lon: int|float,
-    to_lon: int|float
-) -> tuple[npt.NDArray[np.float32]|npt.NDArray[np.float64], Affine, osr.SpatialReference, float]:
+    from_lat: int | float,
+    to_lat: int | float,
+    from_lon: int | float,
+    to_lon: int | float,
+) -> tuple[
+    npt.NDArray[np.float32] | npt.NDArray[np.float64],
+    Affine,
+    osr.SpatialReference,
+    float,
+]:
     """
     Downloads the specified ECMWF auxilliary data from the CDS/ADS service
     for a given acquisition time & lat/lon (WGS84) region.
@@ -216,15 +229,14 @@ def get_ecmwf_for_extent(
     """
 
     dataset, request = get_ecmwf_params_for_product_extent(
-        product, timestamp,
-        from_lat, to_lat, from_lon, to_lon
+        product, timestamp, from_lat, to_lat, from_lon, to_lon
     )
 
     print(f"Downloading {product.name} for {request['area']}")
 
     # TODO: for integration into wagl... this funtion will need a path to a scratch dir to write files to
     # - because the CDS API unfortunately only allows downloading to a file (not into an in-memory stream/buffer)
-    filename = f'temp_{product.name}_{from_lat}_{to_lat}_to_{from_lon}_{to_lon}.nc'
+    filename = f"temp_{product.name}_{from_lat}_{to_lat}_to_{from_lon}_{to_lon}.nc"
     cache_path = test_cache / filename
     if cache_path.exists():
         print("Using cached", cache_path)
@@ -246,16 +258,19 @@ def get_ecmwf_for_extent(
         client.retrieve(dataset, request).download(str(cache_path))
 
         # Handle zip files (which only ever contain a single .nc file)
-        if req.location.endswith(".zip"):
-            zip_path = cache_path.rename(cache_path.with_suffix(".nc.zip"))
+        # TODO question for Mitch, what does `req` refer to here?
+        # if req.location.endswith(".zip"):
+        #     zip_path = cache_path.rename(cache_path.with_suffix(".nc.zip"))
 
-            with zip_path.open("rb") as zf:
-                zip = zipfile.ZipFile(zf)
-                filenames = zip.namelist()
-                if len(filenames) != 1:
-                    raise Exception("Unexpected zip file, found more than one file in archive!")
-                
-                cache_path.write_bytes(zip.read(filenames[0]))
+        #     with zip_path.open("rb") as zf:
+        #         zip = zipfile.ZipFile(zf)
+        #         filenames = zip.namelist()
+        #         if len(filenames) != 1:
+        #             raise Exception(
+        #                 "Unexpected zip file, found more than one file in archive!"
+        #             )
+
+        #         cache_path.write_bytes(zip.read(filenames[0]))
 
     # Read and return the NetCDF data (just a simple single band raster image)
     with rasterio.open(cache_path) as ds:
@@ -270,14 +285,21 @@ def get_ecmwf_for_extent(
         # Apply data transformation from ERA5 units into MODTRAN units
         if product == ECMWFProduct.ERA5_OZONE:
             # From Fuqin:
-            #    unit: kg m^-2. Need to convert. The conversion is: 1 DU = 2.1415E-5 kg m^-2 
+            #    unit: kg m^-2. Need to convert. The conversion is: 1 DU = 2.1415E-5 kg m^-2
             #    Modtran uses ATM-CM, 1 ATM-CM=1000 DU (dobson)
             #    Data range is usually 0.2-0.3 ATM-CM
 
-            print("ozone min/max/mean BEFORE (kg m^-2)", data.min(), data.max(), data.mean())
-            divisor = 2.1415E-5 * 1000 # (kg m^-2 -> DU -> ATM-CM)
+            print(
+                "ozone min/max/mean BEFORE (kg m^-2)",
+                data.min(),
+                data.max(),
+                data.mean(),
+            )
+            divisor = 2.1415e-5 * 1000  # (kg m^-2 -> DU -> ATM-CM)
             data /= divisor
-            print("ozone min/max/mean AFTER (ATM-CM)", data.min(), data.max(), data.mean())
+            print(
+                "ozone min/max/mean AFTER (ATM-CM)", data.min(), data.max(), data.mean()
+            )
 
         elif product == ECMWFProduct.ERA5_WATER_VAPOUR:
             # From Fuqin:
@@ -287,9 +309,19 @@ def get_ecmwf_for_extent(
             #    Therefore the data need to divide 10 to convert to g / cm^2
             #    Data range is usually 0-5 g / cm^2
 
-            print("water vapour min/max/mean BEFORE (kg m^-2)", data.min(), data.max(), data.mean())
+            print(
+                "water vapour min/max/mean BEFORE (kg m^-2)",
+                data.min(),
+                data.max(),
+                data.mean(),
+            )
             data /= 10
-            print("water vapour min/max/mean AFTER (g m^-2)", data.min(), data.max(), data.mean())
+            print(
+                "water vapour min/max/mean AFTER (g m^-2)",
+                data.min(),
+                data.max(),
+                data.mean(),
+            )
 
         elif product == ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm:
             # Nothing to do... already in desired units
@@ -297,10 +329,9 @@ def get_ecmwf_for_extent(
 
         return data, ds.transform, crs, ds.nodata
 
+
 def get_ecmwf_for_acquisition(
-    dataset: Acquisition,
-    product: ECMWFProduct,
-    border_degrees: float = 0.0
+    dataset: Acquisition, product: ECMWFProduct, border_degrees: float = 0.0
 ):
     """
     Get ECMWF products for a specified data acquisition.
@@ -328,8 +359,14 @@ def get_ecmwf_for_acquisition(
     # Get the lat/lon extents of the acquisition (in degrees)
     ds_geobox = dataset.gridded_geo_box()
     border_extent = ds_geobox.project_extents(ECMWF_CRS)
-    border_ll: tuple[float, float] = (border_extent[0]-border_degrees, border_extent[1]-border_degrees)
-    border_ur: tuple[float, float] = (border_extent[2]+border_degrees, border_extent[3]+border_degrees)
+    border_ll: tuple[float, float] = (
+        border_extent[0] - border_degrees,
+        border_extent[1] - border_degrees,
+    )
+    border_ur: tuple[float, float] = (
+        border_extent[2] + border_degrees,
+        border_extent[3] + border_degrees,
+    )
 
     print(f"acquisition {dataset.band_name} ({dataset.band_id})")
     print("acquisition pixels", dataset.samples, dataset.lines)
@@ -338,22 +375,19 @@ def get_ecmwf_for_acquisition(
     # Get aux data for acquisition
     extent = (border_ll[1], border_ur[1], border_ll[0], border_ur[0])
     aux_data, aux_transform, aux_crs, aux_nodata = get_ecmwf_for_extent(
-        product, dataset.acquisition_datetime,
-        *extent
+        product, dataset.acquisition_datetime, *extent
     )
 
     # Create geobox for DEM
-    aux_origin = aux_transform * (0,0)
-    aux_origin_ur = aux_transform * (1,1)
+    aux_origin = aux_transform * (0, 0)
+    aux_origin_ur = aux_transform * (1, 1)
     aux_pixelsize = (aux_origin_ur[0] - aux_origin[0], aux_origin[1] - aux_origin_ur[1])
     aux_geobox = GriddedGeoBox(
-        shape=aux_data.shape,
-        origin=aux_origin,
-        pixelsize=aux_pixelsize,
-        crs=aux_crs
+        shape=aux_data.shape, origin=aux_origin, pixelsize=aux_pixelsize, crs=aux_crs
     )
 
     return aux_data, aux_nodata, aux_geobox
+
 
 def test():
     scene_path = "/usr/src/wagl/LC08_L1TP_028030_20221018_20221031_02_T1"
@@ -361,34 +395,48 @@ def test():
     acqs = acquisitions(scene_path)
     band = acqs.get_all_acquisitions()[0]
 
-    ozone, ozone_nodata, ozone_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.ERA5_OZONE, 1.0)
+    ozone, ozone_nodata, ozone_geobox = get_ecmwf_for_acquisition(
+        band, ECMWFProduct.ERA5_OZONE, 1.0
+    )
     print("ozone origin:", ozone_geobox.ul)
     print("ozone pixelsize:", ozone_geobox.pixelsize)
     print("ozone mean", ozone.mean())
     write_mosaic_tiff(
-        "ozone.tif",
-        ozone, ozone_geobox.transform, ozone_geobox.crs, ozone_nodata
+        "ozone.tif", ozone, ozone_geobox.transform, ozone_geobox.crs, ozone_nodata
     )
 
-    water_vapour, water_vapour_nodata, water_vapour_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.ERA5_WATER_VAPOUR, 1.0)
+    water_vapour, water_vapour_nodata, water_vapour_geobox = get_ecmwf_for_acquisition(
+        band, ECMWFProduct.ERA5_WATER_VAPOUR, 1.0
+    )
     print("water vapour origin:", water_vapour_geobox.ul)
     print("water vapour pixelsize:", water_vapour_geobox.pixelsize)
     print("water vapour mean", water_vapour.mean())
     write_mosaic_tiff(
         "water_vapour.tif",
-        water_vapour, water_vapour_geobox.transform, water_vapour_geobox.crs, water_vapour_nodata
+        water_vapour,
+        water_vapour_geobox.transform,
+        water_vapour_geobox.crs,
+        water_vapour_nodata,
     )
 
-    total_aerosol, total_aerosol_nodata, total_aerosol_geobox = get_ecmwf_for_acquisition(band, ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm, 1.0)
+    total_aerosol, total_aerosol_nodata, total_aerosol_geobox = (
+        get_ecmwf_for_acquisition(
+            band, ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm, 1.0
+        )
+    )
     print("total aerosol origin:", total_aerosol_geobox.ul)
     print("total aerosol pixelsize:", total_aerosol_geobox.pixelsize)
     print("total aerosol mean", total_aerosol.mean())
     write_mosaic_tiff(
         "total_aerosol.tif",
-        total_aerosol, total_aerosol_geobox.transform, total_aerosol_geobox.crs, total_aerosol_nodata
+        total_aerosol,
+        total_aerosol_geobox.transform,
+        total_aerosol_geobox.crs,
+        total_aerosol_nodata,
     )
 
     # TODO: sample with grid, produce mean, etc - like wagl does
+
 
 if __name__ == "__main__":
     test()
