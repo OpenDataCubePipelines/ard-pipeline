@@ -56,7 +56,7 @@ A script is provided to build Conda with dependencies:
     . ~/conda/bin/activate
 
     # Ensure build dependencies are installed
-    pip install "setuptools_scm[toml]>=6.2,<8"
+    python3 -m setuptools_scm  # prints version string if OK
 
     # Install ARD for development
     pip install --no-build-isolation --editable .
