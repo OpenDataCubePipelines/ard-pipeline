@@ -17,7 +17,7 @@ jobs:
         -   run: git describe --tags > git-tag.txt
 
         -   name: Upload tag as artifact
-            uses: actions/upload-artifact@v3
+            uses: actions/upload-artifact@v4
             with:
                 name: ard-pipeline-tag
                 path: git-tag.txt
@@ -38,7 +38,7 @@ jobs:
             run: docker save ard-pipeline:dev > ard-pipeline-image.tar
 
         -   name: Upload image as artifact
-            uses: actions/upload-artifact@v3
+            uses: actions/upload-artifact@v4
             with:
                 name: ard-pipeline-image
                 path: ard-pipeline-image.tar
@@ -58,13 +58,13 @@ jobs:
         steps:
         -   uses: docker/setup-buildx-action@v2
 
-        -   uses: actions/download-artifact@v2
+        -   uses: actions/download-artifact@v4
             with:
                 name: ard-pipeline-tag
 
         -   run: cat git-tag.txt
 
-        -   uses: actions/download-artifact@v2
+        -   uses: actions/download-artifact@v4
             with:
                 name: ard-pipeline-image
 
