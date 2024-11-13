@@ -101,7 +101,7 @@ SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
         t(j) = tin(j)
         rho(j) = rho0+ws*(t(j)-t0)
         phi_p(j) = asin(cos(rho(j))*sin(oi))
-        lam(j) = gamm0-pi/2.0d0+atan(tan(rho(j))/cos(oi))-we*(t(j)-t0)
+        lam(j) = gamm0-pi/2.0d0+atan2(sin(rho(j)),cos(rho(j))*cos(oi))-we*(t(j)-t0)
         beta(j) = atan(-1.0d0/(tan(oi)*sin(rho(j))))
         skew(j) = atan(we*cos(phi_p(j))*cos(beta(j))/(ws+we* &
           cos(phi_p(j))*sin(beta(j))))
