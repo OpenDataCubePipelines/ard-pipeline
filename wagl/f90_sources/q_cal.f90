@@ -77,8 +77,8 @@ SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel, &
 
     rhocal = acos(sin(phip)/sin_orb_incl)
     tcal = (rhocal+pi/2.0d0)/ws
-    lamcal = gamm0-pi/2.0d0+atan(tan(rhocal)/ &
-      cos_orb_incl)-we*(tcal-t0)
+    lamcal = gamm0-pi/2.0d0+atan2(sin(rhocal), &
+      cos(rhocal)*cos_orb_incl)-we*(tcal-t0)
     betacal = atan(-1.0d0/(tan_orb_incl*sin(rhocal)))
 
     return

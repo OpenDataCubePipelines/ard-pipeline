@@ -89,7 +89,7 @@ SUBROUTINE set_satmod(lon0,lat0,spheroid,orb_elements,psx,psy,smodel,istat)
     rho0 = acos(sin(phi0_p)/sin(oi))
     t0 = (rho0+pi/2.0d0)/ws
     lam0 = lon0*d2r
-    gamm0 = lam0+pi/2.0d0-atan(tan(rho0)/cos(oi))
+    gamm0 = lam0+pi/2.0d0-atan2(sin(rho0),cos(rho0)*cos(oi))
     beta0 = atan(-1.0d0/(tan(oi)*sin(rho0)))
     rotn0 = atan(we*cos(phi0_p)*cos(beta0)/ &
         (ws+we*cos(phi0_p)*sin(beta0)))
