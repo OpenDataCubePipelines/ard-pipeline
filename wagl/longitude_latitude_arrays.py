@@ -29,9 +29,9 @@ def coord_getters(geobox, geo_crs=None, centre=True):
         to WGS84.
 
     :param centre:
-        A boolean indicating whether or not the returned co-ordinate
-        should reference the centre of a pixel, in which case a 0.5
-        offset is applied in the x & y directions. Default is True.
+        A boolean indicating if the returned co-ordinate should reference
+        the centre of a pixel, in which case a 0.5 offset is applied in
+        the x & y directions. Default is True.
 
     :return:
         A function that returns the longitude and latitudes
@@ -87,20 +87,22 @@ def create_lon_lat_grids(
 
         The dataset names will be given by:
 
-        * contants.DatasetName.LON.value
-        * contants.DatasetName.LAT.value
+        * constants.DatasetName.LON.value
+        * constants.DatasetName.LAT.value
 
     :param compression:
         The compression filter to use.
         Default is H5CompressionFilter.LZF
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
-        instance of H5CompressionFilter. For example
-        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
-        available.
+        instance of H5CompressionFilter. For example H5CompressionFilter.LZF
+        has the keywords *chunks* and *shuffle* available.
         Default is None, which will use the default settings for the
         chosen H5CompressionFilter instance.
+
+    :param depth:
+        TODO.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
