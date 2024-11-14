@@ -83,11 +83,10 @@ def image_residual(
         Default is H5CompressionFilter.LZF
 
     :param save_inputs:
-        A `bool` indicating whether or not to save the input datasets
-        used for evaluating the residuals alongside the results.
-        Default is False.
+        A `bool` indicating whether to save the input datasets used for
+        evaluating the residuals alongside the results. Default is False.
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -233,7 +232,7 @@ def scalar_residual(ref_fid, test_fid, pathname, out_fid, save_inputs):
         writing the output data.
 
     :param save_inputs:
-        A `bool` indicating whether or not to save the input datasets
+        A `bool` indicating whether to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
 
@@ -311,11 +310,11 @@ def table_residual(
         Default is H5CompressionFilter.LZF
 
     :param save_inputs:
-        A `bool` indicating whether or not to save the input datasets
+        A `bool` indicating whether to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -400,11 +399,11 @@ def residuals(
         Default is H5CompressionFilter.LZF
 
     :param save_inputs:
-        A `bool` indicating whether or not to save the input datasets
+        A `bool` indicating whether to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -631,24 +630,24 @@ def _parser():
     parser.add_argument(
         "--test-filename",
         required=True,
-        help=("The filename of the file containing the test " "datasets."),
+        help="Filename containing the test datasets.",
     )
     parser.add_argument(
         "--reference-filename",
         required=True,
-        help=("The filename of the file containing the " "reference datasets."),
+        help="Filename containing the reference datasets.",
     )
     parser.add_argument(
         "--out-filename",
         required=True,
-        help=("The filename of the file to contain the " "results."),
+        help="Filename contain the results.",
     )
     parser.add_argument(
         "--compression",
         default="LZF",
         choices=list(H5CompressionFilter),
         type=lambda compression: H5CompressionFilter[compression],
-        help="The comression filter to use.",
+        help="The compression filter to use.",
     )
     parser.add_argument(
         "--filter-opts",

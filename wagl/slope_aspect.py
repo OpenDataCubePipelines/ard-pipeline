@@ -83,7 +83,7 @@ def slope_aspect_arrays(
         The compression filter to use.
         Default is H5CompressionFilter.LZF
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
