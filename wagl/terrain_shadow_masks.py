@@ -48,7 +48,7 @@ def self_shadow(
         The compression filter to use.
         Default is H5CompressionFilter.LZF
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -138,7 +138,7 @@ class CastShadowError(FortranError):
     @staticmethod
     def get_error_message(code):
         """Generate an error message for a specific code. It is OK for this have
-        non-returning control paths, as this will results in ``None``, which
+        non-returning control paths, as this will result in ``None``, which
         is handled in the super class.
         """
 
@@ -299,8 +299,9 @@ def calculate_cast_shadow(
     filter_opts=None,
     solar_source=True,
 ):
-    """This code is an interface to the fortran code
-    cast_shadow_main.f90 written by Fuqin (and modified to
+    """
+    This code is an interface to the fortran code
+    cast_shadow_main.f90 written by Fuqin Li (and modified to
     work with F2py).
 
     The following was taken from the top of the Fotran program:
@@ -317,15 +318,15 @@ def calculate_cast_shadow(
     little within the sub-matrix A, then the Landsat scene can be
     divided into several sub_matrix.
     For Australian region, with 0 .00025 degree resolution, the
-    sub-marix A is set to 500x500
+    sub-matrix A is set to 500x500
 
     we also need to set extra DEM lines/columns to run the Landsat
     scene. This will change with elevation
     difference within the scene and solar zenith angle. For
     Australian region and Landsat scene with 0.00025 degree
     resolution, the maximum extra lines are set to 250 pixels/lines
-    for each direction. This figure shold be sufficient for everywhere
-    and anytime in Australia. Thus the DEM image will be larger than
+    for each direction. This figure should be sufficient for everywhere
+    and anytime in Australia. Thus, the DEM image will be larger than
     landsat image for 500 lines x 500 columns
 
     :param acquisition:
@@ -364,10 +365,9 @@ def calculate_cast_shadow(
         * DatasetName.CAST_SHADOW_FMT
 
     :param compression:
-        The compression filter to use.
-        Default is H5CompressionFilter.LZF
+        The compression filter to use. Default is H5CompressionFilter.LZF.
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -376,9 +376,8 @@ def calculate_cast_shadow(
         chosen H5CompressionFilter instance.
 
     :param solar_source:
-        A `bool` indicating whether or not the source for the line
-        of sight comes from the sun (True; Default), or False
-        indicating the satellite.
+        A `bool` indicating if the source for the line of sight comes
+        from the sun (True; Default), or False indicating the satellite.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -406,7 +405,7 @@ def calculate_cast_shadow(
     azimuth_angle = satellite_solar_group[azimuth_name]
     elevation = dsm_group[DatasetName.DSM_SMOOTHED.value]
 
-    # block height and width of the window/submatrix used in the cast
+    # block height and width of the window/sub-matrix used in the cast
     # shadow algorithm
     block_width = margins.left + margins.right
     block_height = margins.top + margins.bottom
@@ -469,7 +468,7 @@ def combine_shadow_masks(
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
 ):
-    """A convienice function for combining the shadow masks into a single
+    """A convenience function for combining the shadow masks into a single
     boolean array.
 
     :param self_shadow_group:
@@ -485,12 +484,12 @@ def combine_shadow_masks(
 
         * DatasetName.CAST_SHADOW_FMT
 
-    :param cast_shadow_sun_group:
+    :param cast_shadow_satellite_group:
         The root HDF5 `Group` that contains the cast shadow
         (satellite direction) dataset specified by the pathname
         given by:
 
-        * DatasetName.CAST_SHDADOW_FMT
+        * DatasetName.CAST_SHADOW_FMT
 
     :param out_group:
         A writeable HDF5 `Group` object.
@@ -504,7 +503,7 @@ def combine_shadow_masks(
         The compression filter to use.
         Default is H5CompressionFilter.LZF
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
