@@ -206,7 +206,7 @@ def calculate_reflectance(
         A float value type to normalize reflectance to a particular angle.
 
     :param esun
-        A float value type. A solar solar irradiance normal to atmosphere
+        A float value type. A solar irradiance normal to atmosphere
         in unit of W/sq cm/sr/nm.
 
     :return:

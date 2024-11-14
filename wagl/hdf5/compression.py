@@ -12,12 +12,12 @@ https://support.hdfgroup.org/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5Dyna
 for more details.
 
 The class implementation utilises python-attrs
-https://github.com/python-attrs/attrs for it's simplicity in
+https://github.com/python-attrs/attrs for its simplicity in
 writing classes that can make use of default values after initialisation,
 as well as the validators to help ensure that incorrect user inputs are
 captured prior to dataset creation.
-Also, all sub-classes of H5CompressionConfig are implemented as frozen instances
-(immuteable). This is purely so each instance can act as a configuration,
+Also, all subclasses of H5CompressionConfig are implemented as frozen instances
+(immutable). This is purely so each instance can act as a configuration,
 such that a different setting will be a different configuration.
 See http://www.attrs.org/en/stable/examples.html#immutability for more details.
 """
@@ -42,6 +42,7 @@ class H5CompressionFilter(IntEnum):
         >>>     fid.create_dataset('random-ints', data=data, **kwargs)
     """
 
+    # TODO: duplicates several constants in BloscCompression
     BLOSC_LZ = 0
     BLOSC_LZ4 = 1
     BLOSC_LZ4HC = 2
@@ -84,7 +85,7 @@ class H5CompressionFilter(IntEnum):
 
 
 class BloscCompression(IntEnum):
-    """Comression filter ids for the blosc metafamily of compressors."""
+    """Compression filter ids for the blosc metafamily of compressors."""
 
     BLOSC_LZ = 0
     BLOSC_LZ4 = 1
@@ -109,7 +110,7 @@ class H5CompressionConfig:
     """Base class for defining HDF5 compression filters.
     Users that know what they're doing can customise the
     dataset compression filter configuration here.
-    But mostly, this class acts as a way for sub-classes to
+    But mostly, this class acts as a way for subclasses to
     access the dataset_compression_kwargs method.
     """
 
