@@ -60,7 +60,7 @@ def surface_brightness_temperature(
         The compression filter to use.
         Default is H5CompressionFilter.LZF
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -78,7 +78,7 @@ def surface_brightness_temperature(
         parse through the H5 Group object, which in most cases
         reduced the number or parameters being parsed through.
         Thereby simplifying the overall workflow, and making it
-        consistant with other functions within the overall workflow.
+        consistent with other functions within the overall workflow.
     """
     acq = acquisition
     geobox = acq.gridded_geo_box()
@@ -221,7 +221,7 @@ def get_landsat_temperature(acquisitions, pq_const):
 
 def temperature_at_sensor(thermal_acquisition, window=None):
     """Given a thermal acquisition, convert to at sensor temperature
-    in Kelivn.
+    in Kelvin.
 
     :param thermal_acquisition:
         An acquisition with a band_type of BandType.Thermal.
