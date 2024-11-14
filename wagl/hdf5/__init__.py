@@ -130,15 +130,18 @@ def create_image_dataset(
     :param shape:
         The shape/dimensions of the dataset to create.
 
+    :param dtype:
+        TODO.
+
     :param compression:
         The compression filter to use.
         Default is H5CompressionFilter.LZF
 
-    :attrs:
+    :param attrs:
         A `dict` by which the keys will be the attribute name, and the
         values will be the attribute value.
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -190,7 +193,7 @@ def write_h5_image(
         A `dict` of key, value items to be attached as attributes
         to the `Table` dataset.
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -256,7 +259,7 @@ def write_h5_table(
         A `dict` of key, value items to be attached as attributes
         to the `Table` dataset.
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -305,7 +308,7 @@ def write_dataframe(
         A `dict` of key, value items to be attached as attributes
         to the `Table` dataset.
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
