@@ -36,6 +36,9 @@ def convert_to_lonlat(geobox, col_index, row_index, centre=True):
     :param row_index:
         A 1D `NumPy` array of integers representing the row indices.
 
+    :param centre:
+        TODO.
+
     :return:
         2x 1D `NumPy` arrays, of type float64, containing the
         (longitude, latitude) coordinates.
@@ -69,8 +72,7 @@ def create_centreline_dataset(geobox, x, n, out_group):
 
     :param n:
         A 1D np array of type int with the same shape as x.
-        Details whether or not the track point coordinate is
-        averaged.
+        Details if the track point coordinate is averaged.
 
     :param out_group:
         A writeable HDF5 `Group` object.
@@ -385,11 +387,11 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     :param acquisition:
         An instance of an `Acquisition` object.
 
-    :param boxline:
+    :param boxline_dataset:
         The dataset containing the bi-section (satellite track)
         coordinates. The datatype should be the same as that returned
         by the `satellite_solar_angles.create_boxline` function.
-    :type boxline:
+    :type boxline_dataset:
         [('row_index', 'int64'), ('bisection_index', 'int64'),
          ('npoints', 'int64'), ('start_index', 'int64'),
          ('end_index', 'int64')]
@@ -465,7 +467,7 @@ def calculate_julian_century(datetime):
     j2_epoch = ephem.julian_date(epoch)
 
     # Note:
-    # This differes from online sources such as
+    # This differs from online sources such as
     # http://www.pietro.org/astro_util_staticdemo/FDetailDateConversions.htm
     # http://en.wikipedia.org/wiki/Equinox_(celestial_coordinates)
     # which use:
@@ -476,15 +478,15 @@ def calculate_julian_century(datetime):
 
 
 def setup_spheroid(proj_wkt):
-    """Given a WKT projection string, determine the spheroid paramaters
-    that will be used in calcultating the angle grids.
+    """Given a WKT projection string, determine the spheroid parameters
+    that will be used in calculating the angle grids.
 
     :param proj_wkt:
         A string containing valid WKT projection information.
 
     :return:
         A floating point np array of 4 elements containing
-        spheroidal paramaters.
+        spheroidal parameters.
 
             * Index 0 contains the spheroid Major Axis.
             * Index 1 contains the spheroid Inverse Flattening.
@@ -916,7 +918,7 @@ def calculate_angles(
         The compression filter to use.
         Default is H5CompressionFilter.LZF
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -926,6 +928,9 @@ def calculate_angles(
 
     :param tle_path:
         A `str` to the directory containing the Two Line Element data.
+
+    :param trackpoints:
+        TODO.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
