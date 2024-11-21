@@ -9,7 +9,9 @@ A Python package for producing standarised imagery in the form of:
 
 The luigi task workflow for producing NBAR for a Landsat 5TM scene is given below.
 
-![](docs/source/diagrams/luigi-task-visualiser-reduced.png)
+<div style="background-color: white; display: inline-block;">
+  <img src="docs/source/diagrams/luigi-task-visualiser.svg" alt="Luigi Task Visualiser">
+</div>
 
 ## Supported Satellites and Sensors
 
@@ -49,23 +51,23 @@ native dependencies.
 A script is provided to build Conda with dependencies:
 
 ```Bash
-    # Create environment in ~/conda directory
-    ./deployment/create-conda-environment.sh ~/conda
+# Create environment in ~/conda directory
+./deployment/create-conda-environment.sh ~/conda
 
-    # Activate the environment in the current shell
-    . ~/conda/bin/activate
+# Activate the environment in the current shell
+. ~/conda/bin/activate
 
-    # Ensure build dependencies are installed
-    python3 -m setuptools_scm  # prints version string if OK
+# Ensure build dependencies are installed
+python3 -m setuptools_scm  # prints version string if OK
 
-    # Install ARD for development
-    pip install --no-build-isolation --editable .
+# Install ARD for development
+pip install --no-build-isolation --editable .
 
-    # Check the environment for common problems.
-    # (Eg, can we import dependencies?)
-    ./deployment/check-environment.sh
+# Check the environment for common problems.
+# (Eg, can we import dependencies?)
+./deployment/check-environment.sh
 
-    # (note that the last check is for Modtran, which you may or may not be using in your environment. On NCI, we can `module load modtran`)
+# (note that the last check is for Modtran, which you may or may not be using in your environment. On NCI, we can `module load modtran`)
 
 ```
 
@@ -82,7 +84,7 @@ You can avoid this, and still maintain live editing, by
 doing a non-isolated editable install:
 
 ```Bash
-    python3 -m pip install --no-build-isolation --editable .
+python3 -m pip install --no-build-isolation --editable .
 ```
 
 Meson will then auto-build the native modules as needed and
@@ -111,7 +113,7 @@ ModuleNotFoundError: No module named 'wagl._version'
 This indicates the `setuptools_scm` dependency is too _new_. Check the installed version with:
 
 ```Bash
-$ pip freeze | grep setuptools_scm
+pip freeze | grep setuptools_scm
 ```
 
 If installed, this will display output like `setuptools-scm==8.1.0`.
@@ -119,13 +121,13 @@ If installed, this will display output like `setuptools-scm==8.1.0`.
 The current workaround is to check the desired version of `setuptools-scm` from the `pyproject.toml` configuration. If the installed version is higher than the `pyproject.toml` version, uninstall the new version & install an older version, e.g.:
 
 ```Bash
-$ pip install "setuptools_scm[toml]>=6.2,<8"
+pip install "setuptools_scm[toml]>=6.2,<8"
 ```
 
 ### Additional HDF5 compression filters (optional)
 
 Additional compression filters can be used via HDF5's
-[dynamically loaded filters](https://support.hdfgroup.org/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5DynamicallyLoadedFilters.pdf).
+[dynamically loaded filters](https://support.hdfgroup.org/archive/support/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5DynamicallyLoadedFilters.pdf).
 Essentially the filter needs to be compiled against the HDF5 library, and
 installed into HDF5's plugin path, or a path of your choosing, and set the
 HDF5_PLUGIN_PATH environment variable. The filters are then automatically
