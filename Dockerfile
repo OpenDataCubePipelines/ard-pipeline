@@ -70,6 +70,8 @@ RUN --mount=type=cache,target=/var/cache/dnf,id=dnfprod <<EOF
     set -eu
     dnf --quiet makecache --refresh
     dnf --assumeyes --quiet install \
+        gcc-gfortran \
+        git \
         libgfortran \
         libarchive \
         libtiff \
