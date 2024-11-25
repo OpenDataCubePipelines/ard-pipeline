@@ -12,6 +12,8 @@ from rasterio.io import MemoryFile
 from rasterio.merge import merge
 from rasterio.transform import Affine
 from rasterio.warp import calculate_default_transform, reproject
+from botocore import UNSIGNED
+from botocore.config import Config
 
 from wagl.acquisition import Acquisition, acquisitions
 from wagl.constants import DatasetName, GroupName
@@ -29,7 +31,7 @@ COP30M_BUCKET_NAME = os.getenv("COP30M_BUCKET", "copernicus-dem-30m")
 COP30M_CRS = osr.SpatialReference()
 COP30M_CRS.ImportFromEPSG(4326)  # WGS84
 
-test_cache = Path.home() / "cop30_cache"
+test_cache = Path('/g/data/up71/projects/ARD_process_anywhere/elevation_models/download') / "cop30_cache"
 test_cache.mkdir(parents=True, exist_ok=True)
 
 
@@ -105,7 +107,7 @@ def get_cop30m_for_extent(
     ds_res: list[tuple[int, int]] = []
     ds_nodata: list[tuple[int, int]] = []
 
-    s3 = boto3.client("s3")
+    s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
     for lat, lon in tiles:
         lat_str = f"N{abs(lat):02d}" if lat >= 0 else f"S{abs(lat):02d}"
@@ -716,23 +718,82 @@ def get_dsm_hdf_for_aquisition(
     dem_data = filter_dsm(dem_data)
     dname = DatasetName.DSM_SMOOTHED.value
     out_sm_dset = group.create_dataset(dname, data=dem_data, **kwargs)
-    desc = "A subset of a Digital Surface Model smoothed with a gaussian " "kernel."
+    desc = "A subset of a DSM smoothed with a gaussian " "kernel."
     attrs["description"] = desc
     # attrs["id"] = np.array([metadata["id"]], VLEN_STRING)
     attach_image_attributes(out_sm_dset, attrs)
 
+def write_dem_for_level1_crs(level1_location, dem_filename):
+
+    acqs = acquisitions(level1_location)
+    band = acqs.get_all_acquisitions()[0]
+    mosaic_data = get_dem_for_acquisition_crs_buffer(band)
+
+    wkt = mosaic_data[1].crs.ExportToPrettyWkt()
+    wkt = wkt.replace("\n", "").replace(" ", "")
+    code = int(wkt.split(',')[-1].replace("]", '').replace('"', ''))
+
+    # x-coordinate of the upper-left corner of the upper-left pixel.
+    GT0 = mosaic_data[1].origin[0]
+
+    # w-e pixel resolution / pixel width.
+    GT1 = mosaic_data[1].pixelsize[0]
+
+    # row rotation (typically zero).
+    GT2 = 0
+
+    # y-coordinate of the upper-left corner of the upper-left pixel.
+    GT3 = mosaic_data[1].origin[1]
+
+    # column rotation (typically zero)
+    GT4 = 0
+
+    # n-s pixel resolution / pixel height (negative value for a north-up image)
+    GT5 = mosaic_data[1].pixelsize[1]
+
+    transformation = Affine(GT0, GT1, GT2, GT3, GT4, GT5)
+
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(code)
+    crs = srs
+
+    if len(mosaic_data[0].shape) == 2:
+        mosaic_data = mosaic_data[0].reshape(
+            (1, mosaic_data[0].shape[0], mosaic_data[0].shape[1])
+        )
+
+    # Create a mosaic dataset from the mosaic data
+    mosaic_profile = {
+        "driver": "GTiff",
+        "dtype": mosaic_data.dtype,
+        "nodata": '0.0',
+        "width": mosaic_data.shape[-1],
+        "height": mosaic_data.shape[-2],
+        "count": 1,
+        "crs": crs.ExportToWkt(),
+        "transform": transformation,
+        # Write a plain old untiled tiff
+        "tiled": False,
+        "compress": "LZW",
+    }
+
+    with rasterio.open(dem_filename, "w", **mosaic_profile) as dst:
+        dst.write(mosaic_data)
 
 def test():
     # scene_path = "/usr/src/wagl/LC80400332013190LGN03"
-    scene_path = "/usr/src/wagl/LC08_L1TP_028030_20221018_20221031_02_T1"
+    #scene_path = "/usr/src/wagl/LC08_L1TP_028030_20221018_20221031_02_T1"
 
-    acqs = acquisitions(scene_path)
-    band = acqs.get_all_acquisitions()[0]
+    #acqs = acquisitions(scene_path)
+    #band = acqs.get_all_acquisitions()[0]
 
     # get_dem_for_acquisition(band, 1.0)
     # get_dem_for_acquisition_wagl_slow(band, 1.0)
-    get_dem_for_acquisition_crs_buffer(band)
+    #get_dem_for_acquisition_crs_buffer(band)
 
+    level1_location = '/g/data/up71/projects/ARD_process_anywhere/elevation_models/test_data/70d_to_80d'
+    dem_filename = '/g/data/up71/projects/ARD_process_anywhere/elevation_models/output/70d_to_80d.tiff'
+    write_dem_for_level1_crs(level1_location, dem_filename)
 
 if __name__ == "__main__":
     test()
