@@ -723,63 +723,6 @@ def get_dsm_hdf_for_aquisition(
     # attrs["id"] = np.array([metadata["id"]], VLEN_STRING)
     attach_image_attributes(out_sm_dset, attrs)
 
-def write_dem_for_level1_crs(level1_location, dem_filename):
-
-    acqs = acquisitions(level1_location)
-    band = acqs.get_all_acquisitions()[0]
-    mosaic_data = get_dem_for_acquisition_crs_buffer(band)
-
-    wkt = mosaic_data[1].crs.ExportToPrettyWkt()
-    wkt = wkt.replace("\n", "").replace(" ", "")
-    code = int(wkt.split(',')[-1].replace("]", '').replace('"', ''))
-
-    # x-coordinate of the upper-left corner of the upper-left pixel.
-    GT0 = mosaic_data[1].origin[0]
-
-    # w-e pixel resolution / pixel width.
-    GT1 = mosaic_data[1].pixelsize[0]
-
-    # row rotation (typically zero).
-    GT2 = 0
-
-    # y-coordinate of the upper-left corner of the upper-left pixel.
-    GT3 = mosaic_data[1].origin[1]
-
-    # column rotation (typically zero)
-    GT4 = 0
-
-    # n-s pixel resolution / pixel height (negative value for a north-up image)
-    GT5 = mosaic_data[1].pixelsize[1]
-
-    transformation = Affine(GT0, GT1, GT2, GT3, GT4, GT5)
-
-    srs = osr.SpatialReference()
-    srs.ImportFromEPSG(code)
-    crs = srs
-
-    if len(mosaic_data[0].shape) == 2:
-        mosaic_data = mosaic_data[0].reshape(
-            (1, mosaic_data[0].shape[0], mosaic_data[0].shape[1])
-        )
-
-    # Create a mosaic dataset from the mosaic data
-    mosaic_profile = {
-        "driver": "GTiff",
-        "dtype": mosaic_data.dtype,
-        "nodata": '0.0',
-        "width": mosaic_data.shape[-1],
-        "height": mosaic_data.shape[-2],
-        "count": 1,
-        "crs": crs.ExportToWkt(),
-        "transform": transformation,
-        # Write a plain old untiled tiff
-        "tiled": False,
-        "compress": "LZW",
-    }
-
-    with rasterio.open(dem_filename, "w", **mosaic_profile) as dst:
-        dst.write(mosaic_data)
-
 def test():
     # scene_path = "/usr/src/wagl/LC80400332013190LGN03"
     #scene_path = "/usr/src/wagl/LC08_L1TP_028030_20221018_20221031_02_T1"
@@ -789,11 +732,8 @@ def test():
 
     # get_dem_for_acquisition(band, 1.0)
     # get_dem_for_acquisition_wagl_slow(band, 1.0)
-    #get_dem_for_acquisition_crs_buffer(band)
+    get_dem_for_acquisition_crs_buffer(band)
 
-    level1_location = '/g/data/up71/projects/ARD_process_anywhere/elevation_models/test_data/70d_to_80d'
-    dem_filename = '/g/data/up71/projects/ARD_process_anywhere/elevation_models/output/70d_to_80d.tiff'
-    write_dem_for_level1_crs(level1_location, dem_filename)
 
 if __name__ == "__main__":
     test()
