@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Digital Surface Model Data extraction and smoothing."""
 
+import os.path
+
 import h5py
 import numpy as np
 import rasterio
@@ -42,6 +44,69 @@ def filter_dsm(array):
     return filtered
 
 
+def read_srtm_subset(dsm_dataset, dem_geobox):
+    dsm_geobox = GriddedGeoBox.from_dataset(dsm_dataset)
+
+    # calculate full border extents into CRS of DSM
+    extents = dem_geobox.project_extents(dsm_geobox.crs)
+    ul_xy = (extents[0], extents[3])
+    ur_xy = (extents[2], extents[3])
+    lr_xy = (extents[2], extents[1])
+    ll_xy = (extents[0], extents[1])
+
+    # load the subset and corresponding geobox
+    subs, subs_geobox = read_subset(
+        dsm_dataset, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
+    )
+
+    # Retrive the DSM data
+    dsm_data = reproject_array_to_array(
+        subs, subs_geobox, dem_geobox, resampling=Resampling.bilinear
+    )
+
+    # free memory
+    subs = None
+
+    return dsm_data
+
+
+def read_copernicus_subset(dsm_dataset, dem_geobox):
+    dsm_geobox = GriddedGeoBox.from_dataset(dsm_dataset)
+
+    # calculate full border extents into CRS of DSM
+    extents = dem_geobox.project_extents(dsm_geobox.crs)
+    ul_xy = (extents[0], extents[3])
+    ur_xy = (extents[2], extents[3])
+    lr_xy = (extents[2], extents[1])
+    ll_xy = (extents[0], extents[1])
+
+    # load the subset and corresponding geobox
+    subs, subs_geobox = read_subset(
+        dsm_dataset, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
+    )
+
+    # Retrive the DSM data
+    dsm_data = reproject_array_to_array(
+        subs, subs_geobox, dem_geobox, resampling=Resampling.bilinear
+    )
+
+    # free memory
+    subs = None
+
+    return dsm_data
+
+
+def read_copernicus_dem(cop_pathname, dem_geobox):
+    # COP30M_CRS = rasterio.crs.CRS.from_epsg(4326)  # WGS84
+
+    if os.path.isdir(cop_pathname):
+        raise NotImplementedError
+    elif cop_pathname.startswith("s3://"):
+        raise NotImplementedError
+    else:
+        raise ValueError("Not a valid Copernicus DEM")
+
+
 def get_dsm(
     acquisition,
     srtm_pathname,
@@ -66,6 +131,8 @@ def get_dsm(
 
     :param cop_pathname:
         A string pathname of the mosaiced Copernicus 30m DEM .tif file.
+        Alternatively, a folder containing the Copernicus 30m DEM, or
+        an S3 location for the Copernicus 30m DEM.
 
     :param buffer_distance:
         A number representing the desired distance (in the same
@@ -120,51 +187,25 @@ def get_dsm(
         fname, dname = srtm_pathname.split(":")
         with h5py.File(fname, "r") as dsm_fid:
             dsm_ds = dsm_fid[dname]
-            dsm_geobox = GriddedGeoBox.from_dataset(dsm_ds)
-
-            # calculate full border extents into CRS of DSM
-            extents = dem_geobox.project_extents(dsm_geobox.crs)
-            ul_xy = (extents[0], extents[3])
-            ur_xy = (extents[2], extents[3])
-            lr_xy = (extents[2], extents[1])
-            ll_xy = (extents[0], extents[1])
-
-            # load the subset and corresponding geobox
-            subs, subs_geobox = read_subset(
-                dsm_ds, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
-            )
+            dsm_data = read_srtm_subset(dsm_ds, dem_geobox)
 
             # ancillary metadata tracking
             metadata = current_h5_metadata(dsm_fid, dataset_path=dname)
 
     except (IndexError, ValueError):
-        with rasterio.open(cop_pathname, "r") as dsm_ds:
-            dsm_geobox = GriddedGeoBox.from_dataset(dsm_ds)
+        # ancillary metadata tracking
+        metadata = {"id": "cop-30m-dem"}
 
-            # calculate full border extents into CRS of DSM
-            extents = dem_geobox.project_extents(dsm_geobox.crs)
-            ul_xy = (extents[0], extents[3])
-            ur_xy = (extents[2], extents[3])
-            lr_xy = (extents[2], extents[1])
-            ll_xy = (extents[0], extents[1])
+        if os.path.isfile(cop_pathname):
+            # read from mosaic
+            with rasterio.open(cop_pathname, "r") as dsm_ds:
+                dsm_data = read_copernicus_subset(dsm_ds, dem_geobox)
+        elif os.path.isdir(cop_pathname) or cop_pathname.startswith("s3://"):
+            # read from tiled Cop30DEM
+            dsm_data = read_copernicus_dem(cop_pathname, dem_geobox)
+        else:
+            raise ValueError("No suitable DEM found")
 
-            # load the subset and corresponding geobox
-            subs, subs_geobox = read_subset(
-                dsm_ds, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
-            )
-
-            # ancillary metadata tracking
-            metadata = {"id": "cop-30m-dem"}
-
-    # Retrive the DSM data
-    dsm_data = reproject_array_to_array(
-        subs, subs_geobox, dem_geobox, resampling=Resampling.bilinear
-    )
-
-    # free memory
-    subs = None
-
-    # Output the reprojected result
     assert out_group is not None
     fid = out_group
 
