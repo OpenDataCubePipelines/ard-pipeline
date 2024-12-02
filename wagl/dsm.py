@@ -2,7 +2,7 @@
 """Digital Surface Model Data extraction and smoothing."""
 
 import os.path
-from math import floor
+from math import ceil, floor
 
 import boto3
 import h5py
@@ -11,7 +11,6 @@ import rasterio
 from botocore import UNSIGNED
 from botocore.config import Config
 from osgeo import osr
-from rasterio.crs import CRS
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 from scipy import ndimage
@@ -82,14 +81,14 @@ def copernicus_tiles_latlon_covering_geobox(geobox) -> list[tuple[int, int]]:
     cop30m_crs.ImportFromEPSG(4326)  # WGS84
 
     origin = geobox.convert_coordinates((0, 0))
-    origin_latlon = geobox.transform_coordinates(origin, cop30m_crs)
-    corner = geobox.convert_coordinates(geobox.shape)
-    corner_latlon = geobox.transform_coordinates(corner, cop30m_crs)
+    origin_lonlat = geobox.transform_coordinates(origin, cop30m_crs)
+    corner = geobox.convert_coordinates(geobox.get_shape_xy())
+    corner_lonlat = geobox.transform_coordinates(corner, cop30m_crs)
 
-    from_lat = floor(corner_latlon[1])
-    to_lat = floor(origin_latlon[1])
-    from_lon = floor(origin_latlon[0])
-    to_lon = floor(corner_latlon[0])
+    from_lat = floor(corner_lonlat[1])
+    to_lat = floor(origin_lonlat[1])
+    from_lon = floor(origin_lonlat[0])
+    to_lon = floor(corner_lonlat[0])
 
     def order(a, b):
         if a <= b:
@@ -146,7 +145,34 @@ def read_s3_object_into_memory(bucket, key):
         raise Exception(f"Failed to get cop30 DEM tile for s3://{bucket}/{key}")
 
 
-def read_copernicus_dem(cop_pathname, dem_geobox):
+def covering_geobox_subset(dst_geobox, src_geobox):
+    """
+    Calculate the sub-set (as slice objects of indices) of `dst_geobox` that covers
+    its intersection with `src_geobox` so that the contents of `src_geobox`
+    can be read into that subset.
+    """
+    extents = src_geobox.project_extents(dst_geobox.crs)
+
+    # p1 and p2 are in "pixel space"
+    p1 = ~dst_geobox.transform * (extents[0], extents[3])
+    p2 = ~dst_geobox.transform * (extents[2], extents[1])
+
+    shape = dst_geobox.shape
+    minx = max(floor(min(p1[0], p2[0])), 0)
+    miny = max(floor(min(p1[1], p2[1])), 0)
+    maxx = min(ceil(max(p1[0], p2[0])), shape[1])
+    maxy = min(ceil(max(p1[1], p2[1])), shape[0])
+
+    subset_geobox = GriddedGeoBox(
+        (maxy - miny, maxx - minx),
+        origin=dst_geobox.transform * (minx, miny),
+        pixelsize=dst_geobox.pixelsize,
+        crs=dst_geobox.crs.ExportToProj4(),
+    )
+    return (slice(miny, maxy), slice(minx, maxx)), subset_geobox
+
+
+def read_copernicus_dem(cop_pathname, dst_geobox):
     if not os.path.isdir(cop_pathname) and not cop_pathname.startswith("s3://"):
         raise ValueError("Not a valid tiled Copernicus DEM")
 
@@ -158,10 +184,11 @@ def read_copernicus_dem(cop_pathname, dem_geobox):
     else:
         bucket, prefix = split_s3_path_into_bucket_and_prefix(cop_pathname)
 
-    latlon = copernicus_tiles_latlon_covering_geobox(dem_geobox)
+    latlon = copernicus_tiles_latlon_covering_geobox(dst_geobox)
     sources = copernicus_dem_images_for_latlon(prefix, latlon)
 
-    result = np.full(dem_geobox.shape, np.nan, dtype=np.float32)
+    result = np.full(dst_geobox.shape, np.nan, dtype=np.float32)
+    dst_crs = dst_geobox.crs.ExportToProj4()
 
     for location in sources:
         if cached:
@@ -170,16 +197,28 @@ def read_copernicus_dem(cop_pathname, dem_geobox):
             dataset_reader = read_s3_object_into_memory(bucket, location).open()
 
         with dataset_reader as ds:
-            reprojected = np.full(dem_geobox.shape, np.nan, dtype=np.float32)
-            reproject(
-                source=rasterio.band(ds, 1),
-                destination=reprojected,
-                dst_crs=CRS.from_string(dem_geobox.crs.ExportToProj4()),
-                dst_transform=dem_geobox.transform,
-                dst_nodata=np.nan,
-                resampling=Resampling.bilinear,
+            subset, subset_geobox = covering_geobox_subset(
+                dst_geobox, GriddedGeoBox.from_dataset(ds)
             )
-            result = np.where(np.isnan(result), reprojected, result)
+
+            try:
+                reprojected = np.full(subset_geobox.shape, np.nan, dtype=np.float32)
+
+                reproject(
+                    source=rasterio.band(ds, 1),
+                    destination=reprojected,
+                    dst_crs=dst_crs,
+                    dst_transform=subset_geobox.transform,
+                    dst_nodata=np.nan,
+                    resampling=Resampling.bilinear,
+                )
+                result[subset] = np.where(
+                    np.isnan(result[subset]), reprojected, result[subset]
+                )
+            except ValueError:
+                # TODO investigate this
+                # possibly DEM tile not intersecting with the dst_geobox
+                pass
 
     return result
 
