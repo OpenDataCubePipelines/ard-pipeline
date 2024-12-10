@@ -192,6 +192,10 @@ def read_copernicus_dem(cop_pathname, dst_geobox):
 
     for location in sources:
         if cached:
+            if not os.path.isfile(location):
+                # ocean tiles are not present
+                continue
+
             dataset_reader = rasterio.open(location)
         else:
             dataset_reader = read_s3_object_into_memory(bucket, location).open()
