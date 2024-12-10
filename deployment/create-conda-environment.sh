@@ -46,8 +46,9 @@ set +ux
 # shellcheck source=/dev/null
 . "${location}/bin/activate"
 
-conda install -c conda-forge -n base mamba
-mamba env update -n base -f "$(dirname "$0")/environment.yaml"
+# conda install -c conda-forge -n base mamba
+# TODO mamba not working at the moment, fix this when the instability is over
+conda env update -n base -f "$(dirname "$0")/environment.yaml"
 
 # Freeze the environment as it exists without our locally-installed  packages.
 # conda env export --from-history  > "${location}/environment.yaml"
