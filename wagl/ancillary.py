@@ -6,6 +6,7 @@ import configparser
 import datetime
 import json
 import os.path
+from math import floor
 from os.path import join as pjoin
 from posixpath import join as ppjoin
 from typing import Dict, List, Optional, Set, Tuple, TypedDict
@@ -33,6 +34,7 @@ from wagl.constants import (
     WaterVapourTier,
 )
 from wagl.data import get_pixel, get_pixel_from_raster
+from wagl.dsm import copernicus_dem_images_for_latlon
 from wagl.hdf5 import (
     VLEN_STRING,
     H5CompressionFilter,
@@ -762,7 +764,16 @@ def get_elevation_data(lonlat: LonLat, pathname: PathWithDataset, offshore: bool
             data, md_uuid = get_pixel(fname, dname, lonlat)
             metadata = {"id": np.array([md_uuid], VLEN_STRING)}
         else:
-            data = get_pixel_from_raster(pathname, lonlat)
+            if os.path.isdir(pathname):
+                imgs = copernicus_dem_images_for_latlon(
+                    pathname, [(floor(lonlat[1]), floor(lonlat[0]))]
+                )
+                assert len(imgs) == 1
+                # TODO this assumes images on disk
+                # TODO support s3
+                data = get_pixel_from_raster(imgs[0], lonlat)
+            else:
+                data = get_pixel_from_raster(pathname, lonlat)
             metadata = {"id": np.array(["cop-30m-dem"], VLEN_STRING)}
         data = data * 0.001  # scale to correct units
     except ValueError:
