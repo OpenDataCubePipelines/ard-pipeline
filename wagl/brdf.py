@@ -788,6 +788,7 @@ def get_brdf_data(
         return {
             param: {
                 "data_source": "BRDF",
+                "id": "dummy",
                 "tier": BrdfTier.USER.name,
                 "value": brdf_config["user"][acquisition.alias][param.value.lower()],
             }
