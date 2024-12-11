@@ -775,6 +775,12 @@ def get_ozone_data(ozone_fname: str, lonlat: LonLat, acq_time: datetime.datetime
     """Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
     the scene.
     """
+    if ozone_fname.startswith("user: "):
+        data = float(ozone_fname[len("user: ") :])
+        metadata = {"id": np.array([], VLEN_STRING), "tier": OzoneTier.USER.name}
+
+        return data, metadata
+
     dname = acq_time.strftime("%b").lower()
 
     try:
