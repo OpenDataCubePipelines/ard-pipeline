@@ -674,6 +674,14 @@ def get_aerosol_data(
     more control over how the data is selected geo-metrically.
     Better control over timedeltas.
     """
+    # temporary until we sort out a better default mechanism
+    # how do we want to support default values, whilst still support provenance
+    if "user" in aerosol_dict:
+        tier = AerosolTier.USER
+        metadata = {"id": np.array([], VLEN_STRING), "tier": tier.name}
+
+        return aerosol_dict["user"], metadata
+
     aerosol_fname = aerosol_dict["pathname"]
 
     dt = acquisition.acquisition_datetime
@@ -686,14 +694,6 @@ def get_aerosol_data(
     names = ["ATSR_LF_%Y%m", "aot_mean_%b_%Y_All_Aerosols", "aot_mean_%b_All_Aerosols"]
     exts = ["/pix", "/cmp", "/cmp"]
     pathnames = [ppjoin(ext, dt.strftime(n)) for ext, n in zip(exts, names)]
-
-    # temporary until we sort out a better default mechanism
-    # how do we want to support default values, whilst still support provenance
-    if "user" in aerosol_dict:
-        tier = AerosolTier.USER
-        metadata = {"id": np.array([], VLEN_STRING), "tier": tier.name}
-
-        return aerosol_dict["user"], metadata
 
     data = None
     delta_tolerance = datetime.timedelta(days=0.5)
@@ -810,14 +810,14 @@ def get_water_vapour(
     """Retrieve the water vapour value for an `acquisition` and the
     path for the water vapour ancillary data.
     """
+    if "user" in water_vapour_dict:
+        metadata = {"id": np.array([], VLEN_STRING), "tier": WaterVapourTier.USER.name}
+        return water_vapour_dict["user"], metadata
+
     datafile = find_water_vapour_definitive_path(acquisition, water_vapour_dict)
 
     dt = acquisition.acquisition_datetime
     hour = dt.timetuple().tm_hour
-
-    if "user" in water_vapour_dict:
-        metadata = {"id": np.array([], VLEN_STRING), "tier": WaterVapourTier.USER.name}
-        return water_vapour_dict["user"], metadata
 
     geobox = acquisition.gridded_geo_box()
 
