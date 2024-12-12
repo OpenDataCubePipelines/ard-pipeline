@@ -6,6 +6,7 @@ import configparser
 import datetime
 import json
 import os.path
+import sys
 from os.path import join as pjoin
 from posixpath import join as ppjoin
 from typing import Dict, List, Optional, Set, Tuple, TypedDict
@@ -32,7 +33,11 @@ from wagl.constants import (
     OzoneTier,
     WaterVapourTier,
 )
-from wagl.data import get_pixel, get_pixel_from_raster
+from wagl.data import get_pixel, get_pixel_from_raster, get_pixel_new
+
+sys.path.append("wagl/in_progress")
+from ecmwf import ECMWFProduct, get_ecmwf_for_acquisition
+
 from wagl.hdf5 import (
     VLEN_STRING,
     H5CompressionFilter,
@@ -666,6 +671,21 @@ def collect_nbar_ancillary(
                 write_scalar(brdf_value, dname, fid, data[param])
 
 
+def get_aerosol_data_new(acquisition: Acquisition, lonlat):
+    total_aerosol, total_aerosol_nodata, total_aerosol_geobox, total_aerosol_request = (
+        get_ecmwf_for_acquisition(
+            acquisition, ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm, 1.0
+        )
+    )
+    data = get_pixel_new(total_aerosol, total_aerosol_geobox, lonlat)
+    metadata = {
+        "id": total_aerosol_request,
+        "tier": ECMWFProduct.CAMS_GLOBAL_FORECAST_TAOD_550nm.name,
+    }
+
+    return data, metadata
+
+
 def get_aerosol_data(
     acquisition: Acquisition, aerosol_dict: AerosolDict
 ) -> Tuple[float, Dict]:
@@ -771,6 +791,38 @@ def get_elevation_data(lonlat: LonLat, pathname: PathWithDataset, offshore: bool
     return data, metadata
 
 
+def get_ozone_data_new(acq: Acquisition, lonlat: LonLat):
+    """Get ozone data for a scene with the new S3/numpy method. `lonlat` should be the (x,y) for the centre
+    the scene.
+    """
+    ozone, ozone_nodata, ozone_geobox, ozone_request = get_ecmwf_for_acquisition(
+        acq, ECMWFProduct.ERA5_OZONE, 1.0
+    )
+
+    try:
+        data = get_pixel_new(ozone, ozone_geobox, lonlat)
+        metadata = {
+            "id": ozone_request,
+            "tier": ECMWFProduct.ERA5_OZONE.name,
+        }
+    except IndexError:
+        # Coords for expanded AOI in long lat
+        coords = [[70.3, -56.7], [170.0, -56.7], [170.0, -7.8], [70.3, -7.8]]
+        polygon = Polygon(coords)
+        point = Point(lonlat)
+
+        if polygon.contains(point):
+            data = 0.275  # atm-cm or 275 Dobson Units (DU)
+            metadata = {
+                "id": np.array([], VLEN_STRING),
+                "tier": OzoneTier.USER.name,
+            }
+        else:
+            raise AncillaryError("No Ozone data")
+
+    return data, metadata
+
+
 def get_ozone_data(ozone_fname: str, lonlat: LonLat, acq_time: datetime.datetime):
     """Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
     the scene.
@@ -797,6 +849,20 @@ def get_ozone_data(ozone_fname: str, lonlat: LonLat, acq_time: datetime.datetime
             }
         else:
             raise AncillaryError("No Ozone data")
+
+    return data, metadata
+
+
+def get_water_vapour_data_new(acquisition: Acquisition, lonlat):
+    water_vapour, water_vapour_nodata, water_vapour_geobox, water_vapour_request = (
+        get_ecmwf_for_acquisition(acquisition, ECMWFProduct.ERA5_WATER_VAPOUR, 1.0)
+    )
+
+    data = get_pixel_new(water_vapour, water_vapour_geobox, lonlat)
+    metadata = {
+        "id": water_vapour_request,
+        "tier": ECMWFProduct.ERA5_WATER_VAPOUR.name,
+    }
 
     return data, metadata
 

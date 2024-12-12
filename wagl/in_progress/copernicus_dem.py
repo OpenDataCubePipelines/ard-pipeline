@@ -35,7 +35,7 @@ test_cache = (
     Path("/g/data/up71/projects/ARD_process_anywhere/elevation_models/download")
     / "cop30_cache"
 )
-test_cache.mkdir(parents=True, exist_ok=True)
+# test_cache.mkdir(parents=True, exist_ok=True)
 
 
 def tile_rounding(value: float | int) -> int:

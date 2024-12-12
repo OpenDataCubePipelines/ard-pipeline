@@ -50,6 +50,28 @@ def get_pixel(h5_path: str, dataset_name: str, lonlat: Tuple[float, float]):
     return data, metadata["id"]
 
 
+def get_pixel_new(ds, geobox, lonlat: Tuple[float, float]):
+    """Return a pixel from `filename` at the longitude and latitude given
+    by the tuple `lonlat`. Optionally, the `band` can be specified.
+    """
+
+    x, y = (int(v) for v in ~geobox.transform * lonlat)
+
+    # TODO; read metadata yaml for uuid
+
+    if ds.ndim == 3:
+        data = ds[:, y, x]
+    elif ds.ndim == 2:
+        data = ds[y, x]
+    else:
+        raise NotImplementedError("Only 2 and 3 dimensional data is supported")
+    # else: TODO; cater for the 4D data we pulled from ECMWF
+    # for 4D [day, level, y, x] we need another input param `day`
+    # data = ds[day, :, y, x]
+
+    return data
+
+
 def get_pixel_from_raster(filename: str, lonlat: Tuple[float, float]):
     with rasterio.open(filename) as ds:
         to_crs = pyproj.CRS.from_string(str(ds.crs))
