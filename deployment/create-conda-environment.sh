@@ -47,7 +47,7 @@ set +ux
 . "${location}/bin/activate"
 
 conda install -c conda-forge -n base mamba
-mamba env update -n base -f "$(dirname "$0")/environment.yaml"
+conda env update -n base -f "$(dirname "$0")/environment.yaml"
 
 # Freeze the environment as it exists without our locally-installed  packages.
 # conda env export --from-history  > "${location}/environment.yaml"
