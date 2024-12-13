@@ -60,7 +60,7 @@ def card4l(
     aerosol,
     brdf,
     offshore_territory_boundary_path,
-    ozone_path,
+    ozone,
     water_vapour,
     dem_path,
     srtm_pathname,
@@ -116,13 +116,14 @@ def card4l(
         and the decadal averaged BRDF data used for acquisitions
         prior to TERRA/AQUA satellite operations.
 
-    :param ozone_path:
-        A string containing the full file pathname to the directory
-        containing the ozone datasets.
+    :param ozone:
+        A dict containing either user-supplied ozone value, or the
+        full file pathname to the directory containing the ozone datasets.
 
     :param water_vapour:
-        A string containing the full file pathname to the directory
-        containing the water vapour datasets.
+        A dict containing either user-supplied water vapour value,
+        or the full file pathname to the directory containing the water
+        vapour datasets.
 
     :param dem_path:
         A string containing the full file pathname to the directory
@@ -221,7 +222,7 @@ def card4l(
             granule,
             aerosol,
             water_vapour,
-            ozone_path,
+            ozone,
             dem_path,
             cop_pathname,
             brdf,
@@ -428,7 +429,7 @@ def stash_ancillary(
     granule,
     aerosol,
     water_vapour,
-    ozone_path,
+    ozone,
     dem_path,
     cop_pathname,
     brdf,
@@ -454,7 +455,7 @@ def stash_ancillary(
     nbar_paths = {
         "aerosol_dict": aerosol,
         "water_vapour_dict": water_vapour,
-        "ozone_path": ozone_path,
+        "ozone_dict": ozone,
         "dem_path": dem_path,
         "cop_pathname": cop_pathname,
         "brdf_dict": brdf,

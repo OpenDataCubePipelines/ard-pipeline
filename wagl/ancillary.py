@@ -170,7 +170,7 @@ class AerosolDict(TypedDict):
     # An optional, user-specified value.
     user: Optional[float]
     # HDF5 file path.
-    pathname: str
+    pathname: Optional[str]
 
 
 class WaterVapourDict(TypedDict):
@@ -178,13 +178,21 @@ class WaterVapourDict(TypedDict):
     user: Optional[float]
     # The folder that water vapour files are found.
     # The files inside are expected of format: "pr_wtr.eatm.{year}.h5"
-    pathname: str
+    pathname: Optional[str]
+
+
+class OzoneDict(TypedDict):
+    # An optional, user-specified value.
+    user: Optional[float]
+    # The folder that water vapour files are found.
+    # The files inside are expected of format: "pr_wtr.eatm.{year}.h5"
+    pathname: Optional[str]
 
 
 class NbarPathsDict(TypedDict):
     aerosol_dict: AerosolDict
     water_vapour_dict: WaterVapourDict
-    ozone_path: str
+    ozone_dict: OzoneDict
     dem_path: str
     cop_pathname: str
     brdf_dict: BrdfDict
@@ -223,9 +231,9 @@ def collect_ancillary(
         A `dict` containing the ancillary pathnames required for
         retrieving the NBAR ancillary data. Required keys:
 
-        * aerosol_data
-        * water_vapour_data
-        * ozone_path
+        * aerosol
+        * water_vapour
+        * ozone
         * dem_path
         * brdf_dict
 
@@ -476,7 +484,7 @@ class AncillaryConfig:
     water_vapour_dict: WaterVapourDict
     dem_path: PathWithDataset
     brdf_dict: BrdfDict
-    ozone_path: Optional[str] = None
+    ozone_dict: OzoneDict
 
     @classmethod
     def from_luigi(cls, luigi_config_path: Optional[str] = None):
@@ -519,7 +527,7 @@ class AncillaryConfig:
         return cls(
             aerosol_dict=get_dict("aerosol"),
             water_vapour_dict=get_dict("water_vapour"),
-            ozone_path=config.get("DataStandardisation", "ozone_path"),
+            ozone_dict=config.get("DataStandardisation", "ozone"),
             dem_path=config.get("DataStandardisation", "dem_path"),
             brdf_dict=get_dict("brdf"),
         )
@@ -555,7 +563,7 @@ def find_needed_acquisition_ancillary(
     paths = [
         config.aerosol_dict["pathname"],
         find_water_vapour_definitive_path(acquisition, config.water_vapour_dict),
-        config.ozone_path,
+        config.ozone_dict,
         dem_file_path,
         config.brdf_dict["ocean_mask_path"]
         if not offshore
@@ -577,7 +585,7 @@ def collect_nbar_ancillary(
     container: AcquisitionsContainer,
     aerosol_dict: AerosolDict = None,
     water_vapour_dict: WaterVapourDict = None,
-    ozone_path: Optional[str] = None,
+    ozone_dict: OzoneDict = None,
     dem_path: PathWithDataset = None,
     cop_pathname: Optional[str] = None,
     brdf_dict: BrdfDict = None,
@@ -590,20 +598,22 @@ def collect_nbar_ancillary(
         An instance of an `AcquisitionsContainer` object.
 
     :param aerosol_dict:
-        A `dict` defined as either of the following:
+        A `dict` defined as either of the following for aerosol data:
 
         * {'user': <value>}
         * {'pathname': <value>}
 
     :param water_vapour_dict:
-        A `dict` defined as either of the following:
+        A `dict` defined as either of the following for water vapour data:
 
         * {'user': <value>}
         * {'pathname': <value>}
 
-    :param ozone_path:
-        A `str` containing the full file pathname to the directory
-        containing the ozone data.
+    :param ozone_dict:
+        A `dict` defined as either of the following for ozone data:
+
+        * {'user': <value>}
+        * {'pathname': <value>}
 
     :param dem_path:
         A `str` containing the full file pathname to the directory
@@ -641,7 +651,7 @@ def collect_nbar_ancillary(
     wv = get_water_vapour(acquisition, water_vapour_dict)
     write_scalar(wv[0], DatasetName.WATER_VAPOUR.value, fid, wv[1])
 
-    ozone = get_ozone_data(ozone_path, geobox.centre_lonlat, dt)
+    ozone = get_ozone_data(ozone_dict, geobox.centre_lonlat, dt)
     write_scalar(ozone[0], DatasetName.OZONE.value, fid, ozone[1])
 
     if offshore:
@@ -782,17 +792,18 @@ def get_elevation_data(lonlat: LonLat, pathname: PathWithDataset, offshore: bool
     return data, metadata
 
 
-def get_ozone_data(ozone_fname: str, lonlat: LonLat, acq_time: datetime.datetime):
+def get_ozone_data(ozone_dict: OzoneDict, lonlat: LonLat, acq_time: datetime.datetime):
     """Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
     the scene.
     """
-    if ozone_fname.startswith("user: "):
-        data = float(ozone_fname[len("user: ") :])
+    if "user" in ozone_dict:
+        data = float(ozone_dict["user"])
         metadata = {"id": np.array([], VLEN_STRING), "tier": OzoneTier.USER.name}
 
         return data, metadata
 
     dname = acq_time.strftime("%b").lower()
+    ozone_fname = ozone_dict["pathname"]
 
     try:
         data, md_uuid = get_pixel(ozone_fname, dname, lonlat)

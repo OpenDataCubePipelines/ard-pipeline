@@ -71,9 +71,9 @@ class DataStandardisation(luigi.Task):
     workflow = luigi.EnumParameter(enum=Workflow, default=Workflow.STANDARD)
     vertices = luigi.TupleParameter(default=(5, 5))
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
-    aerosol = luigi.DictParameter(default={"user": 0.05})
+    aerosol = luigi.DictParameter(default={"user": 0.05}, significant=False)
     brdf = luigi.DictParameter()
-    ozone_path = luigi.Parameter(significant=False)
+    ozone = luigi.DictParameter(default={"user": 0.3}, significant=False)
     water_vapour = luigi.DictParameter(default={"user": 1.5}, significant=False)
     dem_path = luigi.Parameter(significant=False)
     ecmwf_path = luigi.Parameter(significant=False)
@@ -117,7 +117,7 @@ class DataStandardisation(luigi.Task):
                 self.aerosol,
                 self.brdf,
                 self.offshore_territory_boundary_path,
-                self.ozone_path,
+                self.ozone,
                 self.water_vapour,
                 self.dem_path,
                 self.srtm_pathname,
@@ -163,7 +163,7 @@ class ARD(luigi.WrapperTask):
                     "outdir": outdir,
                     "aerosol": self.aerosol,
                     "brdf": self.brdf,
-                    "ozone_path": self.ozone_path,
+                    "ozone": self.ozone,
                     "water_vapour": self.water_vapour,
                     "dem_path": self.dem_path,
                     "ecmwf_path": self.ecmwf_path,
