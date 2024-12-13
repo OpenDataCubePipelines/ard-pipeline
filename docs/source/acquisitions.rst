@@ -17,10 +17,10 @@ Each *Granule* ID can contain multiple resolution *Groups*, each of which contai
 for that resolution group.
 
 A *Granule* represents the spatial extent for which any *Acquisition* would cover, which in the case of Landsat is the entire dataset;
-whereas for Sentinel-2 A & B, it is a sub-portion/subset of the dataset.
+whereas for Sentinel-2, it is a sub-portion/subset of the dataset.
 
 The ID for a *Granule* is taken from the metadata packaged with the product, which in the case of Landsat is the MTL file,
-and the ID is taken from *LANDSAT_SCENE_ID*. For Sentinel-2 A & B, the *Granule* ID's are read from the main xml file.
+and the ID is taken from *LANDSAT_SCENE_ID*. For Sentinel-2, the *Granule* ID's are read from the main xml file.
 
 The resolution *Groups* are listed in order from highest resolution to lowest resolution.
 The *Group* naming format is given by RES-GROUP-{} eg RES-GROUP-0, RES-GROUP-1, ..., RES-GROUP-N-1,

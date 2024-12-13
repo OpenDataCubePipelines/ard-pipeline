@@ -18,7 +18,7 @@ The luigi task workflow for producing NBAR for a Landsat 5TM scene is given belo
 * Landsat 5 TM
 * Landsat 7 ETM
 * Landsat 8+9 OLI+TIRS
-* Sentinel 2a+b
+* Sentinel 2a+b+c
 
 ## Development
 

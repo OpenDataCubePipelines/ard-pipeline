@@ -69,7 +69,11 @@ def get_mndwi_bands(granule, platform_id, product, paths):
         green_bname = "BAND-3"
         swir_bname = "BAND-6"
 
-    if (platform_id == "SENTINEL_2A") or (platform_id == "SENTINEL_2B"):
+    if (
+        (platform_id == "SENTINEL_2A")
+        or (platform_id == "SENTINEL_2B")
+        or (platform_id == "SENTINEL_2C")
+    ):
         green_bname = "BAND-3"
         swir_bname = "BAND-11"
 

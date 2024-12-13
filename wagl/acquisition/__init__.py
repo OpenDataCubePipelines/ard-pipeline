@@ -32,6 +32,8 @@ from .sentinel import (
     Sentinel2aSinergiseAcquisition,
     Sentinel2bAcquisition,
     Sentinel2bSinergiseAcquisition,
+    Sentinel2cAcquisition,
+    Sentinel2cSinergiseAcquisition,
     s2_index_to_band_id,
 )
 from .worldview import WorldView2MultiAcquisition
@@ -495,9 +497,10 @@ def acquisitions_s2_sinergise(pathname: str) -> AcquisitionsContainer:
 
     if "S2A" in acquisition_data["granule_id"]:
         acqtype = Sentinel2aSinergiseAcquisition
-    else:
-        # assume it is S2B
+    elif "S2B" in acquisition_data["granule_id"]:
         acqtype = Sentinel2bSinergiseAcquisition
+    elif "S2C" in acquisition_data["granule_id"]:
+        acqtype = Sentinel2cSinergiseAcquisition
 
     acqs = []
     for band_id in band_configurations:
@@ -647,9 +650,10 @@ def acquisitions_via_safe(pathname: str) -> AcquisitionsContainer:
 
     if basename(pathname)[0:3] == "S2A":
         acqtype = Sentinel2aAcquisition
-    else:
-        # assume it is S2B
+    elif basename(pathname)[0:3] == "S2B":
         acqtype = Sentinel2bAcquisition
+    elif basename(pathname)[0:3] == "S2C":
+        acqtype = Sentinel2cAcquisition
 
     # earth -> sun distance correction factor; d2 =  1/ U
     search_term = "./*/Product_Image_Characteristics/Reflectance_Conversion/U"

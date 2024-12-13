@@ -50,6 +50,7 @@ def merge_metadata(
         "LANDSAT_8": "L8ARD",
         "SENTINEL_2A": "S2MSIARD",
         "SENTINEL_2B": "S2MSIARD",
+        "SENTINEL_2C": "S2MSIARD",
     }
 
     # TODO: resolve common software version for fmask and gqa

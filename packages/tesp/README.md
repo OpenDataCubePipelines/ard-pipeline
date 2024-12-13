@@ -7,6 +7,7 @@ OpenDataCubePipeline is the code for the DEA's Optical ARD processing of the fol
  * Landsat 9
  * Sentinel 2A
  * Sentinel 2B
+ * Sentinel 2C
 
 Pre-commit setup
 ----------------
