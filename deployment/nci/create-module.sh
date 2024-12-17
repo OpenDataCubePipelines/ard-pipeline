@@ -2,7 +2,9 @@
 
 set -eou pipefail
 
-this_dir="$(dirname "${0}")"
+# Ensure `this_path` is an absolute path to prevent create-conda-environment.sh
+# from failing further in the script due to a incorrect relative path
+this_dir=$(realpath "$(dirname "${0}")")
 cd "${this_dir}"
 
 full_hostname=$(hostname)
