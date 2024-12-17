@@ -68,7 +68,11 @@ pip install --no-build-isolation --editable .
 ./deployment/check-environment.sh
 
 # (note that the last check is for Modtran, which you may or may not be using in your environment. On NCI, we can `module load modtran`)
-
+#
+# FAILED runs will print an error, or may display Python code
+#        in the terminal. This may obscure failure output.   
+#
+# SUCCESSFUL runs will display several module imports & HDF5 tests. 
 ```
 
 ### Import errors
@@ -81,7 +85,7 @@ These are due to the native modules (c, fortran) needing built
 in the repo.
 
 You can avoid this, and still maintain live editing, by
-doing a non-isolated editable install:
+doing a non-isolated editable installation:
 
 ```Bash
 python3 -m pip install --no-build-isolation --editable .
