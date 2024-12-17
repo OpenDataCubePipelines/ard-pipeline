@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# The check environment script is intended as a fast sanity test. This ensures
+# the major components of the environment are installed, can make use of wagl,
+# workflow runners, HDF5 & geospatial libraries.
+#
+# Usage examples:
+# $ check-environment.sh  # no args required
+
 set -eu
 
 echo Checking environment...
