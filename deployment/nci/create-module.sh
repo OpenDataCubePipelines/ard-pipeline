@@ -1,5 +1,27 @@
 #!/usr/bin/env bash
 
+# ARD Pipeline Module Creation
+# ----------------------------
+
+# This provides a workflow to create a conda environment & install ard-pipeline,
+# typically on NCI systems (by default this script depends on NCI /g/data dirs &
+# PBS). The workflow is configurable with command line args & env variables:
+#
+# module_dir: specify a path to change the install location.
+# swfo_version: git commit ID (a type of version)
+# gost_version: DISABLED
+# modtran_version: currently unused
+#
+#
+# Usage examples
+# --------------
+#
+# Create environment in a custom dir:
+# $ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh
+#
+# Create environment in a custom dir, with custom version:
+# $ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh v1.0
+
 set -eou pipefail
 
 # Ensure `this_path` is an absolute path to prevent create-conda-environment.sh
