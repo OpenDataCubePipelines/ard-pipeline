@@ -157,3 +157,27 @@ max-line-length = 120
 
 [tool.setuptools_scm]
 write_to = "wagl/_version.py"
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+    ]
+
+ignore_errors = false
+
+[tool.coverage.html]
+directory = "coverage_html"
+title = "Coverage report: ard-pipeline"
