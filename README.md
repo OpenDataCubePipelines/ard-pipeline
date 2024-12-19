@@ -77,6 +77,29 @@ module load modtran
 # SUCCESSFUL runs will display several module imports & HDF5 tests.
 ```
 
+### Configuring `coverage.py` (Optional)
+
+This section is intended for those developing `ard-pipeline`. `pyproject.toml` contains a basic configuration for `coverage.py`, however it is not considered a mandatory project dependency. It can be a useful code development tool for QA. To configure `ard-pipeline` for `coverage.py`:
+
+```Bash
+# these commands assume the environment has been activated
+pip install coverage[toml]  # toml required for Python < 3.11
+```
+
+To run tests, collect coverage data & generate a coverage report:
+
+```Bash
+# ensure ard-pipeline root dor
+coverage run -m pytest tests/
+
+# Several types of reports are possible:
+coverage report  # output to terminal
+coverage report | grep --color -E "\s[1]?[0-9]%|$"  # flag < 20% coverage in terminal
+coverage html  # alternative HTML format variant
+```
+
+Then load the `coverage_html/index.html` report in your browser. The optional [pytest-cov](https://pytest-cov.readthedocs.io) plugin combines data collection & report generation in a single command.
+
 ### Import errors
 
 If you try running code directly from the source repository, such
@@ -129,6 +152,8 @@ The current workaround is to check the desired version of `setuptools-scm` from 
 ```Bash
 pip install "setuptools_scm[toml]>=6.2,<8"
 ```
+
+The `toml` package is needed to for Python <= 3.10 as 3.11 has inbuilt TOML support.
 
 ### Additional HDF5 compression filters (optional)
 
