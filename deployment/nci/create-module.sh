@@ -35,12 +35,7 @@ Create environment in a custom dir, with custom version:
 $ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh v1.0
 "
 
-if [ "$1" == "-h" ]; then
-  echo "$usage_text"
-  exit 0
-fi
-
-if [ "$1" == "--help" ]; then
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
   echo "$usage_text"
   exit 0
 fi
