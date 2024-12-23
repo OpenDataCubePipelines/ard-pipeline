@@ -1,28 +1,49 @@
 #!/usr/bin/env bash
 
 # ARD Pipeline Module Creation
-# ----------------------------
-
-# This provides a workflow to create a conda environment & install ard-pipeline,
-# typically on NCI systems (by default this script depends on NCI /g/data dirs &
-# PBS). The workflow is configurable with command line args & env variables:
 #
-# module_dir: specify a path to change the install location.
-# swfo_version: git commit ID (a type of version)
-# gost_version: DISABLED
-# modtran_version: currently unused
-#
-#
-# Usage examples
-# --------------
-#
-# Create environment in a custom dir:
-# $ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh
-#
-# Create environment in a custom dir, with custom version:
-# $ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh v1.0
+# This provides a workflow to create a conda environment & install ard-pipeline.
 
 set -eou pipefail
+
+usage_text="
+ARD Pipeline Module Creation
+----------------------------
+
+Usage:
+    create-module.sh [version]
+
+Runs a workflow to create a conda environment & install ard-pipeline, typically
+on NCI systems (by default this script depends on NCI /g/data dirs & PBS).
+
+The workflow is configurable with command line args & env variables. A single
+command line argument exists 'version', which is the name of the directory
+where ard-pipeline will be installed. The following environment vars can be
+be overridden to customise dependencies:
+
+module_dir: specify a path to change the install location.
+swfo_version: git commit ID (a type of version)
+
+
+Usage examples:
+---------------
+
+Create environment in a custom directory:
+$ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh
+
+Create environment in a custom dir, with custom version:
+$ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh v1.0
+"
+
+if [ "$1" == "-h" ]; then
+  echo "$usage_text"
+  exit 0
+fi
+
+if [ "$1" == "--help" ]; then
+  echo "$usage_text"
+  exit 0
+fi
 
 # Ensure `this_path` is an absolute path to prevent create-conda-environment.sh
 # from failing further in the script due to a incorrect relative path
