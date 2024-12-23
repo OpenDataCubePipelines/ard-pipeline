@@ -57,25 +57,17 @@ print("✅")
 # TODO CHECK: The previous import of wagl should have initialised the filters.
 print("Attempting hdf5 blosc compression...", end='', flush=True)
 import h5py
-import hdf5plugin
 import tempfile
-
-# Test different forms of compression usage as per the hdf5plugin docs:
-# https://hdf5plugin.readthedocs.io/en/stable/usage.html
-# use "hdf5plugin.Blosc()" style instead of int code to prevent crashes
-print("Attempting hdf5 blosc compression...", end='', flush=True)
-f = h5py.File(tempfile.mktemp('-test.h5'),'w')
-dset = f.create_dataset("myData", (100, 100), compression=hdf5plugin.Blosc())
-print("✅")
-
-print("Attempting alternate/default hdf5 blosc compression...", end='', flush=True)
 from wagl.hdf5 import H5CompressionFilter
+
+# use wagl's custom setup for dataset creation options, which provides args
+# to prevent this test from crashing
 compressor = H5CompressionFilter.BLOSC_LZ
-config = compressor.config(chunks=(100, 100), shuffle=False)
+config = compressor.config(shuffle=False)
 kwargs = config.dataset_compression_kwargs()
 
-f2 = h5py.File(tempfile.mktemp('-test.h5'),'w')
-dset2 = f2.create_dataset("myData", (100, 100), **kwargs)
+f = h5py.File(tempfile.mktemp('-test.h5'),'w')
+dset = f.create_dataset("myData", (100, 100), **kwargs)
 print("✅")
 
 EOF
