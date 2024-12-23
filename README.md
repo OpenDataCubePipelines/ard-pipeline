@@ -64,7 +64,9 @@ python3 -m setuptools_scm  # prints version string if OK
 pip install --no-build-isolation --editable .
 
 # Check the environment for common problems.
-# (Eg, can we import dependencies?)
+# (Eg, can we import dependencies on NCI?)
+module use /g/data/v10/private/modules/modulefiles  # allow MODTRAN module loading
+module load modtran
 ./deployment/check-environment.sh
 
 # (note that the last check is for Modtran, which you may or may not be using in your environment. On NCI, we can `module load modtran`)
