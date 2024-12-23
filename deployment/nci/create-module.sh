@@ -35,7 +35,11 @@ Create environment in a custom dir, with custom version:
 $ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh v1.0
 "
 
-if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+# users can provide the version number as the first argument, otherwise make a date-based one
+version="${1:-$(date '+%Y%m%d-%H%M')}"
+
+# is 1st arg (the version) a help flag?
+if [ "$version" == "-h" ] || [ "$version" == "--help" ]; then
   echo "$usage_text"
   exit 0
 fi
@@ -88,9 +92,6 @@ echoerr() { echo "$@" 1>&2; }
 #    echoerr "Usage: $0 <tagged_ard_version>"
 #    exit 1
 #fi
-
-# They can provide the version number as the first argument, otherwise we'll make a date-based one.
-version="${1:-$(date '+%Y%m%d-%H%M')}"
 
 package_name=ard-pipeline
 package_description="ARD Pipeline"
