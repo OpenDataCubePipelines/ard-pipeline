@@ -725,10 +725,10 @@ def get_dsm_hdf_for_aquisition(
 
 def test():
     # scene_path = "/usr/src/wagl/LC80400332013190LGN03"
-    #scene_path = "/usr/src/wagl/LC08_L1TP_028030_20221018_20221031_02_T1"
+    scene_path = "/usr/src/wagl/LC08_L1TP_028030_20221018_20221031_02_T1"
 
-    #acqs = acquisitions(scene_path)
-    #band = acqs.get_all_acquisitions()[0]
+    acqs = acquisitions(scene_path)
+    band = acqs.get_all_acquisitions()[0]
 
     # get_dem_for_acquisition(band, 1.0)
     # get_dem_for_acquisition_wagl_slow(band, 1.0)
