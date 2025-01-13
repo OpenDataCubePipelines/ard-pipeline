@@ -294,8 +294,8 @@ class TestConversions(unittest.TestCase):
         origin = (669700, 6111700)
         ggb = GriddedGeoBox(shape, origin, crs="EPSG:32755")
 
-        lon = 148.862561
-        lat = -35.123064
+        exp_lon = 148.862561
+        exp_lat = -35.123064
         easting = 669717.105361586
         northing = 6111722.038508673
 
@@ -304,8 +304,8 @@ class TestConversions(unittest.TestCase):
 
         lon, lat = ggb.transform_coordinates((easting, northing), to_crs)
 
-        self.assertAlmostEqual(lon, 148.862561)
-        self.assertAlmostEqual(lat, -35.123064)
+        self.assertAlmostEqual(lon, exp_lon)
+        self.assertAlmostEqual(lat, exp_lat)
 
     # def test_pixelscale_metres(self):
     #     scale = 0.00025
