@@ -6,6 +6,9 @@ import affine
 import h5py
 import numpy as np
 import numpy.testing as npt
+
+# FIXME: avoid importing both gdal & rasterio:
+#  https://rasterio.readthedocs.io/en/stable/topics/switch.html#mutual-incompatibilities
 import rasterio as rio
 from data import LS8_SCENE1
 from osgeo import gdal, osr
@@ -14,10 +17,14 @@ from wagl import unittesting_tools as ut
 from wagl.acquisition import acquisitions
 from wagl.geobox import GriddedGeoBox
 
+# TODO: use geobox module constants instead of redefining here?
 affine.EPSILON = 1e-9
 affine.EPSILON2 = 1e-18
 
 
+# TODO: Flinders islet init is duplicated multiple times. Refactor to setUp() for
+#       test_real_world_origin...() & test_real_world_corner...() tests
+# TODO: this function currently unused
 def getFlindersIsletGGB():
     flindersOrigin = (150.927659, -34.453309)
     flindersCorner = (150.931697, -34.457915)
@@ -25,6 +32,7 @@ def getFlindersIsletGGB():
     return GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
 
 
+# TODO: determine if "drv = None; ds = None" cleanup is required in some tests
 class TestGriddedGeoBox(unittest.TestCase):
     def test_create_shape(self):
         shape = (3, 2)
@@ -261,8 +269,8 @@ class TestGriddedGeoBox(unittest.TestCase):
             assert new_geobox.shape == img.shape
 
     def test_convert_coordinate_to_map(self):
-        """Test that an input image/array co-ordinate is correctly
-        converted to a map co-cordinate.
+        """Test that an input image/array coordinate is correctly
+        converted to a map coordinate.
         Simple case: The first pixel.
         """
         _, geobox = ut.create_test_image()
@@ -270,8 +278,8 @@ class TestGriddedGeoBox(unittest.TestCase):
         assert geobox.origin == (xmap, ymap)
 
     def test_convert_coordinate_to_image(self):
-        """Test that an input image/array co-ordinate is correctly
-        converted to a map co-cordinate.
+        """Test that an input image/array coordinate is correctly
+        converted to a map coordinate.
         Simple case: The first pixel.
         """
         _, geobox = ut.create_test_image()
@@ -279,14 +287,14 @@ class TestGriddedGeoBox(unittest.TestCase):
         assert (0, 0) == (ximg, yimg)
 
     def test_convert_coordinate_to_map_offset(self):
-        """Test that an input image/array co-ordinate is correctly
-        converted to a map co-cordinate using a pixel centre offset.
+        """Test that an input image/array coordinate is correctly
+        converted to a map coordinate using a pixel centre offset.
         Simple case: The first pixel.
         """
         _, geobox = ut.create_test_image()
         xmap, ymap = geobox.convert_coordinates((0, 0), centre=True)
 
-        # Get the actual centre co-ordinate of the first pixel
+        # Get the actual centre coordinate of the first pixel
         xcentre, ycentre = geobox.convert_coordinates((0.5, 0.5))
         assert (xcentre, ycentre) == (xmap, ymap)
 
@@ -301,7 +309,7 @@ class TestGriddedGeoBox(unittest.TestCase):
         ]
         truth = np.array(values)
 
-        # set up CRS; WGS84 Geographics
+        # set up CRS; WGS84 Geographic
         crs = osr.SpatialReference()
         crs.SetFromUserInput("EPSG:4326")
 
