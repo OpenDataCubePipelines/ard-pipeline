@@ -23,7 +23,7 @@ affine.EPSILON2 = 1e-18
 
 
 # WGS84
-CRS = "EPSG:4326"
+CRS = "EPSG:4326"  # TODO: refactor varname to WGS84_CRS
 
 
 class GriddedGeoBox:
@@ -132,8 +132,8 @@ class GriddedGeoBox:
         return GriddedGeoBox(bbshape, origin, pixelsize, crs_wkt)
 
     @staticmethod
-    def from_corners(origin, corner, pixelsize=(0.00025, 0.00025), crs="EPSG:4326"):
-        """Return a GriddedGeoBox defined by the the two supplied
+    def from_corners(origin, corner, pixelsize=(0.00025, 0.00025), crs=CRS):
+        """Return a GriddedGeoBox defined by the two supplied
         corners.
 
         :param origin:
@@ -182,7 +182,7 @@ class GriddedGeoBox:
         shape=(1, 1),
         origin=(0.0, 0.0),
         pixelsize=(0.00025, 0.00025),
-        crs="EPSG:4326",
+        crs=CRS,
     ):
         """Create a new GriddedGeoBox.
 
@@ -232,7 +232,7 @@ class GriddedGeoBox:
         (x, y, _) = transformation.TransformPoint(point[0], point[1])
         return x, y
 
-    def copy(self, crs="EPSG:4326"):
+    def copy(self, crs=CRS):
         """Create a copy of this GriddedGeoBox transformed to the supplied
         Coordinate Reference System. The new GGB will have identical shape
         to the old and will be grid aligned to the new CRS. Pixel size
