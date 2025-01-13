@@ -183,36 +183,27 @@ class TestGeoboxGdalSpatialProperties(unittest.TestCase):
 
 
 class TestGeoboxH5SpatialProperties(unittest.TestCase):
-    def test_ggb_transform_from_h5_dataset(self):
-        img, geobox = ut.create_test_image()
-        with h5py.File("tmp.h5", "w", driver="core", backing_store=False) as fid:
-            ds = fid.create_dataset("test", data=img)
-            ds.attrs["geotransform"] = geobox.transform.to_gdal()
-            ds.attrs["crs_wkt"] = geobox.crs.ExportToWkt()
+    def setUp(self):
+        self.img, self.geobox = ut.create_test_image()
 
-            new_geobox = GriddedGeoBox.from_h5_dataset(ds)
-            assert new_geobox.transform == geobox.transform
+        with h5py.File("tmp.h5", "w", driver="core", backing_store=False) as fid:
+            ds = fid.create_dataset("test", data=self.img)
+            ds.attrs["geotransform"] = self.geobox.transform.to_gdal()
+            ds.attrs["crs_wkt"] = self.geobox.crs.ExportToWkt()
+
+            self.new_geobox = GriddedGeoBox.from_h5_dataset(ds)
+
+    def test_ggb_transform_from_h5_dataset(self):
+        assert self.new_geobox.transform == self.geobox.transform
 
     def test_ggb_crs_from_h5_dataset(self):
-        img, geobox = ut.create_test_image()
-        with h5py.File("tmp.h5", "w", driver="core", backing_store=False) as fid:
-            ds = fid.create_dataset("test", data=img)
-            ds.attrs["geotransform"] = geobox.transform.to_gdal()
-            ds.attrs["crs_wkt"] = geobox.crs.ExportToWkt()
-
-            new_geobox = GriddedGeoBox.from_h5_dataset(ds)
-            assert new_geobox.crs.ExportToWkt() == geobox.crs.ExportToWkt()
+        assert self.new_geobox.crs.ExportToWkt() == self.geobox.crs.ExportToWkt()
 
     def test_ggb_shape_from_h5_dataset(self):
-        img, geobox = ut.create_test_image()
-        with h5py.File("tmp.h5", "w", driver="core", backing_store=False) as fid:
-            ds = fid.create_dataset("test", data=img)
-            ds.attrs["geotransform"] = geobox.transform.to_gdal()
-            ds.attrs["crs_wkt"] = geobox.crs.ExportToWkt()
+        assert self.new_geobox.shape == self.img.shape
 
-            new_geobox = GriddedGeoBox.from_h5_dataset(ds)
-            assert new_geobox.shape == img.shape
 
+class TestCoordinates(unittest.TestCase):
     def test_convert_coordinate_to_map(self):
         """Test that an input image/array coordinate is correctly
         converted to a map coordinate.
