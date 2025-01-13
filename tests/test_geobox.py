@@ -124,59 +124,42 @@ class TestRealWorld(unittest.TestCase):
         self.assertAlmostEqual(cornerShouldBe[1], self.ggb.corner[1])
 
 
-# TODO: rename class
-class TestRemainder(unittest.TestCase):
-    def test_ggb_transform_from_rio_dataset(self):
-        img, geobox = ut.create_test_image()
-        kwargs = {
+class TestNewGeoboxSpatialProperties(unittest.TestCase):
+    """Ensure GriddedGeoBoxes from rasterio maintain spatial metadata."""
+
+    def setUp(self):
+        self.img, self.geobox = ut.create_test_image()
+        self.kwargs = {
             "driver": "MEM",
-            "width": img.shape[1],
-            "height": img.shape[0],
+            "width": self.img.shape[1],
+            "height": self.img.shape[0],
             "count": 1,
-            "transform": geobox.transform,
-            "crs": geobox.crs.ExportToWkt(),
-            "dtype": img.dtype.name,
+            "transform": self.geobox.transform,
+            "crs": self.geobox.crs.ExportToWkt(),
+            "dtype": self.img.dtype.name,
         }
 
-        with rio.open("tmp.tif", "w", **kwargs) as ds:
+    def test_ggb_transform_from_rio_dataset(self):
+        with rio.open("tmp.tif", "w", **self.kwargs) as ds:
             new_geobox = GriddedGeoBox.from_rio_dataset(ds)
 
-            assert new_geobox.transform == geobox.transform
+            assert new_geobox.transform == self.geobox.transform
 
     def test_ggb_crs_from_rio_dataset(self):
-        img, geobox = ut.create_test_image()
-        kwargs = {
-            "driver": "MEM",
-            "width": img.shape[1],
-            "height": img.shape[0],
-            "count": 1,
-            "transform": geobox.transform,
-            "crs": geobox.crs.ExportToWkt(),
-            "dtype": img.dtype.name,
-        }
-
-        with rio.open("tmp.tif", "w", **kwargs) as ds:
+        with rio.open("tmp.tif", "w", **self.kwargs) as ds:
             new_geobox = GriddedGeoBox.from_rio_dataset(ds)
 
-            assert new_geobox.crs.ExportToWkt() == geobox.crs.ExportToWkt()
+            assert new_geobox.crs.ExportToWkt() == self.geobox.crs.ExportToWkt()
 
     def test_ggb_shape_from_rio_dataset(self):
-        img, geobox = ut.create_test_image()
-        kwargs = {
-            "driver": "MEM",
-            "width": img.shape[1],
-            "height": img.shape[0],
-            "count": 1,
-            "transform": geobox.transform,
-            "crs": geobox.crs.ExportToWkt(),
-            "dtype": img.dtype.name,
-        }
-
-        with rio.open("tmp.tif", "w", **kwargs) as ds:
+        with rio.open("tmp.tif", "w", **self.kwargs) as ds:
             new_geobox = GriddedGeoBox.from_rio_dataset(ds)
 
-            assert new_geobox.shape == img.shape
+            assert new_geobox.shape == self.img.shape
 
+
+# TODO: rename
+class TestRemainder(unittest.TestCase):
     def test_ggb_transform_from_gdal_dataset(self):
         img, geobox = ut.create_test_image()
         drv = gdal.GetDriverByName("MEM")
