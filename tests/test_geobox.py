@@ -22,16 +22,6 @@ affine.EPSILON = 1e-9
 affine.EPSILON2 = 1e-18
 
 
-# TODO: Flinders islet init is duplicated multiple times. Refactor to setUp() for
-#       test_real_world_origin...() & test_real_world_corner...() tests
-# TODO: this function currently unused
-def getFlindersIsletGGB():
-    flindersOrigin = (150.927659, -34.453309)
-    flindersCorner = (150.931697, -34.457915)
-
-    return GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
-
-
 # TODO: determine if "drv = None; ds = None" cleanup is required in some tests
 class TestGriddedGeoBox(unittest.TestCase):
     def test_create_shape(self):
@@ -96,61 +86,46 @@ class TestGriddedGeoBox(unittest.TestCase):
         ggb = GriddedGeoBox.from_corners(origin, corner)
         assert corner == ggb.corner
 
-    def test_real_world_shape(self):
-        # Flinders Islet, NSW
-        flindersOrigin = (150.927659, -34.453309)
-        flindersCorner = (150.931697, -34.457915)
-        shapeShouldBe = (19, 17)
 
-        ggb = GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
-        assert shapeShouldBe == ggb.shape
+class TestRealWorld(unittest.TestCase):
+    def setUp(self):
+        # Flinders Islet, NSW
+        self.flindersOrigin = (150.927659, -34.453309)
+        self.flindersCorner = (150.931697, -34.457915)
+        self.ggb = GriddedGeoBox.from_corners(self.flindersOrigin, self.flindersCorner)
+        self.shapeShouldBe = (19, 17)
+
+    def test_real_world_shape(self):
+        assert self.shapeShouldBe == self.ggb.shape
 
     def test_real_world_origin_lon(self):
-        # Flinders Islet, NSW
-        flindersOrigin = (150.927659, -34.453309)
-        flindersCorner = (150.931697, -34.457915)
-        originShouldBe = flindersOrigin
-        shapeShouldBe = (19, 17)
-
-        ggb = GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
-        assert shapeShouldBe == ggb.shape
-        self.assertAlmostEqual(originShouldBe[0], ggb.origin[0])
+        originShouldBe = self.flindersOrigin
+        assert self.shapeShouldBe == self.ggb.shape
+        self.assertAlmostEqual(originShouldBe[0], self.ggb.origin[0])
 
     def test_real_world_origin_lat(self):
-        # Flinders Islet, NSW
-        flindersOrigin = (150.927659, -34.453309)
-        flindersCorner = (150.931697, -34.457915)
-        originShouldBe = flindersOrigin
-
-        ggb = GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
-        self.assertAlmostEqual(originShouldBe[1], ggb.origin[1])
+        originShouldBe = self.flindersOrigin
+        self.assertAlmostEqual(originShouldBe[1], self.ggb.origin[1])
 
     def test_real_world_corner_lon(self):
-        # Flinders Islet, NSW
-        flindersOrigin = (150.927659, -34.453309)
-        flindersCorner = (150.931697, -34.457915)
-        shapeShouldBe = (19, 17)
         cornerShouldBe = (
-            flindersOrigin[0] + shapeShouldBe[1] * 0.00025,
-            flindersOrigin[1] - shapeShouldBe[0] * 0.00025,
+            self.flindersOrigin[0] + self.shapeShouldBe[1] * 0.00025,
+            self.flindersOrigin[1] - self.shapeShouldBe[0] * 0.00025,
         )
 
-        ggb = GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
-        self.assertAlmostEqual(cornerShouldBe[0], ggb.corner[0])
+        self.assertAlmostEqual(cornerShouldBe[0], self.ggb.corner[0])
 
     def test_real_world_corner_lat(self):
-        # Flinders Islet, NSW
-        flindersOrigin = (150.927659, -34.453309)
-        flindersCorner = (150.931697, -34.457915)
-        shapeShouldBe = (19, 17)
         cornerShouldBe = (
-            flindersOrigin[0] + shapeShouldBe[1] * 0.00025,
-            flindersOrigin[1] - shapeShouldBe[0] * 0.00025,
+            self.flindersOrigin[0] + self.shapeShouldBe[1] * 0.00025,
+            self.flindersOrigin[1] - self.shapeShouldBe[0] * 0.00025,
         )
 
-        ggb = GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
-        self.assertAlmostEqual(cornerShouldBe[1], ggb.corner[1])
+        self.assertAlmostEqual(cornerShouldBe[1], self.ggb.corner[1])
 
+
+# TODO: rename class
+class TestRemainder(unittest.TestCase):
     def test_ggb_transform_from_rio_dataset(self):
         img, geobox = ut.create_test_image()
         kwargs = {
