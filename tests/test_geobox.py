@@ -204,22 +204,23 @@ class TestGeoboxH5SpatialProperties(unittest.TestCase):
 
 
 class TestCoordinates(unittest.TestCase):
+    def setUp(self):
+        _, self.geobox = ut.create_test_image()
+
     def test_convert_coordinate_to_map(self):
         """Test that an input image/array coordinate is correctly
         converted to a map coordinate.
         Simple case: The first pixel.
         """
-        _, geobox = ut.create_test_image()
-        xmap, ymap = geobox.convert_coordinates((0, 0))
-        assert geobox.origin == (xmap, ymap)
+        xmap, ymap = self.geobox.convert_coordinates((0, 0))
+        assert self.geobox.origin == (xmap, ymap)
 
     def test_convert_coordinate_to_image(self):
         """Test that an input image/array coordinate is correctly
         converted to a map coordinate.
         Simple case: The first pixel.
         """
-        _, geobox = ut.create_test_image()
-        ximg, yimg = geobox.convert_coordinates(geobox.origin, to_map=False)
+        ximg, yimg = self.geobox.convert_coordinates(self.geobox.origin, to_map=False)
         assert (0, 0) == (ximg, yimg)
 
     def test_convert_coordinate_to_map_offset(self):
@@ -227,13 +228,14 @@ class TestCoordinates(unittest.TestCase):
         converted to a map coordinate using a pixel centre offset.
         Simple case: The first pixel.
         """
-        _, geobox = ut.create_test_image()
-        xmap, ymap = geobox.convert_coordinates((0, 0), centre=True)
+        xmap, ymap = self.geobox.convert_coordinates((0, 0), centre=True)
 
         # Get the actual centre coordinate of the first pixel
-        xcentre, ycentre = geobox.convert_coordinates((0.5, 0.5))
+        xcentre, ycentre = self.geobox.convert_coordinates((0.5, 0.5))
         assert (xcentre, ycentre) == (xmap, ymap)
 
+
+class TestConversions(unittest.TestCase):
     def test_project_extents(self):
         """Test that the geobox extents are correctly converted."""
         # values that have been pre-computed
