@@ -28,7 +28,7 @@ CRS = "EPSG:4326"
 
 class GriddedGeoBox:
     """Represents a north up rectangular region on the Earth's surface which
-    has been divided into equal size retangular pixels for the purpose of
+    has been divided into equal size rectangular pixels for the purpose of
     data processing.
 
     The position and extent of the GriddedGeoBox on the Earth's
@@ -40,7 +40,7 @@ class GriddedGeoBox:
       - the shape of the GGB (yPixels, xPixels) where each value is
         a positive integer
 
-    Pixels within a GriddedGeoBox may be reference by their (x,y) grid
+    Pixels within a GriddedGeoBox may be referenced by their (x,y) grid
     position relative to the origin pixel in the upper (northwest) corner.
     x values increase to the east, y value increase to the south.
 
@@ -137,11 +137,11 @@ class GriddedGeoBox:
         corners.
 
         :param origin:
-            A tuple (in CRS coordinates) representing the positon of
+            A tuple (in CRS coordinates) representing the position of
             the NW corner of the GriddedGeoBox.
 
         :param corner:
-            A tuple (in CRS coordinates) representing the positon of
+            A tuple (in CRS coordinates) representing the position of
             the NW corner of the GriddedGeoBox.
 
         :param pixelsize:
@@ -192,7 +192,7 @@ class GriddedGeoBox:
             * Use get_shape_xy() to get (xSize, ySize).
 
         :param origin:
-            (xPos, yPos) 2-tuple difining the upper left GGB corner.
+            (xPos, yPos) 2-tuple defining the upper left GGB corner.
 
         :param pixelsize:
             Pixel (xSize, ySize) in CRS units.
@@ -234,7 +234,7 @@ class GriddedGeoBox:
 
     def copy(self, crs="EPSG:4326"):
         """Create a copy of this GriddedGeoBox transformed to the supplied
-        Coordinate Reference System. The new GGB will have idential shape
+        Coordinate Reference System. The new GGB will have identical shape
         to the old and will be grid aligned to the new CRS. Pixel size
         may change to accommodate the new CRS.
         """
@@ -268,11 +268,10 @@ class GriddedGeoBox:
         GriddedGeoBox which fully encloses the enclosed GGB.
 
         :param enclosedGGB:
-            A GGB which is a subset of this GGB and is fully enclosed
-            by it.
+            A GGB which is a subset of this GGB and is fully enclosed by it.
 
         :return:
-            A pair of range tuples defining the enclosed retangular subset
+            A pair of range tuples defining the enclosed rectangular subset
             ((row_start, row_stop), (col_start, col_stop)).
         """
         # transform to map enclosedGGB coords to self.crs coordinates
@@ -368,7 +367,7 @@ class GriddedGeoBox:
         """Compute the size (in metres) of the pixel at the specified xy position.
 
         :param xy:
-            A tuple containing an (x, y) grid co-ordinates of a pixel. Defaults \
+            A tuple containing an (x, y) grid co-ordinates of a pixel. Defaults
             to the central pixel in the grid.
 
         :return:
