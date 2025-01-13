@@ -158,44 +158,31 @@ class TestNewGeoboxSpatialProperties(unittest.TestCase):
             assert new_geobox.shape == self.img.shape
 
 
-# TODO: rename
-class TestRemainder(unittest.TestCase):
-    def test_ggb_transform_from_gdal_dataset(self):
-        img, geobox = ut.create_test_image()
-        drv = gdal.GetDriverByName("MEM")
-        ds = drv.Create("tmp.tif", img.shape[1], img.shape[0], 1, 1)
-        ds.SetGeoTransform(geobox.transform.to_gdal())
-        ds.SetProjection(geobox.crs.ExportToWkt())
+class TestGeoboxGdalSpatialProperties(unittest.TestCase):
+    def setUp(self):
+        self.img, self.geobox = ut.create_test_image()
+        self.drv = gdal.GetDriverByName("MEM")
+        self.ds = self.drv.Create("tmp.tif", self.img.shape[1], self.img.shape[0], 1, 1)
+        self.ds.SetGeoTransform(self.geobox.transform.to_gdal())
+        self.ds.SetProjection(self.geobox.crs.ExportToWkt())
 
-        new_geobox = GriddedGeoBox.from_gdal_dataset(ds)
-        assert new_geobox.transform == geobox.transform
-        drv = None
-        ds = None
+        self.new_geobox = GriddedGeoBox.from_gdal_dataset(self.ds)
+
+    def tearDown(self):
+        self.drv = None
+        self.ds = None
+
+    def test_ggb_transform_from_gdal_dataset(self):
+        assert self.new_geobox.transform == self.geobox.transform
 
     def test_ggb_crs_from_gdal_dataset(self):
-        img, geobox = ut.create_test_image()
-        drv = gdal.GetDriverByName("MEM")
-        ds = drv.Create("tmp.tif", img.shape[1], img.shape[0], 1, 1)
-        ds.SetGeoTransform(geobox.transform.to_gdal())
-        ds.SetProjection(geobox.crs.ExportToWkt())
-
-        new_geobox = GriddedGeoBox.from_gdal_dataset(ds)
-        assert new_geobox.crs.ExportToWkt() == geobox.crs.ExportToWkt()
-        drv = None
-        ds = None
+        assert self.new_geobox.crs.ExportToWkt() == self.geobox.crs.ExportToWkt()
 
     def test_ggb_shape_from_gdal_dataset(self):
-        img, geobox = ut.create_test_image()
-        drv = gdal.GetDriverByName("MEM")
-        ds = drv.Create("tmp.tif", img.shape[1], img.shape[0], 1, 1)
-        ds.SetGeoTransform(geobox.transform.to_gdal())
-        ds.SetProjection(geobox.crs.ExportToWkt())
+        assert self.new_geobox.shape == self.img.shape
 
-        new_geobox = GriddedGeoBox.from_gdal_dataset(ds)
-        assert new_geobox.shape == img.shape
-        drv = None
-        ds = None
 
+class TestGeoboxH5SpatialProperties(unittest.TestCase):
     def test_ggb_transform_from_h5_dataset(self):
         img, geobox = ut.create_test_image()
         with h5py.File("tmp.h5", "w", driver="core", backing_store=False) as fid:
