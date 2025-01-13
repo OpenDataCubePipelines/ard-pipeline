@@ -221,7 +221,7 @@ class GriddedGeoBox:
 
     def get_shape_xy(self):
         """Get the shape as a tuple (x,y)."""
-        return (self.shape[1], self.shape[0])
+        return self.shape[1], self.shape[0]
 
     def get_shape_yx(self):
         """Get the shape as a tuple (y,x)."""
@@ -230,7 +230,7 @@ class GriddedGeoBox:
     def transform_point(self, transformation, point):
         """Transform the point."""
         (x, y, _) = transformation.TransformPoint(point[0], point[1])
-        return (x, y)
+        return x, y
 
     def copy(self, crs="EPSG:4326"):
         """Create a copy of this GriddedGeoBox transformed to the supplied
@@ -287,7 +287,7 @@ class GriddedGeoBox:
         areaOriginXY = [int(math.floor(v)) for v in ~self.transform * originT]
         areaCornerXY = [int(math.ceil(v)) for v in ~self.transform * areaCornerT]
 
-        return ((areaOriginXY[1], areaCornerXY[1]), (areaOriginXY[0], areaCornerXY[0]))
+        return (areaOriginXY[1], areaCornerXY[1]), (areaOriginXY[0], areaCornerXY[0])
 
     def x_size(self):
         """The x-axis size."""
@@ -331,7 +331,7 @@ class GriddedGeoBox:
             inv = ~self.transform
             x, y = (int(v) for v in inv * xy)
 
-        return (x, y)
+        return x, y
 
     def transform_coordinates(self, xy, to_crs):
         """Transform a tuple co-ordinate pair (x, y) from one CRS to
@@ -361,7 +361,7 @@ class GriddedGeoBox:
 
         x, y = self.transform_point(transform, xy)
 
-        return (x, y)
+        return x, y
 
     def get_pixelsize_metres(self, xy=None):
         """Compute the size (in metres) of the pixel at the specified xy position.
@@ -402,7 +402,7 @@ class GriddedGeoBox:
             radians(lon2),
         )
 
-        return (x_size, y_size)
+        return x_size, y_size
 
     def get_all_pixelsize_metres(self):
         """Compute the size (in metres) of each pixel in this GriddedGeoBox. \
@@ -519,7 +519,7 @@ class GriddedGeoBox:
         """
         x = (self.ul[0] + self.ur[0] + self.lr[0] + self.ll[0]) / 4.0
         y = (self.ul[1] + self.ur[1] + self.lr[1] + self.ll[1]) / 4.0
-        return (x, y)
+        return x, y
 
     @property
     def ul_lonlat(self):
