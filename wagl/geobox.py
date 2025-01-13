@@ -7,6 +7,9 @@ import affine
 import geopandas
 import h5py
 import numpy as np
+
+# FIXME: avoid importing both gdal & rasterio:
+#  https://rasterio.readthedocs.io/en/stable/topics/switch.html#mutual-incompatibilities
 import rasterio as rio
 from affine import Affine
 from osgeo import gdal, osr
@@ -352,7 +355,7 @@ class GriddedGeoBox:
             err = err.format(type(to_crs))
             raise TypeError(err)
 
-        # ensure we using the traditional x, y axis ordering
+        # ensure we're using the traditional x, y axis ordering
         self.crs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
         to_crs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
