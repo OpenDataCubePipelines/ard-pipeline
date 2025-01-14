@@ -2,7 +2,6 @@
 
 import unittest
 
-import affine
 import h5py
 import numpy as np
 import numpy.testing as npt
@@ -17,77 +16,58 @@ from wagl import unittesting_tools as ut
 from wagl.acquisition import acquisitions
 from wagl.geobox import GriddedGeoBox
 
-# TODO: use geobox module constants instead of redefining here?
-affine.EPSILON = 1e-9
-affine.EPSILON2 = 1e-18
 
-
-# TODO: determine if "drv = None; ds = None" cleanup is required in some tests
 class TestGriddedGeoBox(unittest.TestCase):
+    def setUp(self):
+        self.shape = (3, 2)
+        self.origin = (150.0, -34.0)
+        self.ggb = GriddedGeoBox(self.shape, self.origin)
+
     def test_create_shape(self):
-        shape = (3, 2)
-        origin = (150.0, -34.0)
-        ggb = GriddedGeoBox(shape, origin)
-        assert shape == ggb.shape
+        assert self.shape == self.ggb.shape
 
     def test_get_shape_xy(self):
-        shape = (3, 2)
         shape_xy = (2, 3)
-        origin = (150.0, -34.0)
-        ggb = GriddedGeoBox(shape, origin)
-        assert shape_xy == ggb.get_shape_xy()
+        assert shape_xy == self.ggb.get_shape_xy()
 
     def test_get_shape_yx(self):
-        shape = (3, 2)
-        origin = (150.0, -34.0)
-        ggb = GriddedGeoBox(shape, origin)
-        assert shape == ggb.get_shape_yx()
+        assert self.shape == self.ggb.get_shape_yx()
 
     def test_x_size(self):
-        shape = (3, 2)
-        origin = (150.0, -34.0)
-        ggb = GriddedGeoBox(shape, origin)
-        assert shape[1] == ggb.x_size()
+        assert self.shape[1] == self.ggb.x_size()
 
     def test_y_size(self):
-        shape = (3, 2)
-        origin = (150.0, -34.0)
-        ggb = GriddedGeoBox(shape, origin)
-        assert shape[0] == ggb.y_size()
+        assert self.shape[0] == self.ggb.y_size()
 
     def test_create_origin(self):
-        shape = (3, 2)
-        origin = (150.0, -34.0)
-        ggb = GriddedGeoBox(shape, origin)
-        assert origin == ggb.origin
+        assert self.origin == self.ggb.origin
 
     def test_create_corner(self):
         scale = 0.00025
-        shape = (3, 2)
-        origin = (150.0, -34.0)
-        corner = (shape[1] * scale + origin[0], origin[1] - shape[0] * scale)
-        ggb = GriddedGeoBox(shape, origin)
-        assert corner == ggb.corner
+        corner = (
+            self.shape[1] * scale + self.origin[0],
+            self.origin[1] - self.shape[0] * scale,
+        )
+
+        assert corner == self.ggb.corner
 
     def test_shape_create_unit_GGB_using_corners(self):
         # create small GGB centred on (150.00025,-34.00025)
         expectedShape = (1, 1)
         scale = 0.00025
-        origin = (150.0, -34.0)
         corner = (150.0 + scale, -34.0 - scale)
-        ggb = GriddedGeoBox.from_corners(origin, corner)
+        ggb = GriddedGeoBox.from_corners(self.origin, corner)
         assert expectedShape == ggb.shape
 
     def test_corner_create_unit_GGB_using_corners(self):
         # create small GGB centred on (150.00025,-34.00025)
         scale = 0.00025
-        origin = (150.0, -34.0)
         corner = (150.0 + scale, -34.0 - scale)
-        ggb = GriddedGeoBox.from_corners(origin, corner)
+        ggb = GriddedGeoBox.from_corners(self.origin, corner)
         assert corner == ggb.corner
 
 
-class TestRealWorld(unittest.TestCase):
+class TestRealWorldSpatialProperties(unittest.TestCase):
     def setUp(self):
         # Flinders Islet, NSW
         self.flindersOrigin = (150.927659, -34.453309)
