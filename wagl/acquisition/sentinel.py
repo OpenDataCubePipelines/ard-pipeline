@@ -360,7 +360,6 @@ class Sentinel2cAcquisition(Sentinel2Acquisition):
         self.platform_id = "SENTINEL_2C"
         self.sensor_id = "MSI"
         self.tle_format = "S2C%4d%sASNNOR.S00"
-        # TODO Sentinel-2C orbit info START
         self.tag = "S2C"
         self.altitude = 786000.0
         self.inclination = 1.721243708316808
@@ -368,10 +367,9 @@ class Sentinel2cAcquisition(Sentinel2Acquisition):
         self.semi_major_axis = 7167000.0
         self.maximum_view_angle = 20.0
 
-        self._norad_id = 42063
+        self._norad_id = 60989
         self._classification_type = "U"
-        self._international_designator = "17013A"
-        # TODO Sentinel-2C orbit info END
+        self._international_designator = "24157A"
 
         self._gps_file = True
         self._solar_zenith = None
