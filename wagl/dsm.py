@@ -224,6 +224,7 @@ def read_copernicus_dem(cop_pathname, dst_geobox):
                 # possibly DEM tile not intersecting with the dst_geobox
                 pass
 
+    result = np.where(np.isnan(result), 0.0, result)
     return result
 
 
