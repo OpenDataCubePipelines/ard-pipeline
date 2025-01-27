@@ -29,6 +29,7 @@ jobs:
                 context: .
                 load: true
                 tags: ard-pipeline:dev
+                build-args: fmask_version=0.5.5
                 cache-from: type=gha
                 cache-to: type=gha,mode=max
         -   name: Run Tests
