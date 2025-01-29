@@ -26,7 +26,6 @@ read DESTINATION_BUCKET DESTINATION_PREFIX <<< $(echo "$DESTINATION_S3_URL" | pe
 source /scripts/lib.sh
 LOG_LEVEL=$LOG_DEBUG
 
-log_message "I've got $@"
 log_message $LOG_INFO "$0 called with $SQS_QUEUE $SOURCE_BUCKET $DESTINATION_S3_URL $SNS_TOPIC $EXPLORER_URL"
 log_message $LOG_INFO "[s3 destination config] BUCKET:'$DESTINATION_BUCKET' PREFIX:'$DESTINATION_PREFIX'"
 
