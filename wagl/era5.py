@@ -51,9 +51,10 @@ class ERA5FileMeta(typing.NamedTuple):
         return meta
 
 
-def date_span(year: int, month: int):
-    # TODO: return "YYYYMMDD-YYYYMMDD" string given the year & month?
-    #  days can be calculated depending on month (use datetime or calendar?)
+def date_span(date_obj):
+    # Return "YYYYMMDD-YYYYMMDD" string given the year & month
+    year = date_obj.year
+    month = date_obj.month
     _, last_day = calendar.monthrange(year, month)
     span = f"{year}{month:02}01-{year}{month:02}{last_day:02}"
     return span
