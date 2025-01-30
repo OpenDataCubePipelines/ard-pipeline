@@ -43,17 +43,20 @@ def test_meta_from_basename(z_file_basename, z_start_datetime, z_stop_datetime):
 
 
 def test_date_span_january():
-    span = era5.date_span(2024, 1)
+    jan2024 = datetime.date(2024, 1, 1)
+    span = era5.date_span(jan2024)
     assert span == "20240101-20240131"
 
 
 def test_date_span_february_non_leap_year():
+    feb2023 = datetime.date(2023, 2, 10)
     assert not calendar.isleap(2023)
-    span = era5.date_span(2023, 2)
+    span = era5.date_span(feb2023)
     assert span == "20230201-20230228"
 
 
 def test_date_span_february_leap_year():
     assert calendar.isleap(2024)
-    span = era5.date_span(2024, 2)
+    feb2024 = datetime.date(2024, 2, 15)
+    span = era5.date_span(feb2024)
     assert span == "20240201-20240229"
