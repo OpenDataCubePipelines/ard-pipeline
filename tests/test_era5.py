@@ -89,3 +89,17 @@ def test_find_closest_era5_path(acquisition_datetime):
     span = era5.date_span(acquisition_datetime)
     closest = era5.find_closest_era5_path(paths, span)
     assert closest == paths[1]
+
+
+def test_get_nearest_previous_hour(acquisition_datetime):
+    hour = era5.get_nearest_previous_hour(acquisition_datetime)
+
+    # basic sanity check, is the hour index in z_era5_oper_pl_20230201-20230228?
+    assert 1078944 <= hour <= 1079615  # values copied manually from file
+    raise NotImplementedError("Substitute the exact hour value")
+
+
+def test_find_closest_era5_pressure():
+    # TODO: simulate or load a real NetCDF file...
+    #  problem: each ERA5 is about 35GB in size!
+    raise NotImplementedError
