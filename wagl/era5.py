@@ -8,6 +8,7 @@ import datetime
 import os.path
 import typing
 
+# strptime format for "YYYYMMDD" strings
 PATHNAME_DATE_FORMAT = "%Y%m%d"
 
 
@@ -26,6 +27,12 @@ class ERA5FileMeta(typing.NamedTuple):
     dataset: str
     stream: str  # TODO: e.g. 'oper' what is this?
     unknown: str  # TODO: rename
+
+    # TODO: filenames provide the start & end dates, but not a time component
+    #  could test to ensure the hour fields are correct in several NetCDF files,
+    #  then default the start datetime to midnight & stop time as 23:00
+    # TODO: probably need datetime.datetime to selecting the closest NetCDF data
+    #  record to the Acquisition time.
     start_time: datetime.datetime  # datetime to specify start hour of 1st timestep
     stop_time: datetime.datetime  # TODO: hour of last timestep?
     path: str
