@@ -1,3 +1,4 @@
+import calendar
 import datetime
 
 import pytest
@@ -39,3 +40,20 @@ def test_meta_from_basename(z_file_basename, z_start_datetime, z_stop_datetime):
     assert meta.variable == "z"
     assert meta.start_time == z_start_datetime
     assert meta.stop_time == z_stop_datetime
+
+
+def test_date_span_january():
+    span = era5.date_span(2024, 1)
+    assert span == "20240101-20240131"
+
+
+def test_date_span_february_non_leap_year():
+    assert not calendar.isleap(2023)
+    span = era5.date_span(2023, 2)
+    assert span == "20230201-20230228"
+
+
+def test_date_span_february_leap_year():
+    assert calendar.isleap(2024)
+    span = era5.date_span(2024, 2)
+    assert span == "20240201-20240229"
