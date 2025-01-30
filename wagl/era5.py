@@ -25,6 +25,7 @@ class ERA5FileMeta(typing.NamedTuple):
     variable: str
     dataset: str
     stream: str  # TODO: e.g. 'oper' what is this?
+    unknown: str  # TODO: rename
     start_time: datetime.datetime  # datetime to specify start hour of 1st timestep
     stop_time: datetime.datetime  # TODO: hour of last timestep?
     path: str
@@ -33,10 +34,10 @@ class ERA5FileMeta(typing.NamedTuple):
     def from_basename(cls, path_basename):
         # parse file meta from "z_era5_oper_pl_20240101-20240131" base name
         base, _ = os.path.splitext(path_basename)  # drop `.nc`
-        var, _, _, _, time_range = base.split("_")
+        var, ds, _stream, x, time_range = base.split("_")
         start, stop = time_range.split("-")
         start_tm = datetime.datetime.strptime(start, PATHNAME_DATE_FORMAT)
         stop_tm = datetime.datetime.strptime(stop, PATHNAME_DATE_FORMAT)
 
-        meta = ERA5FileMeta(var, None, None, start_tm, stop_tm, path_basename)
+        meta = ERA5FileMeta(var, ds, _stream, x, start_tm, stop_tm, path_basename)
         return meta
