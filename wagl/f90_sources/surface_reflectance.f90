@@ -114,9 +114,6 @@ SUBROUTINE reflectance( &
 
 !   calculate white sky albedo
     aa_white = white_sky(1.0, norm_1, norm_2)
-!   calcualte BRDF at 45 solar angle and 0 view angle
-    fnn = RL_brdf(norm_solar_zenith * pib, 0.0, 0.0, hb, br, 1.0, norm_1, norm_2, pi)
-!    print*,fnn
 
 !   Now loop over the cols of the images
     do j=1,ncol
@@ -188,6 +185,8 @@ SUBROUTINE reflectance( &
             else
 !               calculate normalized BRDF shape function
                 ann_f = RL_brdf(solar, view, ra_lm, hb, br, 1.0, norm_1, norm_2, pi)
+!               calcualte BRDF at solar angle and 0 view angle
+                fnn = RL_brdf(solar, 0.0, 0.0, hb, br, 1.0, norm_1, norm_2, pi)
 !               calculate black sky albedo for sloar angle
                 aa_solarf = black_sky(1.0, norm_1, norm_2, solar)
 !               calculate black sky albedo for view angle
