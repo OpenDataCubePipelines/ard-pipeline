@@ -28,6 +28,12 @@ def z_file_path():
     return "/g/data/rt52/era5/pressure-levels/reanalysis/z/2024/z_era5_oper_pl_20240101-20240131.nc"
 
 
+@pytest.fixture
+def acquisition_datetime():
+    # create fake acquisition_datetime
+    return datetime.datetime(2023, 2, 4, 11, 23, 45)
+
+
 def test_new_meta(z_start_datetime, z_stop_datetime):
     meta = era5.ERA5FileMeta(
         "z", "era5", "oper", "pl", z_start_datetime, z_stop_datetime, "fake_path"
@@ -60,3 +66,26 @@ def test_date_span_february_leap_year():
     feb2024 = datetime.date(2024, 2, 15)
     span = era5.date_span(feb2024)
     assert span == "20240201-20240229"
+
+
+def test_find_closest_era5_path(acquisition_datetime):
+    # assume single directory search as year is known & can be easily located
+    # within the NCI /g/data/ file hierarchy
+    paths = [
+        "z_era5_oper_pl_20230101-20230131.nc",
+        "z_era5_oper_pl_20230201-20230228.nc",
+        "z_era5_oper_pl_20230301-20230331.nc",
+        "z_era5_oper_pl_20230401-20230430.nc",
+        "z_era5_oper_pl_20230501-20230531.nc",
+        "z_era5_oper_pl_20230601-20230630.nc",
+        "z_era5_oper_pl_20230701-20230731.nc",
+        "z_era5_oper_pl_20230801-20230831.nc",
+        "z_era5_oper_pl_20230901-20230930.nc",
+        "z_era5_oper_pl_20231001-20231031.nc",
+        "z_era5_oper_pl_20231101-20231130.nc",
+        "z_era5_oper_pl_20231201-20231231.nc",
+    ]
+
+    span = era5.date_span(acquisition_datetime)
+    closest = era5.find_closest_era5_path(paths, span)
+    assert closest == paths[1]

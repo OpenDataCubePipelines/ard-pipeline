@@ -58,3 +58,30 @@ def date_span(date_obj):
     _, last_day = calendar.monthrange(year, month)
     span = f"{year}{month:02}01-{year}{month:02}{last_day:02}"
     return span
+
+
+def find_closest_era5_path(paths, span):
+    # use span to pattern match against sequence of file paths
+    result = [p for p in paths if span in p]
+
+    if not result:
+        msg = f"No matching path found for {span}"
+        raise ValueError(msg)  # TODO: is this the most appropriate error?
+
+    # guard against multiple path matches
+    if len(result) == 1:
+        return result[0]
+
+    msg = f"Multiple path matches found for {span}"
+    raise ValueError(msg)
+
+
+# TODO: Finding closest record in ERA5 requires an hour field
+#      - Find closest timestep overall?
+#      - Find closest previous timestep?
+def closest_era5_record(nc, date_time: datetime.datetime):
+    """
+    TODO: given a datetime, find closest previous record in the NetCDF file
+    TODO: extract pressure levels (or only surface level?)
+    """
+    raise NotImplementedError
