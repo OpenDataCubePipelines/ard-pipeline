@@ -4,6 +4,7 @@ See NCI `rt52` project for a clone of the data.
 This module is a prototype for working with ERA5 reanalysis NetCDF files.
 """
 
+import calendar
 import datetime
 import os.path
 import typing
@@ -48,3 +49,11 @@ class ERA5FileMeta(typing.NamedTuple):
 
         meta = ERA5FileMeta(var, ds, _stream, x, start_tm, stop_tm, path_basename)
         return meta
+
+
+def date_span(year: int, month: int):
+    # TODO: return "YYYYMMDD-YYYYMMDD" string given the year & month?
+    #  days can be calculated depending on month (use datetime or calendar?)
+    _, last_day = calendar.monthrange(year, month)
+    span = f"{year}{month:02}01-{year}{month:02}{last_day:02}"
+    return span
