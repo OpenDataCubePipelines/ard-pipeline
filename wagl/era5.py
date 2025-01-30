@@ -76,12 +76,35 @@ def find_closest_era5_path(paths, span):
     raise ValueError(msg)
 
 
+def get_nearest_previous_hour(date_time):
+    # TODO: convert an hour from the datetime into the number of hours since
+    #  midnight 1900
+    m1900 = datetime.datetime(1900, 1, 1)
+    dt = date_time - m1900
+    hours_since_1900 = int(dt.total_seconds() / 60 / 60)
+    return hours_since_1900
+
+
+# TODO: return single point, multiple points or an array?
+#  - should this use wagl's helper funcs to extract points?
+#  - e.g. in data.py: data.get_pixel()?
+#
 # TODO: Finding closest record in ERA5 requires an hour field
 #      - Find closest timestep overall?
 #      - Find closest previous timestep?
-def closest_era5_record(nc, date_time: datetime.datetime):
+def find_closest_era5_pressure(nc, variable, date_time: datetime.datetime):
     """
     TODO: given a datetime, find closest previous record in the NetCDF file
     TODO: extract pressure levels (or only surface level?)
+
+    nc: an *open* HDF5 file, use hdf5 library instead of GDAL
+    date_time: acquisition datetime
     """
-    raise NotImplementedError
+    var = nc[variable]
+    hour = get_nearest_previous_hour()
+    level = None  # TODO: single level or range?
+
+    data = var[hour, level]
+    # if a single level, data is 2D & 3D when level is a range
+    # last 2 array dimensions are the 2D variable fields
+    return data
