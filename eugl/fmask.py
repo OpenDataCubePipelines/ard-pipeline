@@ -334,6 +334,7 @@ def _sentinel2_fmask(
     cloud_buffer_distance: float,
     cloud_shadow_buffer_distance: float,
     parallax_test: bool,
+    acq_parser_hint: PackageIdentificationHint = None,
 ):
     """Fmask algorithm for Sentinel-2."""
     # TODO: Recheck non-zip file support.
@@ -348,22 +349,27 @@ def _sentinel2_fmask(
     acq: Sentinel2Acquisition = container.get_acquisitions(granule=granule_name)[0]
 
     # Pull out the important metadata files.
-    granule_xml_file = work_dir / Path(acq.granule_xml).name
-    top_level_xml = work_dir / "MTD_MSIL1C.xml"
-    with FileArchive(dataset_path) as archive:
-        archive.extract_file(
-            file_pattern=acq.granule_xml, destination_path=granule_xml_file
-        )
-        archive.extract_file(
-            # There should be exactly one xml file in the top-level folder.
-            # It's often called MTD_MSIL1C.xml, but there are several variations.
-            file_pattern=pjoin(
-                _base_folder_from_granule_xml(acq.granule_xml),
-                "*.xml",
-            ),
-            exclude_name="INSPIRE.xml",
-            destination_path=top_level_xml,
-        )
+    if acq_parser_hint == "s2_sinergise":
+        # this should be equal to dataset_path / metadata.xml
+        granule_xml_file = Path(acq.granule_xml)
+        top_level_xml = dataset_path / "l1c-metadata.xml"
+    else:
+        granule_xml_file = work_dir / Path(acq.granule_xml).name
+        top_level_xml = work_dir / "MTD_MSIL1C.xml"
+        with FileArchive(dataset_path) as archive:
+            archive.extract_file(
+                file_pattern=acq.granule_xml, destination_path=granule_xml_file
+            )
+            archive.extract_file(
+                # There should be exactly one xml file in the top-level folder.
+                # It's often called MTD_MSIL1C.xml, but there are several variations.
+                file_pattern=pjoin(
+                    _base_folder_from_granule_xml(acq.granule_xml),
+                    "*.xml",
+                ),
+                exclude_name="INSPIRE.xml",
+                destination_path=top_level_xml,
+            )
 
     offsets = grab_offset_dict(dataset_path)
 
@@ -660,6 +666,7 @@ def fmask(
                 cloud_buffer_distance,
                 cloud_shadow_buffer_distance,
                 parallax_test,
+                acq_parser_hint,
             )
         elif "LANDSAT" in acq.platform_id:
             _landsat_fmask(
