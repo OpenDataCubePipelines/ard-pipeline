@@ -79,6 +79,59 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir):
         shutil.copy(acq.spectral_filter_filepath, out_fname)
 
 
+def select_profile_australia(acquisition_datetime, centre_lat, input_data):
+    if centre_lat < -23.0:
+        data = mpjson.midlat_summer_albedo(**input_data)
+    else:
+        data = mpjson.tropical_albedo(**input_data)
+
+    return data
+
+
+def select_profile_worldwide(acquisition_datetime, centre_lat, input_data):
+    april_september = (
+        acquisition_datetime.month >= 4 and acquisition_datetime.month <= 9
+    )
+
+    tropical = -15.0 < centre_lat and centre_lat <= 15.0
+    mid_north = 15.0 < centre_lat and centre_lat <= 45.0
+    mid_south = -45.0 < centre_lat and centre_lat <= -15.0
+    arc_north = 45.0 < centre_lat
+    arc_south = centre_lat <= -45.0
+
+    if tropical:
+        data = mpjson.tropical_albedo(**input_data)
+
+    elif mid_north:
+        if april_september:
+            data = mpjson.midlat_summer_albedo(**input_data)
+        else:
+            data = mpjson.midlat_winter_albedo(**input_data)
+
+    elif mid_south:
+        if april_september:
+            data = mpjson.midlat_winter_albedo(**input_data)
+        else:
+            data = mpjson.midlat_summer_albedo(**input_data)
+
+    elif arc_north:
+        if april_september:
+            data = mpjson.subarctic_summer_albedo(**input_data)
+        else:
+            data = mpjson.subarctic_winter_albedo(**input_data)
+
+    elif arc_south:
+        if april_september:
+            data = mpjson.subarctic_winter_albedo(**input_data)
+        else:
+            data = mpjson.subarctic_summer_albedo(**input_data)
+
+    else:
+        raise ValueError("modtran atmospheric profile selection failed")
+
+    return data
+
+
 def format_json(
     acquisitions,
     ancillary_group,
@@ -172,10 +225,9 @@ def format_json(
                     "binary": False,
                 }
 
-                if centre_lat < -23.0:
-                    data = mpjson.midlat_summer_albedo(**input_data)
-                else:
-                    data = mpjson.tropical_albedo(**input_data)
+                data = select_profile_australia(
+                    acquisitions[0].acquisition_datetime, centre_lat, input_data
+                )
 
                 input_data["description"] = "Input file for MODTRAN"
                 input_data["file_format"] = "json"
