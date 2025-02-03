@@ -1,7 +1,7 @@
 """
-See NCI `rt52` project for a clone of the data.
+This module is a prototype for working with ERA5 reanalysis NetCDF files on NCI.
 
-This module is a prototype for working with ERA5 reanalysis NetCDF files.
+See NCI `rt52` project for a clone of the ERA5 data.
 """
 
 import calendar
@@ -20,8 +20,8 @@ class ERA5FileMeta(typing.NamedTuple):
     """
     Metadata from ERA5 pressure level reanalysis files.
 
-    Metadata is stored in file names. Separate parsing here, to reduce complexity
-    of ERA5 workflow code.
+    ERA5 files have metadata within their file names. This class handles parsing
+    file naming data to reduce complexity in ERA5 workflows.
     """
 
     variable: str
@@ -29,11 +29,11 @@ class ERA5FileMeta(typing.NamedTuple):
     stream: str  # TODO: e.g. 'oper' what is this?
     unknown: str  # TODO: rename
 
-    # TODO: filenames provide the start & end dates, but not a time component
-    #  could test to ensure the hour fields are correct in several NetCDF files,
-    #  then default the start datetime to midnight & stop time as 23:00
-    # TODO: probably need datetime.datetime to selecting the closest NetCDF data
-    #  record to the Acquisition time.
+    # TODO: filenames provide start & end dates, without a time component. Could
+    #  test the hour fields are correct in several NetCDF files & default the
+    #  start *datetime* to midnight & stop time as 23:00.
+    # TODO: probably need datetime.datetime to select the closest NetCDF data
+    #  record to each Acquisition's datetime.
     start_time: datetime.datetime  # datetime to specify start hour of 1st timestep
     stop_time: datetime.datetime  # TODO: hour of last timestep?
     path: str
@@ -77,11 +77,12 @@ def find_closest_era5_path(paths, span):
 
 
 def get_nearest_previous_hour(date_time):
-    # TODO: convert an hour from the datetime into the number of hours since
-    #  midnight 1900
+    """
+    Convert a datetime to the number of hours since midnight 1900.
+    """
     m1900 = datetime.datetime(1900, 1, 1)
     dt = date_time - m1900
-    hours_since_1900 = int(dt.total_seconds() / 60 / 60)
+    hours_since_1900 = int(dt.total_seconds() / 60 / 60)  # int() strips partial hours
     return hours_since_1900
 
 
