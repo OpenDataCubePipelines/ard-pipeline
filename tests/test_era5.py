@@ -92,11 +92,13 @@ def test_find_closest_era5_path(acquisition_datetime):
 
 
 def test_get_nearest_previous_hour(acquisition_datetime):
+    # data manually copied from z_era5_oper_pl_20230201-20230228.nc
+    first_hour = 1078944  # hours since midnight 1900 to midnight 1/2/2023
+    three_days = 24 * 3  # delta to midnight 4/2/2023
+    offset_11am = 11  # delta for the partial day
+    expected = first_hour + three_days + offset_11am
     hour = era5.get_nearest_previous_hour(acquisition_datetime)
-
-    # basic sanity check, is the hour index in z_era5_oper_pl_20230201-20230228?
-    assert 1078944 <= hour <= 1079615  # values copied manually from file
-    raise NotImplementedError("Substitute the exact hour value")
+    assert hour == expected
 
 
 def test_find_closest_era5_pressure():
