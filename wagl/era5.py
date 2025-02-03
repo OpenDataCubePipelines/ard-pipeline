@@ -11,6 +11,7 @@ import typing
 
 # strptime format for "YYYYMMDD" strings
 PATHNAME_DATE_FORMAT = "%Y%m%d"
+MIDNIGHT_1900 = datetime.datetime(1900, 1, 1)  # "0" time for Jan 1900
 
 
 # TODO: parse encoded filename metadata to a data structure
@@ -80,9 +81,8 @@ def get_nearest_previous_hour(date_time):
     """
     Convert a datetime to the number of hours since midnight 1900.
     """
-    m1900 = datetime.datetime(1900, 1, 1)
-    dt = date_time - m1900
-    hours_since_1900 = int(dt.total_seconds() / 60 / 60)  # int() strips partial hours
+    td = date_time - MIDNIGHT_1900
+    hours_since_1900 = int(td.total_seconds() / 60 / 60)  # int() strips partial hours
     return hours_since_1900
 
 
