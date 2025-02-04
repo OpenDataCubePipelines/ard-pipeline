@@ -9,6 +9,8 @@ import datetime
 import os.path
 import typing
 
+import numpy as np
+
 # strptime format for "YYYYMMDD" strings
 PATHNAME_DATE_FORMAT = "%Y%m%d"
 MIDNIGHT_1900 = datetime.datetime(1900, 1, 1)  # "0" time for Jan 1900
@@ -98,14 +100,25 @@ def find_closest_era5_pressure(nc, variable, date_time: datetime.datetime):
     TODO: given a datetime, find closest previous record in the NetCDF file
     TODO: extract pressure levels (or only surface level?)
 
-    nc: an *open* HDF5 file, use hdf5 library instead of GDAL
+    nc: an *open* NC file, use xarray library instead of GDAL
     date_time: acquisition datetime
     """
-    var = nc[variable]
-    hour = get_nearest_previous_hour()
-    level = None  # TODO: single level or range?
 
-    data = var[hour, level]
+    var = nc[variable]
+    hour = get_nearest_previous_hour(date_time)
+
+    time_var = nc["time"]
+    time_var_data = time_var[:]
+    hour_indexing = np.where(time_var_data == hour)
+    hour_index = hour_indexing[0][0]  # index in array within a tuple
+    assert len(hour_indexing) == 1
+
+    # level = None  # TODO: single level or range?
+
+    # z data order is (time, level, latitude, longitude)
+    # TODO: 1st retrieve data across all 37 levels
+
+    data = var[hour_index, :, -35, 149]
     # if a single level, data is 2D & 3D when level is a range
     # last 2 array dimensions are the 2D variable fields
     return data
