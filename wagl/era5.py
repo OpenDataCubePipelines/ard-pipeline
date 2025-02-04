@@ -9,7 +9,7 @@ import datetime
 import os.path
 import typing
 
-import numpy as np
+import xarray
 
 # strptime format for "YYYYMMDD" strings
 PATHNAME_DATE_FORMAT = "%Y%m%d"
@@ -92,33 +92,22 @@ def get_nearest_previous_hour(date_time):
 #  - should this use wagl's helper funcs to extract points?
 #  - e.g. in data.py: data.get_pixel()?
 #
-# TODO: Finding closest record in ERA5 requires an hour field
+# TODO: Which method for closest record in ERA5?
 #      - Find closest timestep overall?
 #      - Find closest previous timestep?
-def find_closest_era5_pressure(nc, variable, date_time: datetime.datetime):
+def find_closest_era5_pressure(
+    xa: xarray.Dataset, variable: str, date_time: datetime.datetime
+):
     """
     TODO: given a datetime, find closest previous record in the NetCDF file
     TODO: extract pressure levels (or only surface level?)
 
-    nc: an *open* NC file, use xarray library instead of GDAL
+    xa: an *open* xarray Dataset of the source NetCDF
     date_time: acquisition datetime
     """
 
-    var = nc[variable]
-    hour = get_nearest_previous_hour(date_time)
+    var = xa[variable]
 
-    time_var = nc["time"]
-    time_var_data = time_var[:]
-    hour_indexing = np.where(time_var_data == hour)
-    hour_index = hour_indexing[0][0]  # index in array within a tuple
-    assert len(hour_indexing) == 1
-
-    # level = None  # TODO: single level or range?
-
-    # z data order is (time, level, latitude, longitude)
-    # TODO: 1st retrieve data across all 37 levels
-
-    data = var[hour_index, :, -35, 149]
-    # if a single level, data is 2D & 3D when level is a range
-    # last 2 array dimensions are the 2D variable fields
-    return data
+    # TODO: 1st retrieve data across all 37 levels & lat/longs
+    subset = var.sel(time=date_time, method="ffill")
+    return subset.data

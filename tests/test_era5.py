@@ -2,6 +2,7 @@ import calendar
 import datetime
 
 import pytest
+import xarray as xr
 
 from wagl import era5
 
@@ -101,7 +102,28 @@ def test_get_nearest_previous_hour(acquisition_datetime):
     assert hour == expected
 
 
-def test_find_closest_era5_pressure():
+def test_find_closest_era5_pressure(acquisition_datetime):
     # TODO: simulate or load a real NetCDF file...
     #  problem: each ERA5 is about 35GB in size!
-    raise NotImplementedError
+    #  design data interface or mock xarray to avoid using a real file?
+
+    # HACK: use temporary env var to point to local file to get test working
+    env_key = "ERA5_TEMP_TEST_FILE"
+
+    import os
+
+    # HACK: set env var to *local* copy of z_era5_oper_pl_20230201-20230228.nc
+    if env_key not in os.environ:
+        msg = (
+            f"WARN: temporary prototyping code. Set {env_key} to *local* copy"
+            f" of z_era5_oper_pl_20230201-20230228.nc"
+        )
+        raise NotImplementedError(msg)
+
+    path = os.environ[env_key]
+    assert os.path.exists(path)
+
+    # TODO: add lat/long points
+    xf = xr.open_dataset(path, engine="h5netcdf")
+    data = era5.find_closest_era5_pressure(xf, "z", acquisition_datetime)
+    assert len(data.shape) == 3
