@@ -102,7 +102,15 @@ def test_get_nearest_previous_hour(acquisition_datetime):
     assert hour == expected
 
 
-def test_find_closest_era5_pressure(acquisition_datetime):
+@pytest.fixture
+def mawson_peak_heard_island_lat_lon():
+    """Return (lat, lon) for Mawson Peak on Heard Island."""
+    return -53.1046, 73.51710
+
+
+def test_find_closest_era5_pressure(
+    acquisition_datetime, mawson_peak_heard_island_lat_lon
+):
     # TODO: simulate or load a real NetCDF file...
     #  problem: each ERA5 is about 35GB in size!
     #  design data interface or mock xarray to avoid using a real file?
@@ -123,7 +131,9 @@ def test_find_closest_era5_pressure(acquisition_datetime):
     path = os.environ[env_key]
     assert os.path.exists(path)
 
-    # TODO: add lat/long points
     xf = xr.open_dataset(path, engine="h5netcdf")
-    data = era5.find_closest_era5_pressure(xf, "z", acquisition_datetime)
-    assert len(data.shape) == 3
+    data = era5.find_closest_era5_pressure(
+        xf, "z", acquisition_datetime, latlong=mawson_peak_heard_island_lat_lon
+    )
+
+    assert data.shape == (37,)  # should just be levels
