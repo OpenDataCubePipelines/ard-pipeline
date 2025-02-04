@@ -96,7 +96,7 @@ def get_nearest_previous_hour(date_time):
 #      - Find closest timestep overall?
 #      - Find closest previous timestep?
 def find_closest_era5_pressure(
-    xa: xarray.Dataset, variable: str, date_time: datetime.datetime
+    xa: xarray.Dataset, variable: str, date_time: datetime.datetime, latlong: tuple
 ):
     """
     TODO: given a datetime, find closest previous record in the NetCDF file
@@ -106,8 +106,10 @@ def find_closest_era5_pressure(
     date_time: acquisition datetime
     """
 
+    # TODO: 1st retrieve data across all 37 levels
     var = xa[variable]
-
-    # TODO: 1st retrieve data across all 37 levels & lat/longs
-    subset = var.sel(time=date_time, method="ffill")
+    latitude, longitude = latlong
+    subset = var.sel(
+        time=date_time, method="ffill", latitude=latitude, longitude=longitude
+    )
     return subset.data
