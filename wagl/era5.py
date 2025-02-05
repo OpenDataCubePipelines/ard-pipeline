@@ -185,7 +185,5 @@ def build_era5_profile_paths(
     multi_paths = [
         build_era5_path(base_dir, v, date_time, False) for v in multi_level_vars
     ]
-    single_paths = [
-        build_era5_path(base_dir, v, date_time, False) for v in single_level_vars
-    ]
+    single_paths = [build_era5_path(base_dir, v, date_time) for v in single_level_vars]
     return multi_paths, single_paths
