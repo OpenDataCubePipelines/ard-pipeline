@@ -145,6 +145,24 @@ def era5_data_dir():
     return path
 
 
+def test_find_closest_era5_pressure_single_level(
+    era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
+):
+    path = os.path.join(
+        era5_data_dir,
+        "single-levels/reanalysis/2t/2023",
+        "2t_era5_oper_sfc_20230201-20230228.nc",
+    )
+
+    xf = xr.open_dataset(path, engine="h5netcdf")
+    data = era5.find_closest_era5_pressure(
+        xf, "t2m", acquisition_datetime, latlong=mawson_peak_heard_island_lat_lon
+    )
+
+    assert data
+    assert float(data)  # HACK: silly test
+
+
 def test_find_closest_era5_pressure_multi_level(
     era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
 ):
