@@ -113,3 +113,55 @@ def find_closest_era5_pressure(
         time=date_time, method="ffill", latitude=latitude, longitude=longitude
     )
     return subset.data
+
+
+ERA5_MULTI_LEVEL_VARIABLES = ("r", "t", "z")
+
+# ERA5 single levels have a variable in the file name & sometimes a different
+# variable within the NetCDF file.
+ERA5_SINGLE_LEVEL_VARIABLES = ("2t", "z", "sp", "2d")
+ERA5_SINGLE_LEVEL_NC_VARIABLES = ("t2m", "z", "sp", "d2m")
+
+
+def era5_profile_data_extraction(
+    xa: xarray.Dataset, date_time: datetime.datetime, latlong: tuple
+):
+    # Grab these multi levels:
+    # r -> relative humidity
+    # t -> temperature
+    # z -> geopotential
+
+    paths = [build_era5_path(var, date_time) for var in ERA5_MULTI_LEVEL_VARIABLES]
+    var_paths = zip(ERA5_MULTI_LEVEL_VARIABLES, paths)
+
+    rtz = [
+        find_closest_era5_pressure(p, var, date_time, latlong) for p, var in var_paths
+    ]
+
+    # Then these single levels:
+    # 2t -> temperature at 2m
+    # z -> geopotential
+    # sp -> surface pressure
+    # 2d -> dewpoint temperature (2m)
+
+    paths = [build_era5_path(var, date_time) for var in ERA5_SINGLE_LEVEL_VARIABLES]
+    var_paths = zip(ERA5_SINGLE_LEVEL_NC_VARIABLES, paths)
+
+    single = [
+        find_closest_era5_pressure(p, var, date_time, latlong) for p, var in var_paths
+    ]
+
+    # TODO: add to names tuple, named tuple, dict or return multiple values?
+    return rtz, single
+
+
+def build_era5_path(base_dir, var, date_time: datetime.datetime, single=True):
+    """
+    TODO: return a path to ERA5 file
+    """
+    type_dir = "single-levels" if single else "pressure-levels"
+    _type = "sfc" if single else "pl"
+    span = date_span(date_time)
+    base = f"{var}_era5_oper_{_type}_{span}.nc"
+    path = f"{base_dir}/{type_dir}/reanalysis/{var}/{date_time.year}/{base}"
+    return path
