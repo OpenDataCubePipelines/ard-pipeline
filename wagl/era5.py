@@ -139,7 +139,7 @@ def profile_data_extraction(
 
     rtz = [
         find_closest_era5_pressure(xf, var, date_time, latlong)
-        for xf, var in var_datasets
+        for var, xf in var_datasets
     ]
 
     # Then the single levels:
@@ -151,7 +151,7 @@ def profile_data_extraction(
 
     single = [
         find_closest_era5_pressure(xf, var, date_time, latlong)
-        for xf, var in var_datasets
+        for var, xf in var_datasets
     ]
 
     # TODO: add to names tuple, named tuple, dict or return multiple values?
