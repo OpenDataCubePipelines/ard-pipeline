@@ -178,3 +178,36 @@ def test_find_closest_era5_pressure_multi_level(
     )
 
     assert data.shape == (37,)  # should just be levels
+
+
+def test_build_era5_path_single_level(era5_data_dir, acquisition_datetime):
+    var = "z"
+    single = True
+    p = era5.build_era5_path(era5_data_dir, var, acquisition_datetime, single)
+    assert p.endswith(
+        "single-levels/reanalysis/z/2023/z_era5_oper_sfc_20230201-20230228.nc"
+    )
+
+
+def test_build_era5_path_multi_level(era5_data_dir, acquisition_datetime):
+    var = "z"
+    single = False
+    p = era5.build_era5_path(era5_data_dir, var, acquisition_datetime, single)
+    assert p.endswith(
+        "pressure-levels/reanalysis/z/2023/z_era5_oper_pl_20230201-20230228.nc"
+    )
+
+
+def test_era5_profile_data_extraction():
+    # Grab these multi levels:
+    # r -> relative humidity
+    # t -> temperature
+    # z -> geopotential
+    #
+    # Then these single levels:
+    # 2t -> temperature at 2m
+    # z -> geopotential
+    # sp -> surface pressure
+    # 2d -> dewpoint temperature (2m)
+
+    raise NotImplementedError
