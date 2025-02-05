@@ -154,7 +154,12 @@ def test_find_closest_era5_pressure_single_level(
         "2t_era5_oper_sfc_20230201-20230228.nc",
     )
 
-    xf = xr.open_dataset(path, engine="h5netcdf")
+    try:
+        xf = xr.open_dataset(path, engine="h5netcdf")
+    except ValueError:
+        # try without engine arg...
+        xf = xr.open_dataset(path)
+
     data = era5.find_closest_era5_pressure(
         xf, "t2m", acquisition_datetime, latlong=mawson_peak_heard_island_lat_lon
     )
@@ -172,7 +177,12 @@ def test_find_closest_era5_pressure_multi_level(
         "z_era5_oper_pl_20230201-20230228.nc",
     )
 
-    xf = xr.open_dataset(path, engine="h5netcdf")
+    try:
+        xf = xr.open_dataset(path, engine="h5netcdf")
+    except ValueError:
+        # try without engine arg...
+        xf = xr.open_dataset(path)
+
     data = era5.find_closest_era5_pressure(
         xf, "z", acquisition_datetime, latlong=mawson_peak_heard_island_lat_lon
     )
