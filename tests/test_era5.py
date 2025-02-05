@@ -1,5 +1,7 @@
 import calendar
 import datetime
+import os
+import socket
 
 import pytest
 import xarray as xr
@@ -108,28 +110,49 @@ def mawson_peak_heard_island_lat_lon():
     return -53.1046, 73.51710
 
 
-def test_find_closest_era5_pressure(
-    acquisition_datetime, mawson_peak_heard_island_lat_lon
-):
+@pytest.fixture
+def era5_data_dir():
+    """
+    Return dir path to use for temporary testing.
+
+    ERA5 dir trees are like:
+    /home/user/data/rt52/era5/pressure-levels/reanalysis/z/2023/
+
+    Return a root path: "/home/user/data/rt52/era5"
+    """
+
     # TODO: simulate or load a real NetCDF file...
-    #  problem: each ERA5 is about 35GB in size!
+    #  problem: each ERA5 multi-level is ~35GB in size!
     #  design data interface or mock xarray to avoid using a real file?
 
-    # HACK: use temporary env var to point to local file to get test working
-    env_key = "ERA5_TEMP_TEST_FILE"
+    # HACK: this is NCI platform specific
+    if "gadi" in socket.gethostname():
+        return "/g/data/rt52/era5"
 
-    import os
+    # HACK: use temporary env var to point to local file to get test working
+    env_key = "ERA5_TEMP_DATA_DIR"
 
     # HACK: set env var to *local* copy of z_era5_oper_pl_20230201-20230228.nc
     if env_key not in os.environ:
         msg = (
-            f"WARN: temporary prototyping code. Set {env_key} to *local* copy"
+            f"WARN: temporary prototyping code. Set {env_key} to *local* data dir"
             f" of z_era5_oper_pl_20230201-20230228.nc"
         )
         raise NotImplementedError(msg)
 
     path = os.environ[env_key]
     assert os.path.exists(path)
+    return path
+
+
+def test_find_closest_era5_pressure_multi_level(
+    era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
+):
+    path = os.path.join(
+        era5_data_dir,
+        "pressure-levels/reanalysis/z/2023",
+        "z_era5_oper_pl_20230201-20230228.nc",
+    )
 
     xf = xr.open_dataset(path, engine="h5netcdf")
     data = era5.find_closest_era5_pressure(
