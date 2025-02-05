@@ -123,36 +123,45 @@ ERA5_SINGLE_LEVEL_VARIABLES = ("2t", "z", "sp", "2d")
 ERA5_SINGLE_LEVEL_NC_VARIABLES = ("t2m", "z", "sp", "d2m")
 
 
-def era5_profile_data_extraction(
-    xa: xarray.Dataset, date_time: datetime.datetime, latlong: tuple
+# TODO: refactor args to take containers of open xarray datasets
+#  this keeps I/O out of the extraction code
+def profile_data_extraction(
+    multi_level_datasets,
+    single_level_datasets,
+    date_time: datetime.datetime,
+    latlong: tuple,
 ):
     # Grab these multi levels:
     # r -> relative humidity
     # t -> temperature
     # z -> geopotential
-
-    paths = [build_era5_path(var, date_time) for var in ERA5_MULTI_LEVEL_VARIABLES]
-    var_paths = zip(ERA5_MULTI_LEVEL_VARIABLES, paths)
+    var_datasets = zip(ERA5_MULTI_LEVEL_VARIABLES, multi_level_datasets)
 
     rtz = [
-        find_closest_era5_pressure(p, var, date_time, latlong) for p, var in var_paths
+        find_closest_era5_pressure(xf, var, date_time, latlong)
+        for xf, var in var_datasets
     ]
 
-    # Then these single levels:
+    # Then the single levels:
     # 2t -> temperature at 2m
     # z -> geopotential
     # sp -> surface pressure
     # 2d -> dewpoint temperature (2m)
-
-    paths = [build_era5_path(var, date_time) for var in ERA5_SINGLE_LEVEL_VARIABLES]
-    var_paths = zip(ERA5_SINGLE_LEVEL_NC_VARIABLES, paths)
+    var_datasets = zip(ERA5_SINGLE_LEVEL_NC_VARIABLES, single_level_datasets)
 
     single = [
-        find_closest_era5_pressure(p, var, date_time, latlong) for p, var in var_paths
+        find_closest_era5_pressure(xf, var, date_time, latlong)
+        for xf, var in var_datasets
     ]
 
     # TODO: add to names tuple, named tuple, dict or return multiple values?
     return rtz, single
+
+
+def open_profile_data_files(multi_paths, single_paths):
+    xf_multi_level_datasets = [xarray.open_dataset(p) for p in multi_paths]
+    xf_single_level_datasets = [xarray.open_dataset(p) for p in single_paths]
+    return xf_multi_level_datasets, xf_single_level_datasets
 
 
 def build_era5_path(base_dir, var, date_time: datetime.datetime, single=True):
@@ -165,3 +174,18 @@ def build_era5_path(base_dir, var, date_time: datetime.datetime, single=True):
     base = f"{var}_era5_oper_{_type}_{span}.nc"
     path = f"{base_dir}/{type_dir}/reanalysis/{var}/{date_time.year}/{base}"
     return path
+
+
+def build_era5_profile_paths(
+    base_dir, multi_level_vars, single_level_vars, date_time: datetime.datetime
+):
+    """
+    TODO: build all paths for all ERA5 files required to build MODTRAN profiles.
+    """
+    multi_paths = [
+        build_era5_path(base_dir, v, date_time, False) for v in multi_level_vars
+    ]
+    single_paths = [
+        build_era5_path(base_dir, v, date_time, False) for v in single_level_vars
+    ]
+    return multi_paths, single_paths

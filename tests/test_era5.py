@@ -198,16 +198,21 @@ def test_build_era5_path_multi_level(era5_data_dir, acquisition_datetime):
     )
 
 
-def test_era5_profile_data_extraction():
-    # Grab these multi levels:
-    # r -> relative humidity
-    # t -> temperature
-    # z -> geopotential
-    #
-    # Then these single levels:
-    # 2t -> temperature at 2m
-    # z -> geopotential
-    # sp -> surface pressure
-    # 2d -> dewpoint temperature (2m)
+def test_era5_profile_data_extraction(
+    era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
+):
+    multi_paths, single_paths = era5.build_era5_profile_paths(
+        era5_data_dir,
+        era5.ERA5_MULTI_LEVEL_VARIABLES,
+        era5.ERA5_SINGLE_LEVEL_VARIABLES,
+        acquisition_datetime,
+    )
 
-    raise NotImplementedError
+    xf_multi, xf_single = era5.open_profile_data_files(multi_paths, single_paths)
+
+    rtz, single = era5.profile_data_extraction(
+        xf_multi, xf_single, acquisition_datetime, mawson_peak_heard_island_lat_lon
+    )
+
+    assert len(rtz) == 3
+    assert len(single) == 4
