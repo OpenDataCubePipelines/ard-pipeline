@@ -3,6 +3,7 @@ import datetime
 import os
 import socket
 
+import numpy as np
 import pytest
 import xarray as xr
 
@@ -238,22 +239,24 @@ def test_build_profile_data_frame():
     # TODO: add 6 HARD CODED levels
 
     # create fake multi level ERA5 data
-    relative_humdity_ml = list(range(55, 55 - RAW_NUM_LEVELS, -1))  # descending RH
-    temperature_ml = [280 - (i * 5) for i in range(RAW_NUM_LEVELS)]  # TODO: fix kelvin
-    geopotential_ml = [2000 + (i * 100) for i in range(RAW_NUM_LEVELS)]
+    relative_humidity_ml = list(range(55, 55 - RAW_NUM_LEVELS, -1))  # descending RH
+    temperature_ml = np.array([280 - (i * 5) for i in range(RAW_NUM_LEVELS)])
+    geopotential_ml = np.array(
+        [2000 + (i * 100) for i in range(RAW_NUM_LEVELS)]
+    )  # TODO: copy NetCDF order
 
-    for var in (relative_humdity_ml, temperature_ml, geopotential_ml):
+    for var in (relative_humidity_ml, temperature_ml, geopotential_ml):
         assert len(var) == RAW_NUM_LEVELS
 
     multi_level_data = era5.MultiLevelVars(
-        relative_humdity_ml, temperature_ml, geopotential_ml
+        relative_humidity_ml, temperature_ml, geopotential_ml
     )
 
     # create fake single level ERA5 data
-    temperature_sl = 285  # TODO: fix kelvin
+    temperature_sl = 285  # NB: start with kelvin
     geopotential_sl = 2300.0
-    surface_pressure_sl = 1100.0
-    dewpoint_temperature_sl = 2270  # TODO: fix kelvin
+    surface_pressure_sl = 1100.0 * 100  # NB: mimic the units in NetCDF
+    dewpoint_temperature_sl = 2270  # NB: start with kelvin
 
     single_level_data = era5.SingleLevelVars(
         temperature_sl, geopotential_sl, surface_pressure_sl, dewpoint_temperature_sl
