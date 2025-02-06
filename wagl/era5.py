@@ -123,8 +123,19 @@ ERA5_SINGLE_LEVEL_VARIABLES = ("2t", "z", "sp", "2d")
 ERA5_SINGLE_LEVEL_NC_VARIABLES = ("t2m", "z", "sp", "d2m")
 
 
-# TODO: refactor args to take containers of open xarray datasets
-#  this keeps I/O out of the extraction code
+class MultiLevelVars(typing.NamedTuple):
+    relative_humidity: typing.Sequence
+    temperature: typing.Sequence
+    geopotential: typing.Sequence
+
+
+class SingleLevelVars(typing.NamedTuple):
+    temperature: typing.Sequence
+    geopotential: typing.Sequence
+    surface_pressure: typing.Sequence
+    dewpoint_temperature: typing.Sequence
+
+
 def profile_data_extraction(
     multi_level_datasets,
     single_level_datasets,
@@ -132,30 +143,35 @@ def profile_data_extraction(
     latlong: tuple,
 ):
     # Grab these multi levels:
+    # Extract & package these multi level vars:
     # r -> relative humidity
     # t -> temperature
     # z -> geopotential
     var_datasets = zip(ERA5_MULTI_LEVEL_VARIABLES, multi_level_datasets)
 
-    rtz = [
+    raw_multi_level = [
         find_closest_era5_pressure(xf, var, date_time, latlong)
         for var, xf in var_datasets
     ]
 
-    # Then the single levels:
+    multi_level_vars = MultiLevelVars(*raw_multi_level)
+
+    # Extract single level vars:
     # 2t -> temperature at 2m
     # z -> geopotential
     # sp -> surface pressure
     # 2d -> dewpoint temperature (2m)
     var_datasets = zip(ERA5_SINGLE_LEVEL_NC_VARIABLES, single_level_datasets)
 
-    single = [
+    raw_single_level = [
         find_closest_era5_pressure(xf, var, date_time, latlong)
         for var, xf in var_datasets
     ]
 
+    single_level_vars = SingleLevelVars(*raw_single_level)
+
     # TODO: add to names tuple, named tuple, dict or return multiple values?
-    return rtz, single
+    return multi_level_vars, single_level_vars
 
 
 def open_profile_data_files(multi_paths, single_paths):
