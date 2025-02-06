@@ -265,35 +265,41 @@ ECWMF_LEVELS = [
 def build_profile_data_frame(
     multi_level_vars: MultiLevelVars, single_level_vars: SingleLevelVars
 ):
-    assert (
-        len(multi_level_vars.geopotential) == 37
-    ), f"Got {len(multi_level_vars.geopotential)}"
-
     rh = atmos.relative_humdity(
         single_level_vars.temperature,
         single_level_vars.dewpoint_temperature,
         kelvin=True,
     )
 
+    # transform data for column order & scaling
+    geopotential = reversed(scale_geopotential(multi_level_vars.geopotential))
+    relative_humidity = reversed(multi_level_vars.relative_humidity)
+    temperature = atmos.kelvin_2_celcius(multi_level_vars.temperature)
+
     var_name_mapping = {
-        "Geopotential_Height": multi_level_vars.geopotential,
+        "Geopotential_Height": geopotential,
         "Pressure": reversed(ECWMF_LEVELS),
-        "Temperature": multi_level_vars.temperature,
-        "Relative_Humidity": multi_level_vars.relative_humidity,
+        "Temperature": temperature,
+        "Relative_Humidity": relative_humidity,
     }
 
     profile_frame = pd.DataFrame(var_name_mapping)
 
+    # apply data scaling & corrections
+    surface_pressure = single_level_vars.surface_pressure / 100.0
+    geopotential = scale_geopotential(single_level_vars.geopotential)
+    temperature = atmos.kelvin_2_celcius(single_level_vars.temperature)
+
     # insert surface level parameters
     profile_frame.loc[-1] = [
-        single_level_vars.geopotential,
-        single_level_vars.surface_pressure,
-        single_level_vars.temperature,
+        geopotential,
+        surface_pressure,
+        temperature,
         rh,
     ]
-    profile_frame.index = profile_frame.index + 1  # shifting index
-    profile_frame = profile_frame.sort_index()  # sorting by index
 
+    profile_frame.index = profile_frame.index + 1  # shift index
+    profile_frame = profile_frame.sort_index()
     return profile_frame
 
 
