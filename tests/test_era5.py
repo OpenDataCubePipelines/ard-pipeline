@@ -8,6 +8,9 @@ import xarray as xr
 
 from wagl import era5
 
+RAW_NUM_LEVELS = 37
+TOTAL_NUM_LEVELS = 38  # 36 levels + 1 surface level
+
 
 @pytest.fixture
 def z_file_basename():
@@ -225,4 +228,65 @@ def test_era5_profile_data_extraction(
     )
 
     assert len(rtz) == 3
+    # TODO: for var in rtz: assert len(var) == NUM_LEVELS
     assert len(single) == 4
+
+
+def test_build_profile_data_frame():
+    # TODO: read 37 levels from the MLs
+    # TODO: read & insert surface values --> is 38 levels
+    # TODO: add 6 HARD CODED levels
+
+    # create fake multi level ERA5 data
+    relative_humdity_ml = list(range(55, 55 - RAW_NUM_LEVELS, -1))  # descending RH
+    temperature_ml = [280 - (i * 5) for i in range(RAW_NUM_LEVELS)]  # TODO: fix kelvin
+    geopotential_ml = [2000 + (i * 100) for i in range(RAW_NUM_LEVELS)]
+
+    for var in (relative_humdity_ml, temperature_ml, geopotential_ml):
+        assert len(var) == RAW_NUM_LEVELS
+
+    multi_level_data = era5.MultiLevelVars(
+        relative_humdity_ml, temperature_ml, geopotential_ml
+    )
+
+    # create fake single level ERA5 data
+    temperature_sl = 285  # TODO: fix kelvin
+    geopotential_sl = 2300.0
+    surface_pressure_sl = 1100.0
+    dewpoint_temperature_sl = 2270  # TODO: fix kelvin
+
+    single_level_data = era5.SingleLevelVars(
+        temperature_sl, geopotential_sl, surface_pressure_sl, dewpoint_temperature_sl
+    )
+
+    profile_frame = era5.build_profile_data_frame(multi_level_data, single_level_data)
+    assert profile_frame is not None
+
+    for key in ("Geopotential_Height", "Pressure", "Temperature", "Relative_Humidity"):
+        assert profile_frame[key].size == TOTAL_NUM_LEVELS
+
+    print()
+    print(profile_frame)
+
+
+def test_build_profile_data_frame_real_data(
+    era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
+):
+    multi_paths, single_paths = era5.build_era5_profile_paths(
+        era5_data_dir,
+        era5.ERA5_MULTI_LEVEL_VARIABLES,
+        era5.ERA5_SINGLE_LEVEL_VARIABLES,
+        acquisition_datetime,
+    )
+
+    xf_multi, xf_single = era5.open_profile_data_files(multi_paths, single_paths)
+
+    multi_vars, single_vars = era5.profile_data_extraction(
+        xf_multi, xf_single, acquisition_datetime, mawson_peak_heard_island_lat_lon
+    )
+
+    frame = era5.build_profile_data_frame(multi_vars, single_vars)
+    assert frame is not None
+
+    print()
+    print(frame)

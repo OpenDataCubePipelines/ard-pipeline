@@ -9,7 +9,10 @@ import datetime
 import os.path
 import typing
 
+import pandas as pd
 import xarray
+
+import wagl.atmos as atmos
 
 # strptime format for "YYYYMMDD" strings
 PATHNAME_DATE_FORMAT = "%Y%m%d"
@@ -214,3 +217,86 @@ def build_era5_profile_paths(
     ]
     single_paths = [build_era5_path(base_dir, v, date_time) for v in single_level_vars]
     return multi_paths, single_paths
+
+
+# HACK: copied from ancillary.py (can't import wagl module without the F90 being built)
+ECWMF_LEVELS = [
+    1,
+    2,
+    3,
+    5,
+    7,
+    10,
+    20,
+    30,
+    50,
+    70,
+    100,
+    125,
+    150,
+    175,
+    200,
+    225,
+    250,
+    300,
+    350,
+    400,
+    450,
+    500,
+    550,
+    600,
+    650,
+    700,
+    750,
+    775,
+    800,
+    825,
+    850,
+    875,
+    900,
+    925,
+    950,
+    975,
+    1000,
+]
+
+
+# TODO: keep I/O out of this function
+def build_profile_data_frame(
+    multi_level_vars: MultiLevelVars, single_level_vars: SingleLevelVars
+):
+    assert (
+        len(multi_level_vars.geopotential) == 37
+    ), f"Got {len(multi_level_vars.geopotential)}"
+
+    rh = atmos.relative_humdity(
+        single_level_vars.temperature,
+        single_level_vars.dewpoint_temperature,
+        kelvin=True,
+    )
+
+    var_name_mapping = {
+        "Geopotential_Height": multi_level_vars.geopotential,
+        "Pressure": reversed(ECWMF_LEVELS),
+        "Temperature": multi_level_vars.temperature,
+        "Relative_Humidity": multi_level_vars.relative_humidity,
+    }
+
+    profile_frame = pd.DataFrame(var_name_mapping)
+
+    # insert surface level parameters
+    profile_frame.loc[-1] = [
+        single_level_vars.geopotential,
+        single_level_vars.surface_pressure,
+        single_level_vars.temperature,
+        rh,
+    ]
+    profile_frame.index = profile_frame.index + 1  # shifting index
+    profile_frame = profile_frame.sort_index()  # sorting by index
+
+    return profile_frame
+
+
+def scale_geopotential(data):
+    scaled_data = data / 9.80665 / 1000.0
+    return scaled_data
