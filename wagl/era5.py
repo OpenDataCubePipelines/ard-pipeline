@@ -142,7 +142,18 @@ def profile_data_extraction(
     date_time: datetime.datetime,
     latlong: tuple,
 ):
-    # Grab these multi levels:
+    """
+    Returns MODTRAN profile data extracted from ERA5 NetCDF files.
+
+    Note the dataset args must provide open files in a specific order. Files are
+    not opened in this function to avoid I/O & facilitate unit testing.
+
+    :param multi_level_datasets: *open* xarray.Datasets in order: 'r', 't' & 'z'
+    :param single_level_datasets:  *open* xarray.Datasets in order '2t', 'z', 'sp' & '2d'
+    :param date_time: Acquisition date/time
+    :param latlong: tuple of floats for (lat, long) location.
+    """
+
     # Extract & package these multi level vars:
     # r -> relative humidity
     # t -> temperature
