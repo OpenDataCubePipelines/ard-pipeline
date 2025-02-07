@@ -68,7 +68,7 @@ export LANG=C.UTF-8
 
 # User can set any of these bash vars before calling to override them
 echo "##########################"
-echo "module_dir = ${module_dir:=/g/data/v10/private/modules}"
+echo "module_dir = ${module_dir:=/g/data/yp75/ab7271/modules}"
 echo
 echo "swfo_version= ${swfo_version:="761dcc19cef69573ae420aec3fc3872851cc96fa"}"
 echo "gost_version = ${gost_version:="gost-0.0.3"}"
