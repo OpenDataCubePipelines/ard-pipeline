@@ -549,3 +549,192 @@ def thermal_transmittance(
     }
 
     return _thermal_transmittance
+
+
+def custom_optical_profile(
+    out_name,
+    ozone,
+    n_layers,
+    prof_alt,
+    prof_pres,
+    prof_temp,
+    prof_water,
+    visibility,
+    doy,
+    lat,
+    lon,
+    time,
+    sat_azimuth,
+    sat_height,
+    geopotential_height,
+    sat_view,
+    filter_function,
+    binary,
+):
+    """
+    MODTRAN 6.0.1 input: 'json' format template for use with a custom
+    atmospheric profile.
+    """
+    prof_altitude = [*prof_alt, 50.0, 55.0, 60.0, 70.0, 80.0, 100.0]
+
+    prof_pressure = [
+        *prof_pres,
+        0.9509999752,
+        0.51499998569,
+        0.27200001478,
+        0.067000001669,
+        0.012000000104,
+        9.9999997474e-05,
+    ]
+
+    prof_temperature = [
+        *prof_temp,
+        2.5499999523,
+        -3.8499999046,
+        -16.049999237,
+        -55.049999237,
+        -99.050003052,
+        -82.650001526,
+    ]
+
+    prof_h2o = [
+        *prof_water,
+        7.1269998443e-05,
+        5.9909998527e-05,
+        7.7529999544e-05,
+        0.00070829998003,
+        0.072370000184,
+        1.4610000107e-05,
+    ]
+
+    custom_profile = {
+        "MODTRAN": [
+            {
+                "MODTRANINPUT": {
+                    "NAME": out_name,
+                    "CASE": 0,
+                    "RTOPTIONS": {
+                        "MODTRN": "RT_MODTRAN",
+                        "LYMOLC": False,
+                        "T_BEST": False,
+                        "IEMSCT": "RT_SOLAR_AND_THERMAL",
+                        "IMULT": "RT_DISORT",
+                        "DISALB": True,
+                        "NSTR": 8,
+                        "SOLCON": -0.98799997568,
+                    },
+                    "ATMOSPHERE": {
+                        "MODEL": "ATM_USER_ALT_PROFILE",
+                        "M1": "ATM_USER_ALT_PROFILE",
+                        "M2": "ATM_USER_ALT_PROFILE",
+                        "M3": "ATM_MIDLAT_SUMMER",
+                        "M4": "ATM_MIDLAT_SUMMER",
+                        "M5": "ATM_MIDLAT_SUMMER",
+                        "M6": "ATM_MIDLAT_SUMMER",
+                        "MDEF": 1,
+                        "CO2MX": 375.0,
+                        "H2OSTR": 1.0,
+                        "O3STR": ozone,
+                        "O3UNIT": "A",
+                        "C_PROF": 0,
+                        "AERRH": 0.0,
+                        "AYRANG": False,
+                        "E_MASS": 0.0,
+                        "AIRMWT": 0.0,
+                        "NLAYERS": n_layers,
+                        "NPROF": 4,
+                        "PROFILES": [
+                            {
+                                "TYPE": "PROF_ALTITUDE",
+                                "UNITS": "UNT_KILOMETERS",
+                                "PROFILE": prof_altitude,
+                            },
+                            {
+                                "TYPE": "PROF_PRESSURE",
+                                "UNITS": "UNT_PMILLIBAR",
+                                "PROFILE": prof_pressure,
+                            },
+                            {
+                                "TYPE": "PROF_TEMPERATURE",
+                                "UNITS": "UNT_TCELSIUS",
+                                "PROFILE": prof_temperature,
+                            },
+                            {
+                                "TYPE": "PROF_H2O",
+                                "UNITS": "UNT_REL_HUMIDITY",
+                                "PROFILE": prof_h2o,
+                            },
+                        ],
+                    },
+                    "AEROSOLS": {
+                        "H2OAER": False,
+                        "CDASTM": "t",
+                        "ASTMC": 0.30000001192,
+                        "ASTMX": 0.0,
+                        "ASTMO": 0.69999998808,
+                        "APLUS": "  ",
+                        "IHAZE": "AER_MARITIME_NAVY",
+                        "CNOVAM": False,
+                        "ISEASN": "SEASN_AUTO",
+                        "ARUSS": "   ",
+                        "IVULCN": "STRATO_BACKGROUND",
+                        "ICSTL": 6,
+                        "ICLD": "CLOUD_NONE",
+                        "IVSA": False,
+                        "VIS": visibility,
+                        "WSS": 0.0,
+                        "WHH": 0.0,
+                        "RAINRT": 0.0,
+                        "IPH": 2,
+                        "HGPF": 0.66699999571,
+                    },
+                    "GEOMETRY": {
+                        "ITYPE": 2,
+                        "IPARM": 1,
+                        "IDAY": doy,
+                        "PARM1": lat,
+                        "PARM2": lon,
+                        "PARM3": 0.0,
+                        "PARM4": 0.0,
+                        "GMTIME": time,
+                        "TRUEAZ": sat_azimuth,
+                        "ANGLEM": 0.0,
+                        "H1ALT": sat_height,
+                        "H2ALT": geopotential_height,
+                        "OBSZEN": sat_view,
+                        "HRANGE": 0.0,
+                        "BETA": 0.0,
+                        "RAD_E": 0.0,
+                        "LENN": 0,
+                        "BCKZEN": 0.0,
+                        "CKRANG": 0.0,
+                    },
+                    "SURFACE": {
+                        "SURFTYPE": "REFL_CONSTANT",
+                        "TPTEMP": 10.0,
+                        "SURREF": 0.0,
+                        "GNDALT": geopotential_height,
+                    },
+                    "SPECTRAL": {
+                        "V1": 350.0,
+                        "V2": 2600.0,
+                        "DV": 1.0,
+                        "FWHM": 1.0,
+                        "YFLAG": "R",
+                        "XFLAG": "N",
+                        "DLIMIT": "#       ",
+                        "FLAGS": "NT     ",
+                        "MLFLX": 0,
+                        "VRFRAC": 0.0,
+                        "SFWHM": 0.0,
+                        "LSUNFL": "1",
+                        "LBMNAM": " ",
+                        "FILTNM": filter_function,
+                    },
+                    "FILEOPTIONS": {"BINARY": False, "CKPRNT": False, "NOPRNT": 0},
+                }
+            }
+        ]
+    }
+
+    return custom_profile
