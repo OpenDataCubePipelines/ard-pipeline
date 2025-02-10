@@ -12,6 +12,7 @@ ozone = {"pathname": "/g/data/v10/eoancillarydata-2/lookup_tables/ozone/ozone.h5
 water_vapour = {"pathname": "/g/data/v10/eoancillarydata-2/water_vapour", "fallback_dataset": "/g/data/v10/eoancillarydata-2/water_vapour/pr_wtr.eatm.average.h5"}
 dem_path = /g/data/v10/eoancillarydata-2/elevation/world_1deg/DEM_one_deg_20June2019.h5:/SRTM/GA-DSM
 ecmwf_path = /g/data2/v10/eoancillarydata-2/mars/daily-data
+era5_dir_path = /g/data/rt52/era5
 invariant_height_fname = /g/data/v10/eoancillarydata-2/mars/daily-data/invariant/geo-potential-dem.tif
 compression = BITSHUFFLE
 h5_driver =

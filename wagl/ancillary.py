@@ -19,6 +19,7 @@ from geopandas import GeoSeries
 from shapely import wkt
 from shapely.geometry import Point, Polygon
 
+from wagl import era5
 from wagl.acquisition import (
     Acquisition,
     AcquisitionsContainer,
@@ -47,8 +48,8 @@ from wagl.hdf5 import (
 from wagl.metadata import current_h5_metadata, is_offshore_territory
 from wagl.satellite_solar_angles import create_coordinator, create_vertices
 
-#: A H5 file path and dataset name, separated by a colon.
-#: h5_path, dataset_name = this.split(":")
+# A H5 file path and dataset name, separated by a colon.
+# h5_path, dataset_name = this.split(":")
 PathWithDataset = str
 
 LonLat = Tuple[float, float]
@@ -187,6 +188,7 @@ def collect_ancillary(
     out_group=None,
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
+    era5_dir_path=None,
 ):
     """Collects the ancillary required for NBAR and optionally SBT.
     This could be better handled if using the `opendatacube` project
@@ -298,6 +300,16 @@ def collect_ancillary(
             sbt_path,
             invariant_fname,
             out_group=group,
+            compression=compression,
+            filter_opts=filter_opts,
+        )
+
+    if era5_dir_path:
+        collect_era5_ancillary(
+            acquisition,
+            acquisition.gridded_geo_box().centre_lonlat,
+            era5_dir_path,
+            group,  # HDF5 writeable group
             compression=compression,
             filter_opts=filter_opts,
         )
@@ -450,6 +462,34 @@ def collect_sbt_ancillary(
         )
 
         fid[pnt].attrs["lonlat"] = lonlat
+
+
+def collect_era5_ancillary(
+    acquisition,
+    lonlat,
+    ancillary_path,  # ERA5 data dir
+    out_group,  # HDF5 writeable group
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
+    """
+    TODO: Collects ERA5/ECWMF based ancillary data.
+    """
+    assert out_group is not None
+    fid = out_group
+    fid.attrs["era5-ancillary"] = True
+
+    acq_datetime = acquisition.acquisition_datetime
+
+    # TODO: do individual profile values need to be written into the HDF5 file?
+    #  is writing only the profile data frame sufficient?
+    # work with single centroid point per acquisition for prototyping simplicity
+    pnt = POINT_FMT.format(p=0)
+
+    df = era5.profile_data_frame_workflow(ancillary_path, acq_datetime, lonlat[::-1])
+
+    data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
+    write_dataframe(df, data_name, fid, compression, filter_opts=filter_opts)
 
 
 @attr.define
