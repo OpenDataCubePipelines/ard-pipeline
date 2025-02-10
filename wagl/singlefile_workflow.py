@@ -92,6 +92,7 @@ class DataStandardisation(luigi.Task):
     buffer_distance = luigi.FloatParameter(default=15000, significant=False)
     h5_driver = luigi.OptionalParameter(default="", significant=False)
     normalized_solar_zenith = luigi.FloatParameter(default=45.0)
+    era5_dir_path = luigi.Parameter()  # TODO: try luigi.PathParameter(exists=True) ?
 
     def output(self):
         fmt = "{label}.wagl.h5"
@@ -133,6 +134,7 @@ class DataStandardisation(luigi.Task):
                 self.h5_driver,
                 self.acq_parser_hint,
                 self.normalized_solar_zenith,
+                self.era5_dir_path,
             )
 
 
