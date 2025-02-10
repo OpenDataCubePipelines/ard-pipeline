@@ -76,6 +76,7 @@ def card4l(
     h5_driver=None,
     acq_parser_hint=None,
     normalized_solar_zenith=45.0,
+    era5_dir_path=None,
 ):
     """CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -192,6 +193,9 @@ def card4l(
 
     :param normalized_solar_zenith:
         Solar zenith angle to normalize for (in degrees). Default is 45 degrees.
+
+    :param era5_dir_path:
+        Path to ERA5 data (typically for Antarctic processing)
     """
 
     container = acquisitions(level1, hint=acq_parser_hint)
@@ -232,6 +236,7 @@ def card4l(
             vertices,
             compression,
             filter_opts,
+            era5_dir_path,
         )
 
         stash_atmospherics(
@@ -439,6 +444,7 @@ def stash_ancillary(
     vertices,
     compression,
     filter_opts,
+    era5_dir_path,
 ):
     # nbar and sbt ancillary
     log = STATUS_LOGGER.bind(
@@ -471,6 +477,7 @@ def stash_ancillary(
         root,
         compression,
         filter_opts,
+        era5_dir_path,
     )
 
 
