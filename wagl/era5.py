@@ -306,3 +306,25 @@ def build_profile_data_frame(
 def scale_geopotential(data):
     scaled_data = data / 9.80665 / 1000.0
     return scaled_data
+
+
+def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
+    """
+    TODO: describe overall workflow
+    """
+
+    multi_paths, single_paths = build_era5_profile_paths(
+        era5_data_dir,
+        ERA5_MULTI_LEVEL_VARIABLES,
+        ERA5_SINGLE_LEVEL_VARIABLES,
+        acquisition_datetime,
+    )
+
+    xf_multi, xf_single = open_profile_data_files(multi_paths, single_paths)
+
+    multi_vars, single_vars = profile_data_extraction(
+        xf_multi, xf_single, acquisition_datetime, lat_lon
+    )
+
+    frame = build_profile_data_frame(multi_vars, single_vars)
+    return frame
