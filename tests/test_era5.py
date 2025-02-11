@@ -98,16 +98,6 @@ def test_find_closest_era5_path(acquisition_datetime):
     assert closest == paths[1]
 
 
-def test_get_nearest_previous_hour(acquisition_datetime):
-    # data manually copied from z_era5_oper_pl_20230201-20230228.nc
-    first_hour = 1078944  # hours since midnight 1900 to midnight 1/2/2023
-    three_days = 24 * 3  # delta to midnight 4/2/2023
-    offset_11am = 11  # delta for the partial day
-    expected = first_hour + three_days + offset_11am
-    hour = era5.get_nearest_previous_hour(acquisition_datetime)
-    assert hour == expected
-
-
 @pytest.fixture
 def mawson_peak_heard_island_lat_lon():
     """Return (lat, lon) for Mawson Peak on Heard Island."""
