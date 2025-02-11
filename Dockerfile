@@ -1,3 +1,4 @@
+
 # syntax = docker/dockerfile:1.5
 # We use rockylinux 8.8 to match the NCI gadi environment.
 FROM rockylinux:8.8 as builder
