@@ -164,7 +164,7 @@ def test_find_closest_era5_pressure_single_level(
         # try without engine arg...
         xf = xr.open_dataset(path)
 
-    data = era5.find_closest_era5_pressure(
+    data = era5.get_closest_value(
         xf, "t2m", acquisition_datetime, latlong=mawson_peak_heard_island_lat_lon
     )
 
@@ -187,7 +187,7 @@ def test_find_closest_era5_pressure_multi_level(
         # try without engine arg...
         xf = xr.open_dataset(path)
 
-    data = era5.find_closest_era5_pressure(
+    data = era5.get_closest_value(
         xf, "z", acquisition_datetime, latlong=mawson_peak_heard_island_lat_lon
     )
 

@@ -91,25 +91,21 @@ def get_nearest_previous_hour(date_time):
     return hours_since_1900
 
 
-# TODO: return single point, multiple points or an array?
-#  - should this use wagl's helper funcs to extract points?
-#  - e.g. in data.py: data.get_pixel()?
-#
 # TODO: Which method for closest record in ERA5?
-#      - Find closest timestep overall?
-#      - Find closest previous timestep?
-def find_closest_era5_pressure(
+#   Nearest timestep or closest previous timestep?
+def get_closest_value(
     xa: xarray.Dataset, variable: str, date_time: datetime.datetime, latlong: tuple
 ):
     """
-    TODO: given a datetime, find closest previous record in the NetCDF file
-    TODO: extract pressure levels (or only surface level?)
+    Returns closest *previous* value for the given
 
-    xa: an *open* xarray Dataset of the source NetCDF
-    date_time: acquisition datetime
+    :param xa: an *open* xarray Dataset of ERA5 NetCDF data
+    :param variable: name of the ERA5 variable to extract
+    :param date_time: acquisition datetime
+    :param latlong: (lat, long) tuple of the pixel to extract data for
     """
 
-    # TODO: 1st retrieve data across all 37 levels
+    # NB: sel() retrieves data for single & multiple levels
     var = xa[variable]
     latitude, longitude = latlong
     subset = var.sel(
@@ -164,8 +160,7 @@ def profile_data_extraction(
     var_datasets = zip(ERA5_MULTI_LEVEL_VARIABLES, multi_level_datasets)
 
     raw_multi_level = [
-        find_closest_era5_pressure(xf, var, date_time, latlong)
-        for var, xf in var_datasets
+        get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
     ]
 
     multi_level_vars = MultiLevelVars(*raw_multi_level)
@@ -178,8 +173,7 @@ def profile_data_extraction(
     var_datasets = zip(ERA5_SINGLE_LEVEL_NC_VARIABLES, single_level_datasets)
 
     raw_single_level = [
-        find_closest_era5_pressure(xf, var, date_time, latlong)
-        for var, xf in var_datasets
+        get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
     ]
 
     single_level_vars = SingleLevelVars(*raw_single_level)
