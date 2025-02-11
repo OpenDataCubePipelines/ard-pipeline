@@ -222,6 +222,12 @@ def test_era5_profile_data_extraction(
         acquisition_datetime,
     )
 
+    for path in multi_paths:
+        assert os.path.exists(path), f"{path} does not exist"
+
+    for path in single_paths:
+        assert os.path.exists(path), f"{path} does not exist"
+
     xf_multi, xf_single = era5.open_profile_data_files(multi_paths, single_paths)
 
     rtz, single = era5.profile_data_extraction(
