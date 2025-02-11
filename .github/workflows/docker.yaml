@@ -6,93 +6,15 @@ permissions:
     contents: read    # This is required for actions/checkout
 
 jobs:
-    build_with_docker:
-        name: Build and Test
-        runs-on: ubuntu-latest
-        steps:
-        -   uses: actions/checkout@v3
-            with:
-                fetch-depth: 0
-
-        -   run: git describe --tags > git-tag.txt
-
-        -   name: Upload tag as artifact
-            uses: actions/upload-artifact@v4
-            with:
-                name: ard-pipeline-tag
-                path: git-tag.txt
-
-        -   uses: docker/setup-buildx-action@v2
-        # Build and test first.
-        -   uses: docker/build-push-action@v4
-            with:
-                context: .
-                load: true
-                tags: ard-pipeline:dev
-                build-args: fmask_version=0.5.5
-                cache-from: type=gha
-                cache-to: type=gha,mode=max
-        -   name: Run Tests
-            run: docker run --rm -v ${{ github.workspace }}/tests:/tests -w /tests ard-pipeline:dev pytest
-
-        -   name: Save Docker image
-            run: docker save ard-pipeline:dev > ard-pipeline-image.tar
-
-        -   name: Upload image as artifact
-            uses: actions/upload-artifact@v4
-            with:
-                name: ard-pipeline-image
-                path: ard-pipeline-image.tar
-
-    # Now push the docker image everywhere (if we need to).
     publish_docker:
         name: Upload container
         if: |
-            needs.build_with_docker.result == 'success'
-            && github.repository == 'OpenDataCubePipelines/ard-pipeline'
+            github.repository == 'OpenDataCubePipelines/ard-pipeline'
             && github.event_name == 'push'
-            && github.ref == 'refs/heads/main'
 
         runs-on: ubuntu-latest
-        needs: build_with_docker
 
         steps:
-        -   uses: docker/setup-buildx-action@v2
-
-        -   uses: actions/download-artifact@v4
-            with:
-                name: ard-pipeline-tag
-
-        -   run: cat git-tag.txt
-
-        -   uses: actions/download-artifact@v4
-            with:
-                name: ard-pipeline-image
-
-        -   name: Load image
-            run: docker load < ard-pipeline-image.tar
-
-        -   uses: docker/login-action@v3
-            with:
-                username: ${{ secrets.DOCKERHUB_USERNAME }}
-                password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-        -   uses: aws-actions/configure-aws-credentials@v4
-            with:
-                role-to-assume: arn:aws:iam::538673716275:role/ard_pipeline_github-actions-role
-                aws-region: ap-southeast-2
-
-        -   uses: aws-actions/amazon-ecr-login@v1
-            id: login-ecr
-
         -   name: Push Docker image
             run: |
-                TAG=$(cat git-tag.txt)
-                docker tag ard-pipeline:dev geoscienceaustralia/ard-pipeline:dev
-                docker tag ard-pipeline:dev geoscienceaustralia/ard-pipeline:$TAG
-                docker tag ard-pipeline:dev  ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:dev
-                docker tag ard-pipeline:dev  ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:$TAG
-                docker push geoscienceaustralia/ard-pipeline:dev
-                docker push geoscienceaustralia/ard-pipeline:$TAG
-                docker push ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:dev
-                docker push ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:$TAG
+                echo "this is a push event"
