@@ -82,15 +82,6 @@ def find_closest_era5_path(paths, span):
     raise ValueError(msg)
 
 
-def get_nearest_previous_hour(date_time):
-    """
-    Convert a datetime to the number of hours since midnight 1900.
-    """
-    td = date_time - MIDNIGHT_1900
-    hours_since_1900 = int(td.total_seconds() / 60 / 60)  # int() strips partial hours
-    return hours_since_1900
-
-
 # TODO: Which method for closest record in ERA5?
 #   Nearest timestep or closest previous timestep?
 def get_closest_value(
