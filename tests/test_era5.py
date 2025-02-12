@@ -315,10 +315,18 @@ def test_get_corrected_variable_with_scaling(
 ):
     var_name = "tco3"
 
+    raw = era5.get_closest_value(
+        ozone_dataset,
+        var_name,
+        acquisition_datetime,
+        mawson_peak_heard_island_lat_lon,
+    )
+
     corrected = era5.get_corrected_variable(
         ozone_dataset, var_name, acquisition_datetime, mawson_peak_heard_island_lat_lon
     )
 
+    assert raw != corrected
     assert corrected is not None
     assert corrected != -32767
     assert corrected != 0
