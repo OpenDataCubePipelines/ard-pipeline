@@ -302,7 +302,15 @@ def ozone_dataset(era5_data_dir):
     return dataset
 
 
-def test_get_corrected_variable(
+@pytest.fixture
+def geopotential_dataset(era5_data_dir):
+    part = "pressure-levels/reanalysis/z/2023/z_era5_oper_pl_20230201-20230228.nc"
+    path = os.path.join(era5_data_dir, part)
+    dataset = xr.open_dataset(path)
+    return dataset
+
+
+def test_get_corrected_variable_with_scaling(
     ozone_dataset, acquisition_datetime, mawson_peak_heard_island_lat_lon
 ):
     var_name = "tco3"
@@ -316,3 +324,27 @@ def test_get_corrected_variable(
     assert corrected != 0
 
     # TODO: test the scaling func with some values?
+
+
+def test_get_corrected_variable_without_scaling(
+    geopotential_dataset,
+    acquisition_datetime,
+    mawson_peak_heard_island_lat_lon,
+):
+    var_name = "z"
+
+    raw = era5.get_closest_value(
+        geopotential_dataset,
+        var_name,
+        acquisition_datetime,
+        mawson_peak_heard_island_lat_lon,
+    )
+
+    corrected = era5.get_corrected_variable(
+        geopotential_dataset,
+        var_name,
+        acquisition_datetime,
+        mawson_peak_heard_island_lat_lon,
+    )
+
+    assert np.all(corrected == raw)  # scaling was skipped
