@@ -320,14 +320,19 @@ def get_corrected_variable(
     latlong,
 ):
     var = dataset.variables[var_name]
-    nodata, _, scale, offset = _get_variable_scaling_metadata(var.encoding)
 
     # FIXME: is a single point OK???
     raw = get_closest_value(dataset, var_name, date_time, latlong)
 
-    assert raw != nodata  # for single values...
-    # TODO: confirm the scaling function on NODATA returns NODATA
-    scaled = np.where(raw != nodata, (raw * scale) + offset, nodata)
+    try:
+        # TODO: confirm the scaling function on NODATA returns NODATA
+        nodata, _, scale, offset = _get_variable_scaling_metadata(var.encoding)
+        assert raw != nodata  # fail if NODATA for single values...
+
+        scaled = np.where(raw != nodata, (raw * scale) + offset, nodata)
+    except KeyError:
+        scaled = raw  # skip scaling if no scaling attrs exist
+
     return scaled
 
 
