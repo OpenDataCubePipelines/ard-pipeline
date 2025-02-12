@@ -4,11 +4,15 @@ This module is a prototype for working with ERA5 reanalysis NetCDF files on NCI.
 See NCI `rt52` project for a clone of the ERA5 data.
 """
 
+# NB: avoid importing wagl.acquisition as it needs Fortran dependencies
+
 import calendar
 import datetime
 import os.path
 import typing
+import warnings
 
+import numpy as np
 import pandas as pd
 import xarray
 
@@ -291,6 +295,40 @@ def build_profile_data_frame(
 def scale_geopotential(data):
     scaled_data = data / 9.80665 / 1000.0
     return scaled_data
+
+
+SCALING_KEYS = ("missing_value", "_FillValue", "scale_factor", "add_offset")
+
+
+def _get_variable_scaling_metadata(var_meta: xarray.DataArray):
+    nodata = var_meta["missing_value"]
+    fill = var_meta["_FillValue"]
+    scale_factor = var_meta["scale_factor"]
+    offset = var_meta["add_offset"]
+
+    if nodata != fill:
+        msg = "NODATA and fill value are different"
+        warnings.warn(msg)
+
+    return nodata, fill, scale_factor, offset
+
+
+def get_corrected_variable(
+    dataset: xarray.Dataset,
+    var_name,
+    date_time,  # acquisition date time
+    latlong,
+):
+    var = dataset.variables[var_name]
+    nodata, _, scale, offset = _get_variable_scaling_metadata(var.encoding)
+
+    # FIXME: is a single point OK???
+    raw = get_closest_value(dataset, var_name, date_time, latlong)
+
+    assert raw != nodata  # for single values...
+    # TODO: confirm the scaling function on NODATA returns NODATA
+    scaled = np.where(raw != nodata, (raw * scale) + offset, nodata)
+    return scaled
 
 
 def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
