@@ -289,3 +289,30 @@ def test_build_profile_data_frame_real_data(
 
     print()
     print(frame)
+
+
+@pytest.fixture
+def ozone_dataset(era5_data_dir):
+    """Return Feb 2023 'tco3' / total column ozone as an open xarray dataset."""
+    part_path = (
+        "single-levels/reanalysis/tco3/2023/tco3_era5_oper_sfc_20230201-20230228.nc"
+    )
+    path = os.path.join(era5_data_dir, part_path)
+    dataset = xr.open_dataset(path)
+    return dataset
+
+
+def test_get_corrected_variable(
+    ozone_dataset, acquisition_datetime, mawson_peak_heard_island_lat_lon
+):
+    var_name = "tco3"
+
+    corrected = era5.get_corrected_variable(
+        ozone_dataset, var_name, acquisition_datetime, mawson_peak_heard_island_lat_lon
+    )
+
+    assert corrected is not None
+    assert corrected != -32767
+    assert corrected != 0
+
+    # TODO: test the scaling func with some values?
