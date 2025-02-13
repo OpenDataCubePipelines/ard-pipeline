@@ -8,6 +8,7 @@ See NCI `rt52` project for a clone of the ERA5 data.
 
 import calendar
 import datetime
+import numbers
 import os.path
 import typing
 import warnings
@@ -124,10 +125,10 @@ class MultiLevelVars(typing.NamedTuple):
 
 
 class SingleLevelVars(typing.NamedTuple):
-    temperature: typing.Sequence
-    geopotential: typing.Sequence
-    surface_pressure: typing.Sequence
-    dewpoint_temperature: typing.Sequence
+    temperature: numbers.Number
+    geopotential: numbers.Number
+    surface_pressure: numbers.Number
+    dewpoint_temperature: numbers.Number
 
 
 def profile_data_extraction(
