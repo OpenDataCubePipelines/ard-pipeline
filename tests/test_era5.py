@@ -240,16 +240,14 @@ def test_era5_profile_data_extraction(
 
 
 def test_build_profile_data_frame():
-    # TODO: read 37 levels from the MLs
-    # TODO: read & insert surface values --> is 38 levels
-    # TODO: add 6 HARD CODED levels
+    # test building a profile data frame with fake data
 
     # create fake multi level ERA5 data
     relative_humidity_ml = list(range(55, 55 - RAW_NUM_LEVELS, -1))  # descending RH
     temperature_ml = np.array([280 - (i * 5) for i in range(RAW_NUM_LEVELS)])
     geopotential_ml = np.array(
         [2000 + (i * 100) for i in range(RAW_NUM_LEVELS)]
-    )  # TODO: copy NetCDF order
+    )  # TODO: copy NetCDF data order
 
     for var in (relative_humidity_ml, temperature_ml, geopotential_ml):
         assert len(var) == RAW_NUM_LEVELS
