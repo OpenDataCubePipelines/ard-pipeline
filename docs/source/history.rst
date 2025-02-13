@@ -87,3 +87,18 @@ A redesign of the data I/O and workflow, that simplified the task interlinking, 
 * `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (Scientist), and
 * `Ben Lewis <mailto:ben.lewis@ga.gov.au>`_ (Scientist/Developer),
 * `Alexander Vincent <mailto:alexander.vincent@ga.gov.au>`_ (Developer).
+
+ard-pipeline 6.0.0
+------------------
+
+Re-conciliation of multiple related repositories (`wagl`, `eugl`, `tesp`, `dea-wagl-docker``).
+Easier deployment of environment modules and Docker images. Meson build system to handle
+Python-Fortran interfacing.
+
+**The people involved were:**
+
+* `Imam Alam <mailto:imam.alam@ga.gov.au>`_ (Technical Lead),
+* `Jeremy Hooke <mailto:jeremy.hooke@ga.gov.au>`_ (Developer),
+* `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (Scientist)
+* `Aman Chopra <mailto:aman.chopra@ga.gov.au>`_ (Developer), and
+* `Aaron O'Hehir <mailto:aaron.ohehir@ga.gov.au>`_ (Data Scientist)
