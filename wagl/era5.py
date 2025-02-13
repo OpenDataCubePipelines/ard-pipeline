@@ -155,7 +155,7 @@ def profile_data_extraction(
     # z -> geopotential
     var_datasets = zip(ERA5_MULTI_LEVEL_VARIABLES, multi_level_datasets)
 
-    raw_multi_level = [
+    raw_multi_level = [  # read 37 levels from multi level vars
         get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
     ]
 
@@ -255,6 +255,9 @@ ECWMF_LEVELS = [
 def build_profile_data_frame(
     multi_level_vars: MultiLevelVars, single_level_vars: SingleLevelVars
 ):
+    """
+    Returns a MODTRAN profile data frame by merging single & multiple level vars.
+    """
     rh = atmos.relative_humdity(
         single_level_vars.temperature,
         single_level_vars.dewpoint_temperature,
@@ -280,7 +283,7 @@ def build_profile_data_frame(
     geopotential = scale_geopotential(single_level_vars.geopotential)
     temperature = atmos.kelvin_2_celcius(single_level_vars.temperature)
 
-    # insert surface level parameters
+    # insert surface level parameters, expand rows to 38 levels
     profile_frame.loc[-1] = [
         geopotential,
         surface_pressure,
@@ -294,6 +297,7 @@ def build_profile_data_frame(
 
 
 def scale_geopotential(data):
+    # TODO: is there any NODATA?
     scaled_data = data / 9.80665 / 1000.0
     return scaled_data
 
