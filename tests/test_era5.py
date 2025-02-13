@@ -249,10 +249,10 @@ def test_build_profile_data_frame():
     )
 
     # create fake single level ERA5 data
-    temperature_sl = 285  # NB: start with kelvin
+    temperature_sl = 285.0  # NB: start with kelvin
     geopotential_sl = 2300.0
     surface_pressure_sl = 1100.0 * 100  # NB: mimic the units in NetCDF
-    dewpoint_temperature_sl = 2270  # NB: start with kelvin
+    dewpoint_temperature_sl = 2270.0  # NB: start with kelvin
 
     single_level_data = era5.SingleLevelVars(
         temperature_sl, geopotential_sl, surface_pressure_sl, dewpoint_temperature_sl
