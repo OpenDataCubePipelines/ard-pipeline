@@ -234,9 +234,13 @@ def test_era5_profile_data_extraction(
         xf_multi, xf_single, acquisition_datetime, mawson_peak_heard_island_lat_lon
     )
 
-    assert len(rtz) == 3
-    # TODO: for var in rtz: assert len(var) == NUM_LEVELS
+    assert rtz.relative_humidity.shape == (RAW_NUM_LEVELS,)
+    assert rtz.temperature.shape == (RAW_NUM_LEVELS,)
+    assert rtz.geopotential.shape == (RAW_NUM_LEVELS,)
+
     assert len(single) == 4
+    assert single.temperature is not None
+    assert single.geopotential is not None
 
 
 def test_build_profile_data_frame():
