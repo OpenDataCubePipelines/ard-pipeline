@@ -202,9 +202,9 @@ def test_build_era5_path_multi_level(era5_data_dir, acquisition_datetime):
     )
 
 
-def test_era5_profile_data_extraction(
-    era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
-):
+@pytest.fixture
+def default_profile_paths(era5_data_dir, acquisition_datetime):
+    """TODO"""
     multi_paths, single_paths = era5.build_era5_profile_paths(
         era5_data_dir,
         era5.ERA5_MULTI_LEVEL_VARIABLES,
@@ -218,6 +218,16 @@ def test_era5_profile_data_extraction(
     for path in single_paths:
         assert os.path.exists(path), f"{path} does not exist"
 
+    return multi_paths, single_paths
+
+
+def test_era5_profile_data_extraction(
+    era5_data_dir,
+    acquisition_datetime,
+    mawson_peak_heard_island_lat_lon,
+    default_profile_paths,
+):
+    multi_paths, single_paths = default_profile_paths
     xf_multi, xf_single = era5.open_profile_data_files(multi_paths, single_paths)
 
     rtz, single = era5.profile_data_extraction(
@@ -269,15 +279,12 @@ def test_build_profile_data_frame():
 
 
 def test_build_profile_data_frame_real_data(
-    era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
+    era5_data_dir,
+    acquisition_datetime,
+    mawson_peak_heard_island_lat_lon,
+    default_profile_paths,
 ):
-    multi_paths, single_paths = era5.build_era5_profile_paths(
-        era5_data_dir,
-        era5.ERA5_MULTI_LEVEL_VARIABLES,
-        era5.ERA5_SINGLE_LEVEL_VARIABLES,
-        acquisition_datetime,
-    )
-
+    multi_paths, single_paths = default_profile_paths
     xf_multi, xf_single = era5.open_profile_data_files(multi_paths, single_paths)
 
     multi_vars, single_vars = era5.profile_data_extraction(
