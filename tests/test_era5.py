@@ -13,6 +13,19 @@ RAW_NUM_LEVELS = 37
 TOTAL_NUM_LEVELS = 38  # 36 levels + 1 surface level
 
 
+# guard block: check if platform has ERA5 data
+# HACK: use temporary env var to point to local file to get test working
+env_key = "ERA5_TEMP_DATA_DIR"
+platform_err = "Platform lacks ERA5 data"
+
+_data_conds = [
+    os.path.exists("/g/data/rt52/era5"),
+    env_key in os.environ and os.path.exists(os.environ[env_key]),
+]
+
+SYS_MISSING_ERA5_DATA = not any(_data_conds)
+
+
 @pytest.fixture
 def z_file_basename():
     return "z_era5_oper_pl_20240101-20240131.nc"
@@ -123,9 +136,6 @@ def era5_data_dir():
     if "gadi" in socket.gethostname():
         return "/g/data/rt52/era5"
 
-    # HACK: use temporary env var to point to local file to get test working
-    env_key = "ERA5_TEMP_DATA_DIR"
-
     # HACK: set env var to *local* copy of z_era5_oper_pl_20230201-20230228.nc
     if env_key not in os.environ:
         msg = (
@@ -139,6 +149,7 @@ def era5_data_dir():
     return path
 
 
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
 def test_find_closest_era5_pressure_single_level(
     era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
 ):
@@ -162,6 +173,7 @@ def test_find_closest_era5_pressure_single_level(
     assert float(data)  # HACK: silly test
 
 
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
 def test_find_closest_era5_pressure_multi_level(
     era5_data_dir, acquisition_datetime, mawson_peak_heard_island_lat_lon
 ):
@@ -184,19 +196,19 @@ def test_find_closest_era5_pressure_multi_level(
     assert data.shape == (37,)  # should just be levels
 
 
-def test_build_era5_path_single_level(era5_data_dir, acquisition_datetime):
+def test_build_era5_path_single_level(acquisition_datetime):
     var = "z"
     single = True
-    p = era5.build_era5_path(era5_data_dir, var, acquisition_datetime, single)
+    p = era5.build_era5_path("fake_dir_path", var, acquisition_datetime, single)
     assert p.endswith(
         "single-levels/reanalysis/z/2023/z_era5_oper_sfc_20230201-20230228.nc"
     )
 
 
-def test_build_era5_path_multi_level(era5_data_dir, acquisition_datetime):
+def test_build_era5_path_multi_level(acquisition_datetime):
     var = "z"
     single = False
-    p = era5.build_era5_path(era5_data_dir, var, acquisition_datetime, single)
+    p = era5.build_era5_path("fake_dir_path", var, acquisition_datetime, single)
     assert p.endswith(
         "pressure-levels/reanalysis/z/2023/z_era5_oper_pl_20230201-20230228.nc"
     )
@@ -221,6 +233,7 @@ def default_profile_paths(era5_data_dir, acquisition_datetime):
     return multi_paths, single_paths
 
 
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
 def test_era5_profile_data_extraction(
     era5_data_dir,
     acquisition_datetime,
@@ -280,6 +293,7 @@ def test_build_profile_data_frame():
     print(profile_frame)
 
 
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
 def test_build_profile_data_frame_real_data(
     era5_data_dir,
     acquisition_datetime,
@@ -324,6 +338,7 @@ def t0_02_2023():
     return datetime.datetime.fromisoformat("2023-02-01T00")
 
 
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
 def test_verify_xarray_unpacking(ozone_dataset, t0_02_2023):
     """
     Confirm Py environment `xarray` automatically unpacks variables.
@@ -354,6 +369,7 @@ def test_verify_xarray_unpacking(ozone_dataset, t0_02_2023):
     assert np.allclose(tco3_unpacked, tco3_from_xarray)
 
 
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
 def test_verify_xarray_skip_unpacking(geopotential_dataset, t0_02_2023):
     """
     Confirm `xarray` only extracts variables without scale_factor/offset attrs.
