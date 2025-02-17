@@ -13,7 +13,6 @@ import os.path
 import typing
 import warnings
 
-import numpy as np
 import pandas as pd
 import xarray
 
@@ -93,7 +92,11 @@ def get_closest_value(
     xa: xarray.Dataset, variable: str, date_time: datetime.datetime, latlong: tuple
 ):
     """
-    Returns closest *previous* value for the given
+    Returns closest *previous* value for the variable at the time & location.
+
+    `xarray` automatically handles data unpacking (scale factor & offsets) when
+    extracting variables. Calling code can use the data as is. See:
+    https://help.marine.copernicus.eu/en/articles/5470092-how-to-use-add_offset-and-scale_factor-to-calculate-real-values-of-a-variable
 
     :param xa: an *open* xarray Dataset of ERA5 NetCDF data
     :param variable: name of the ERA5 variable to extract
@@ -316,29 +319,6 @@ def _get_variable_scaling_metadata(var_meta: xarray.DataArray):
         warnings.warn(msg)
 
     return nodata, fill, scale_factor, offset
-
-
-def get_corrected_variable(
-    dataset: xarray.Dataset,
-    var_name,
-    date_time,  # acquisition date time
-    latlong,
-):
-    var = dataset.variables[var_name]
-
-    # FIXME: is a single point OK???
-    raw = get_closest_value(dataset, var_name, date_time, latlong)
-
-    try:
-        # TODO: confirm the scaling function on NODATA returns NODATA
-        nodata, _, scale, offset = _get_variable_scaling_metadata(var.encoding)
-        assert raw != nodata  # fail if NODATA for single values...
-
-        scaled = np.where(raw != nodata, (raw * scale) + offset, nodata)
-    except KeyError:
-        scaled = raw  # skip scaling if no scaling attrs exist
-
-    return scaled
 
 
 def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):

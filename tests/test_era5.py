@@ -319,49 +319,54 @@ def geopotential_dataset(era5_data_dir):
     return dataset
 
 
-def test_get_corrected_variable_with_scaling(
-    ozone_dataset, acquisition_datetime, mawson_peak_heard_island_lat_lon
-):
-    var_name = "tco3"
+@pytest.fixture
+def t0_02_2023():
+    return datetime.datetime.fromisoformat("2023-02-01T00")
 
-    raw = era5.get_closest_value(
-        ozone_dataset,
-        var_name,
-        acquisition_datetime,
-        mawson_peak_heard_island_lat_lon,
+
+def test_verify_xarray_unpacking(ozone_dataset, t0_02_2023):
+    """
+    Confirm Py environment `xarray` automatically unpacks variables.
+
+    'Unpacking' describes the process of extracting `packed` data, such as 16 bit
+    values & applying a scaling factor & offset to convert to a real value.
+
+    The following article indicates xarray automatically handles conversions:
+    https://help.marine.copernicus.eu/en/articles/5470092-how-to-use-add_offset-and-scale_factor-to-calculate-real-values-of-a-variable
+    """
+
+    # dimension params for 1st ozone value in tco3/ozone dataset
+    longitude = -180
+    latitude = 90
+
+    ds_from_xarray = ozone_dataset.sel(
+        longitude=longitude, latitude=latitude, time=t0_02_2023
     )
 
-    corrected = era5.get_corrected_variable(
-        ozone_dataset, var_name, acquisition_datetime, mawson_peak_heard_island_lat_lon
+    tco3_from_xarray = ds_from_xarray.tco3.data
+
+    # manually calculate unpacked value
+    scale_factor = 1.28263439555932e-07
+    add_offset = 0.00884041296233444
+    tco3_packed = -5879  # manually copied from `ncdump` output
+    tco3_unpacked = (tco3_packed * scale_factor) + add_offset
+
+    assert np.allclose(tco3_unpacked, tco3_from_xarray)
+
+
+def test_verify_xarray_skip_unpacking(geopotential_dataset, t0_02_2023):
+    """
+    Confirm `xarray` only extracts variables without scale_factor/offset attrs.
+    """
+
+    # dimension params for 1st value of z
+    longitude = -180
+    latitude = 90
+
+    ds_from_xarray = geopotential_dataset.sel(
+        longitude=longitude, latitude=latitude, time=t0_02_2023
     )
 
-    assert raw != corrected
-    assert corrected is not None
-    assert corrected != -32767
-    assert corrected != 0
-
-    # TODO: test the scaling func with some values?
-
-
-def test_get_corrected_variable_without_scaling(
-    geopotential_dataset,
-    acquisition_datetime,
-    mawson_peak_heard_island_lat_lon,
-):
-    var_name = "z"
-
-    raw = era5.get_closest_value(
-        geopotential_dataset,
-        var_name,
-        acquisition_datetime,
-        mawson_peak_heard_island_lat_lon,
-    )
-
-    corrected = era5.get_corrected_variable(
-        geopotential_dataset,
-        var_name,
-        acquisition_datetime,
-        mawson_peak_heard_island_lat_lon,
-    )
-
-    assert np.all(corrected == raw)  # scaling was skipped
+    z_from_xarray = ds_from_xarray.z.data[0]
+    z_from_ncdump = 457292.8  # hand copied into test
+    assert np.allclose(z_from_ncdump, z_from_xarray)
