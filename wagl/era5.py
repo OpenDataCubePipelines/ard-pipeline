@@ -11,7 +11,6 @@ import datetime
 import numbers
 import os.path
 import typing
-import warnings
 
 import pandas as pd
 import xarray
@@ -303,22 +302,6 @@ def scale_geopotential(data):
     # TODO: is there any NODATA?
     scaled_data = data / 9.80665 / 1000.0
     return scaled_data
-
-
-SCALING_KEYS = ("missing_value", "_FillValue", "scale_factor", "add_offset")
-
-
-def _get_variable_scaling_metadata(var_meta: xarray.DataArray):
-    nodata = var_meta["missing_value"]
-    fill = var_meta["_FillValue"]
-    scale_factor = var_meta["scale_factor"]
-    offset = var_meta["add_offset"]
-
-    if nodata != fill:
-        msg = "NODATA and fill value are different"
-        warnings.warn(msg)
-
-    return nodata, fill, scale_factor, offset
 
 
 def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
