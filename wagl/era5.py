@@ -334,6 +334,32 @@ def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
 
 
 def get_ozone_data(
+    ozone_dict,  # OzoneDict NB: avoid hint for now to avoid broken wagl import
+    acquisition_datetime,
+    latlong,
+):
+    """
+    TODO: describe this as a workflow function for ancillary module...
+
+    Keep I/O xarray open() calls at this higher level func.
+    """
+    if "user" in ozone_dict:
+        # NB: assume user value overrides pathname option
+        ozone, metadata = get_ozone_data_user_override(ozone_dict)
+        return ozone, metadata
+
+    if "pathname" in ozone_dict:
+        path = ozone_dict["pathname"]
+        dataset = xarray.open_dataset(path)
+
+        ozone = read_ozone_data(dataset, acquisition_datetime, latlong, latlong)
+        return ozone, None
+
+    msg = "No user override or pathname supplied for ozone"
+    raise ERA5Error(msg)
+
+
+def read_ozone_data(
     ozone_dataset: xarray.Dataset,
     acquisition_datetime,
     latlong: tuple,
@@ -361,10 +387,7 @@ def get_ozone_data_user_override(ozone_dict):
     """
     Return user override ozone value raise error if missing.
     """
-    if ozone_dict and "user" in ozone_dict:
-        data = float(ozone_dict["user"])
-        metadata = {"id": np.array([], VLEN_STRING), "tier": OzoneTier.USER.name}
-        return data, metadata
 
-    msg = "No user override value for ozone"
-    raise ERA5Error(msg)
+    data = float(ozone_dict["user"])
+    metadata = {"id": np.array([], VLEN_STRING), "tier": OzoneTier.USER.name}
+    return data, metadata
