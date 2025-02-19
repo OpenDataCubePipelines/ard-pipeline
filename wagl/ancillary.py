@@ -163,8 +163,10 @@ class WaterVapourDict(TypedDict):
 class OzoneDict(TypedDict):
     # An optional, user-specified value.
     user: Optional[float]
-    # The folder that water vapour files are found.
-    # The files inside are expected of format: "pr_wtr.eatm.{year}.h5"
+    # The folder that contains ozone files.
+    # For DE Aus, file paths format is expected to be: " TODO .{year}.h5"
+    # DE Antarctica uses ERA5 data with paths like:
+    # /g/data/rt52/era5/single-levels/reanalysis/tco3/2023/tco3_era5_oper_sfc_20230201-20230228.nc
     pathname: Optional[str]
 
 
