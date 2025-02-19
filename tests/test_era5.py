@@ -314,6 +314,21 @@ def test_build_profile_data_frame_real_data(
     print(frame)
 
 
+def test_scale_z_to_geopotential_height():
+    z = -0.973126067823614
+    gph = (z / era5.STANDARD_GRAVITY) / 1000.0  # NB: duplicates scaling func
+    res = era5.scale_z_to_geopotential_height(z)
+    assert res == gph
+
+
+def test_scale_z_to_geopotential_height_nodata_fail():
+    nodata = -32767
+    z = nodata
+
+    with pytest.raises(NotImplementedError):
+        era5.scale_z_to_geopotential_height(z, nodata)
+
+
 @pytest.fixture
 def ozone_dataset(era5_data_dir):
     """Return Feb 2023 'tco3' / total column ozone as an open xarray dataset."""
