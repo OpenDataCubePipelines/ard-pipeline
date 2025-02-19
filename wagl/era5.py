@@ -24,6 +24,8 @@ from wagl.hdf5 import VLEN_STRING
 PATHNAME_DATE_FORMAT = "%Y%m%d"
 MIDNIGHT_1900 = datetime.datetime(1900, 1, 1)  # "0" time for Jan 1900
 
+STANDARD_GRAVITY = 9.80665
+
 
 # TODO: parse encoded filename metadata to a data structure
 #  using NamedTuple as data should be static
@@ -274,12 +276,14 @@ def build_profile_data_frame(
     )
 
     # transform data for column order & scaling
-    geopotential = reversed(scale_geopotential(multi_level_vars.geopotential))
+    geopotential_height = reversed(
+        scale_z_to_geopotential_height(multi_level_vars.geopotential)
+    )
     relative_humidity = reversed(multi_level_vars.relative_humidity)
     temperature = atmos.kelvin_2_celcius(multi_level_vars.temperature)
 
     var_name_mapping = {
-        "Geopotential_Height": geopotential,
+        "Geopotential_Height": geopotential_height,
         "Pressure": reversed(ECWMF_LEVELS),
         "Temperature": temperature,
         "Relative_Humidity": relative_humidity,
@@ -289,12 +293,12 @@ def build_profile_data_frame(
 
     # apply data scaling & corrections
     surface_pressure = single_level_vars.surface_pressure / 100.0
-    geopotential = scale_geopotential(single_level_vars.geopotential)
+    geopotential_height = scale_z_to_geopotential_height(single_level_vars.geopotential)
     temperature = atmos.kelvin_2_celcius(single_level_vars.temperature)
 
     # insert surface level parameters, expand rows to 38 levels
     profile_frame.loc[-1] = [
-        geopotential,
+        geopotential_height,
         surface_pressure,
         temperature,
         rh,
@@ -305,9 +309,22 @@ def build_profile_data_frame(
     return profile_frame
 
 
-def scale_geopotential(data):
-    # TODO: is there any NODATA?
-    scaled_data = data / 9.80665 / 1000.0
+def scale_z_to_geopotential_height(z, nodata=None):
+    """
+    Scale geopotential in m**2 s**-2 to kilometres.
+    """
+    # >>> ds = xarray.open_dataset(path_to_era5_single_level_geopotential)
+    # >>> ds.z.units
+    # 'm**2 s**-2'
+    #
+    # dividing by gravity m/s**2 leaves metres?
+    # divide metres by 1000 for kilometres
+
+    if nodata and z == nodata:
+        msg = "TODO: handle case where extracted geopotential is NODATA"
+        raise NotImplementedError(msg)
+
+    scaled_data = z / STANDARD_GRAVITY / 1000.0
     return scaled_data
 
 
