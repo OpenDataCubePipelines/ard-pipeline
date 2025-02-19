@@ -393,8 +393,8 @@ def test_get_ozone_data_from_era5_netcdf(
     ozone_dataset, acquisition_datetime, mawson_peak_heard_island_lat_lon
 ):
     # NB: get_ozone_data() fun is barely required as it's a minor customisation
-    #  of get_closest_value(). The function helps with readability.
-    tco3 = era5.get_ozone_data(
+    #  of get_closest_value(). The function mostly helps readability.
+    tco3 = era5.read_ozone_data(
         ozone_dataset,
         acquisition_datetime,
         mawson_peak_heard_island_lat_lon,
