@@ -24,11 +24,10 @@ from wagl.hdf5 import VLEN_STRING
 PATHNAME_DATE_FORMAT = "%Y%m%d"
 MIDNIGHT_1900 = datetime.datetime(1900, 1, 1)  # "0" time for Jan 1900
 
+# See https://en.wikipedia.org/wiki/Standard_gravity
 STANDARD_GRAVITY = 9.80665
 
 
-# TODO: parse encoded filename metadata to a data structure
-#  using NamedTuple as data should be static
 # TODO: annotate as dataclass to provide Py style sorting?
 class ERA5FileMeta(typing.NamedTuple):
     """
@@ -43,17 +42,18 @@ class ERA5FileMeta(typing.NamedTuple):
     stream: str  # TODO: e.g. 'oper' what is this?
     unknown: str  # TODO: rename
 
-    # TODO: filenames provide start & end dates, without a time component. Could
-    #  test the hour fields are correct in several NetCDF files & default the
-    #  start *datetime* to midnight & stop time as 23:00.
-    # TODO: probably need datetime.datetime to select the closest NetCDF data
-    #  record to each Acquisition's datetime.
+    # ERA5 filenames provide start & end dates without a time component.
     start_time: datetime.datetime  # datetime to specify start hour of 1st timestep
     stop_time: datetime.datetime  # TODO: hour of last timestep?
     path: str
 
     @classmethod
     def from_basename(cls, path_basename):
+        """
+        Return a new ERA5FileMeta instance.
+
+        :param path_basename: the *base* filename with no directory component.
+        """
         # parse file meta from "z_era5_oper_pl_20240101-20240131" base name
         base, _ = os.path.splitext(path_basename)  # drop `.nc`
         var, ds, _stream, x, time_range = base.split("_")
@@ -184,12 +184,15 @@ def profile_data_extraction(
     ]
 
     single_level_vars = SingleLevelVars(*raw_single_level)
-
-    # TODO: add to names tuple, named tuple, dict or return multiple values?
     return multi_level_vars, single_level_vars
 
 
 def open_profile_data_files(multi_paths, single_paths):
+    """
+    Opens single & multi level ERA5 NetCDF files & returns xarray datasets.
+
+    NB: this keeps I/O ops outside data processing functions.
+    """
     xf_multi_level_datasets = [xarray.open_dataset(p) for p in multi_paths]
     xf_single_level_datasets = [xarray.open_dataset(p) for p in single_paths]
     return xf_multi_level_datasets, xf_single_level_datasets
@@ -312,6 +315,9 @@ def build_profile_data_frame(
 def scale_z_to_geopotential_height(z, nodata=None):
     """
     Scale geopotential in m**2 s**-2 to kilometres.
+
+    :param z: geopotential value.
+    :param nodata: NODATA value
     """
     # >>> ds = xarray.open_dataset(path_to_era5_single_level_geopotential)
     # >>> ds.z.units
