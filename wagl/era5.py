@@ -12,10 +12,13 @@ import numbers
 import os.path
 import typing
 
+import numpy as np
 import pandas as pd
 import xarray
 
 import wagl.atmos as atmos
+from wagl.constants import OzoneTier
+from wagl.hdf5 import VLEN_STRING
 
 # strptime format for "YYYYMMDD" strings
 PATHNAME_DATE_FORMAT = "%Y%m%d"
@@ -58,6 +61,10 @@ class ERA5FileMeta(typing.NamedTuple):
 
         meta = ERA5FileMeta(var, ds, _stream, x, start_tm, stop_tm, path_basename)
         return meta
+
+
+class ERA5Error(Exception):
+    pass
 
 
 def date_span(date_obj):
@@ -324,3 +331,40 @@ def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
 
     frame = build_profile_data_frame(multi_vars, single_vars)
     return frame
+
+
+def get_ozone_data(
+    ozone_dataset: xarray.Dataset,
+    acquisition_datetime,
+    latlong: tuple,
+):
+    """
+    Retrieve total column of ozone (tco3) for an acquisition.
+
+    :param ozone_dataset: an open `xarray` of ERA tco3 data.
+    :param acquisition_datetime:
+    :param latlong: (latitude, longitude) tuple
+    """
+
+    varname = "tco3"
+    tco3 = get_closest_value(
+        ozone_dataset,
+        varname,
+        acquisition_datetime,
+        latlong,
+    )
+
+    return tco3
+
+
+def get_ozone_data_user_override(ozone_dict):
+    """
+    Return user override ozone value raise error if missing.
+    """
+    if ozone_dict and "user" in ozone_dict:
+        data = float(ozone_dict["user"])
+        metadata = {"id": np.array([], VLEN_STRING), "tier": OzoneTier.USER.name}
+        return data, metadata
+
+    msg = "No user override value for ozone"
+    raise ERA5Error(msg)
