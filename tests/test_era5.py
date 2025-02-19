@@ -386,3 +386,28 @@ def test_verify_xarray_skip_unpacking(geopotential_dataset, t0_02_2023):
     z_from_xarray = ds_from_xarray.z.data[0]
     z_from_ncdump = 457292.8  # hand copied into test
     assert np.allclose(z_from_ncdump, z_from_xarray)
+
+
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
+def test_get_ozone_data_from_era5_netcdf(
+    ozone_dataset, acquisition_datetime, mawson_peak_heard_island_lat_lon
+):
+    # NB: get_ozone_data() fun is barely required as it's a minor customisation
+    #  of get_closest_value(). The function helps with readability.
+    tco3 = era5.get_ozone_data(
+        ozone_dataset,
+        acquisition_datetime,
+        mawson_peak_heard_island_lat_lon,
+    )
+
+    assert tco3 is not None
+    assert float(tco3)  # TODO: rubbish test
+
+
+def test_get_ozone_data_from_override():
+    user_override = 0.000111
+    ozone = {
+        "user": user_override
+    }  # use instead of OzoneDict which requires more imports
+    tco3, _ = era5.get_ozone_data_user_override(ozone)
+    assert tco3 == user_override
