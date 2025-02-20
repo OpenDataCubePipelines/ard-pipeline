@@ -196,6 +196,96 @@ def test_find_closest_era5_pressure_multi_level(
     assert data.shape == (37,)  # should just be levels
 
 
+@pytest.fixture
+def acquisition_datetime_2011():
+    # create fake acquisition_datetime
+    return datetime.datetime(2011, 7, 8, 10, 45)
+
+
+@pytest.fixture
+def z_02_2023(era5_data_dir):
+    path = os.path.join(
+        era5_data_dir,
+        "pressure-levels/reanalysis/z/2023",
+        "z_era5_oper_pl_20230201-20230228.nc",
+    )
+
+    try:
+        xf = xr.open_dataset(path, engine="h5netcdf")
+    except ValueError:
+        # try without engine arg...
+        xf = xr.open_dataset(path)
+
+    return xf
+
+
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
+def test_find_closest_value_datetime_outside_range(
+    z_02_2023, acquisition_datetime_2011, mawson_peak_heard_island_lat_lon
+):
+    with pytest.raises(KeyError):
+        era5.get_closest_value(
+            z_02_2023,
+            "z",
+            acquisition_datetime_2011,
+            latlong=mawson_peak_heard_island_lat_lon,
+        )
+
+
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
+def test_find_closest_value_positive_latitude_outside_range(
+    z_02_2023, acquisition_datetime
+):
+    for bad_lat in (95, 100, 101):
+        assert bad_lat not in z_02_2023.latitude.data
+
+        with pytest.raises(KeyError):
+            era5.get_closest_value(
+                z_02_2023, "z", acquisition_datetime, latlong=(bad_lat, 130)
+            )
+
+
+@pytest.mark.skip(reason="Determine why xarray.sel() doesn't fail")
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
+def test_find_closest_value_negative_latitude_outside_range(
+    z_02_2023, acquisition_datetime
+):
+    for bad_lat in (-91, -95, -101):
+        assert bad_lat not in z_02_2023.latitude.data
+
+        with pytest.raises(KeyError):
+            era5.get_closest_value(
+                z_02_2023, "z", acquisition_datetime, latlong=(bad_lat, 130)
+            )
+
+
+@pytest.mark.skip(reason="Determine why xarray.sel() doesn't fail")
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
+def test_find_closest_value_positive_longitude_outside_range(
+    z_02_2023, acquisition_datetime
+):
+    for bad_long in (181, 185, 190):
+        assert bad_long not in z_02_2023.longitude.data
+
+        with pytest.raises(KeyError):
+            era5.get_closest_value(
+                z_02_2023, "z", acquisition_datetime, latlong=(79.0, bad_long)
+            )
+
+
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
+def test_find_closest_value_negative_longitude_outside_range(
+    z_02_2023, acquisition_datetime
+):
+    for bad_long in (-182, -186, -189):
+        assert bad_long not in z_02_2023.longitude.data
+
+        with pytest.raises(KeyError):
+            era5.get_closest_value(
+                z_02_2023, "z", acquisition_datetime, latlong=(69.0, bad_long)
+            )
+
+
 def test_build_era5_path_single_level(acquisition_datetime):
     var = "z"
     single = True
