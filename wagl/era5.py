@@ -112,10 +112,15 @@ def get_closest_value(
     :param latlong: (lat, long) tuple of the pixel to extract data for
     """
 
-    # NB: sel() retrieves data for single & multiple levels
+    # xarray.sel() raises KeyError if date_time & latitude are not within the
+    # variable's min-max range. Specifying *longitudes* outside +/-180 does not
+    # cause exceptions, however it returns an empty data array.
+    # TODO: catch KeyError or break & fail fast to indicate likely bad code?
+    #  Mismatching time/location vars are unlikely to occur if using the funcs
+    #  to build the ERA5 data paths, this should select the correct NetCDF
     var = xa[variable]
     latitude, longitude = latlong
-    subset = var.sel(
+    subset = var.sel(  # NB: sel() retrieves data for single & multiple levels
         time=date_time, method="ffill", latitude=latitude, longitude=longitude
     )
     return subset.data
@@ -200,7 +205,15 @@ def open_profile_data_files(multi_paths, single_paths):
 
 def build_era5_path(base_dir, var, date_time: datetime.datetime, single=True):
     """
-    TODO: return a path to ERA5 file
+    Build & return expected path to an ERA5 NetCDF data file.
+
+    Given acquisition metadata, create the expected ERA5 path containing the
+    ancillary data at the acquisition time.
+
+    :param base_dir: Root dir path for ERA5 data (e.g. "/g/data/rt53/era5")
+    :param var: name of variable of interest
+    :param date_time: acquisition datatime
+    :param single: True for "single-levels" data, False for "pressure-levels".
     """
     type_dir = "single-levels" if single else "pressure-levels"
     _type = "sfc" if single else "pl"
@@ -223,7 +236,7 @@ def build_era5_profile_paths(
     return multi_paths, single_paths
 
 
-# HACK: copied from ancillary.py (can't import wagl module without the F90 being built)
+# HACK: copied from ancillary.py (can't import wagl module without F90 build)
 ECWMF_LEVELS = [
     1,
     2,
