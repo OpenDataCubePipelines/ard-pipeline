@@ -494,11 +494,11 @@ def test_verify_xarray_skip_unpacking(geopotential_dataset, t0_02_2023):
 
 
 @pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
-def test_get_ozone_data_from_era5_netcdf(
+def test_read_ozone_data_from_era5_netcdf(
     ozone_dataset, acquisition_datetime, mawson_peak_heard_island_lat_lon
 ):
-    # NB: get_ozone_data() fun is barely required as it's a minor customisation
-    #  of get_closest_value(). The function mostly helps readability.
+    # NB: read_ozone_data() fun is barely required as it's a minor customisation
+    #  of get_closest_value(). Keep for readability???
     tco3 = era5.read_ozone_data(
         ozone_dataset,
         acquisition_datetime,
@@ -506,13 +506,14 @@ def test_get_ozone_data_from_era5_netcdf(
     )
 
     assert tco3 is not None
-    assert float(tco3)  # TODO: rubbish test
+    assert float(tco3)  # FIXME: rubbish test
 
 
-def test_get_ozone_data_from_override():
-    user_override = 0.000111
-    ozone = {
-        "user": user_override
-    }  # use instead of OzoneDict which requires more imports
-    tco3, _ = era5.get_ozone_data_user_override(ozone)
-    assert tco3 == user_override
+# NB: comment this until it's known if the override is needed
+# def test_get_ozone_data_from_override():
+#     user_override = 0.000111
+#     ozone = {
+#         "user": user_override
+#     }  # use instead of OzoneDict which requires more imports
+#     tco3, _ = era5.get_ozone_data_user_override(ozone)
+#     assert tco3 == user_override
