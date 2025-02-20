@@ -12,13 +12,10 @@ import numbers
 import os.path
 import typing
 
-import numpy as np
 import pandas as pd
 import xarray
 
 import wagl.atmos as atmos
-from wagl.constants import OzoneTier
-from wagl.hdf5 import VLEN_STRING
 
 # strptime format for "YYYYMMDD" strings
 PATHNAME_DATE_FORMAT = "%Y%m%d"
@@ -132,6 +129,7 @@ ERA5_MULTI_LEVEL_VARIABLES = ("r", "t", "z")
 # variable within the NetCDF file.
 ERA5_SINGLE_LEVEL_VARIABLES = ("2t", "z", "sp", "2d")
 ERA5_SINGLE_LEVEL_NC_VARIABLES = ("t2m", "z", "sp", "d2m")
+ERA5_TOTAL_COLUMN_OZONE = "tco3"
 
 
 class MultiLevelVars(typing.NamedTuple):
@@ -369,61 +367,49 @@ def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
     return frame
 
 
-def get_ozone_data(
-    ozone_dict,  # OzoneDict NB: avoid hint for now to avoid broken wagl import
-    acquisition_datetime,
-    latlong,
-):
+# TODO: is a user ozone override required?
+# NB: this doesn't require the luigi ozone setting
+def ozone_workflow(era5_data_dir, acquisition_datetime, lat_long):
     """
-    TODO: describe this as a workflow function for ancillary module...
-
-    Keep I/O xarray open() calls at this higher level func.
+    TODO
     """
-    if "user" in ozone_dict:
-        # NB: assume user value overrides pathname option
-        ozone, metadata = get_ozone_data_user_override(ozone_dict)
-        return ozone, metadata
-
-    if "pathname" in ozone_dict:
-        path = ozone_dict["pathname"]
-        dataset = xarray.open_dataset(path)
-
-        ozone = read_ozone_data(dataset, acquisition_datetime, latlong, latlong)
-        return ozone, None
-
-    msg = "No user override or pathname supplied for ozone"
-    raise ERA5Error(msg)
+    ozone_path = build_era5_path(
+        era5_data_dir, ERA5_TOTAL_COLUMN_OZONE, acquisition_datetime, single=True
+    )
+    dataset = xarray.open_dataset(ozone_path)
+    ozone = read_ozone_data(dataset, acquisition_datetime, lat_long)
+    return ozone
 
 
 def read_ozone_data(
     ozone_dataset: xarray.Dataset,
     acquisition_datetime,
-    latlong: tuple,
+    lat_long: tuple,
 ):
     """
     Retrieve total column of ozone (tco3) for an acquisition.
 
     :param ozone_dataset: an open `xarray` of ERA tco3 data.
     :param acquisition_datetime:
-    :param latlong: (latitude, longitude) tuple
+    :param lat_long: (latitude, longitude) tuple
     """
 
-    varname = "tco3"
     tco3 = get_closest_value(
         ozone_dataset,
-        varname,
+        ERA5_TOTAL_COLUMN_OZONE,
         acquisition_datetime,
-        latlong,
+        lat_long,
     )
 
     return tco3
 
 
-def get_ozone_data_user_override(ozone_dict):
-    """
-    Return user override ozone value raise error if missing.
-    """
-
-    data = float(ozone_dict["user"])
-    metadata = {"id": np.array([], VLEN_STRING), "tier": OzoneTier.USER.name}
-    return data, metadata
+# NB: comment this until it's known if the override is needed
+# def get_ozone_data_user_override(ozone_dict):
+#     """
+#     Return user override ozone value raise error if missing.
+#     """
+#
+#     data = float(ozone_dict["user"])
+#     metadata = {"id": np.array([], VLEN_STRING), "tier": OzoneTier.USER.name}
+#     return data, metadata
