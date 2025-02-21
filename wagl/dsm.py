@@ -208,6 +208,10 @@ def read_copernicus_dem(cop_pathname, dst_geobox):
             try:
                 reprojected = np.full(subset_geobox.shape, np.nan, dtype=np.float32)
 
+                if not (reprojected.shape[0] > 0 and reprojected.shape[1] > 0):
+                    # otherwise reproject below fails
+                    raise ValueError
+
                 reproject(
                     source=rasterio.band(ds, 1),
                     destination=reprojected,
