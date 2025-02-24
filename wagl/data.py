@@ -51,14 +51,18 @@ def get_pixel(h5_path: str, dataset_name: str, lonlat: Tuple[float, float]):
 
 
 def get_pixel_from_raster(filename: str, lonlat: Tuple[float, float]):
-    with rasterio.open(filename) as ds:
-        to_crs = pyproj.CRS.from_string(str(ds.crs))
-        from_crs = pyproj.CRS.from_epsg(4326)
-        transformer = pyproj.Transformer.from_crs(from_crs, to_crs, always_xy=True)
-        lon, lat = lonlat
-        x, y = transformer.transform(lon, lat)
-        [result] = list(ds.sample([(x, y)]))
-        return result[0]
+    try:
+        with rasterio.open(filename) as ds:
+            to_crs = pyproj.CRS.from_string(str(ds.crs))
+            from_crs = pyproj.CRS.from_epsg(4326)
+            transformer = pyproj.Transformer.from_crs(from_crs, to_crs, always_xy=True)
+            lon, lat = lonlat
+            x, y = transformer.transform(lon, lat)
+            [result] = list(ds.sample([(x, y)]))
+            return result[0]
+    except rasterio.errors.RasterioIOError:
+        # copernicus DEM over the ocean has no tiles
+        return 0.0
 
 
 def select_acquisitions(acqs_list, fn=(lambda acq: True)):
