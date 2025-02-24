@@ -454,22 +454,34 @@ def stash_ancillary(
     # get the highest resolution group containing supported bands
     acqs, grp_name = container.get_highest_resolution(granule=granule)
 
-    grn_con = container.get_granule(granule=granule, container=True)
+    granule_con = container.get_granule(granule=granule, container=True)
     res_group = root[grp_name]
 
-    log.info("Ancillary-Retrieval")
-    nbar_paths = {
-        "aerosol_dict": aerosol,
-        "water_vapour_dict": water_vapour,
-        "ozone_dict": ozone,
-        "dem_path": dem_path,
-        "cop_pathname": cop_pathname,
-        "brdf_dict": brdf,
-    }
+    msg = "Ancillary-Retrieval-ERA5" if era5_dir_path else "Ancillary-Retrieval"
+    log.info(msg)
+
+    if era5_dir_path:
+        # ERA5 prototype requires less ancillary data
+        paths = {
+            "aerosol": aerosol,
+            "dem_path": dem_path,
+            "brdf_dict": brdf,
+        }
+    else:
+        # NBAR paths
+        paths = {
+            "aerosol_dict": aerosol,
+            "water_vapour_dict": water_vapour,
+            "ozone_dict": ozone,
+            "dem_path": dem_path,
+            "cop_pathname": cop_pathname,
+            "brdf_dict": brdf,
+        }
+
     collect_ancillary(
-        grn_con,
+        granule_con,
         res_group[GroupName.SAT_SOL_GROUP.value],
-        nbar_paths,
+        paths,
         offshore_territory_boundary_path,
         ecmwf_path,
         invariant_fname,
