@@ -182,7 +182,7 @@ class NbarPathsDict(TypedDict):
 def collect_ancillary(
     container: AcquisitionsContainer,
     satellite_solar_group,
-    nbar_paths: NbarPathsDict,
+    cfg_paths: NbarPathsDict,
     offshore_territory_boundary_path: str,
     sbt_path=None,
     invariant_fname=None,
@@ -209,13 +209,19 @@ def collect_ancillary(
 
         * DatasetName.BOXLINE
 
-    :param nbar_paths:
+    :param cfg_paths:
         A `dict` containing the ancillary pathnames required for
-        retrieving the NBAR ancillary data. Required keys:
+        retrieving the NBAR ancillary data OR ERA5 data. Keys required for NBAR:
 
         * aerosol
         * water_vapour
         * ozone
+        * dem_path
+        * brdf_dict
+
+        Required keys for ERA5 / DE Antarctica:
+
+        * aerosol (a numeric constant as of prototype stage)
         * dem_path
         * brdf_dict
 
@@ -252,6 +258,9 @@ def collect_ancillary(
         Default is None, which will use the default settings for the
         chosen H5CompressionFilter instance.
 
+    :param era5_dir_path:
+        Path to the ERA5 root data dir (e.g. /g/data/rt52/era5) or None
+
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -261,7 +270,7 @@ def collect_ancillary(
     if len(container.granules) > 1:
         raise RuntimeError(
             "Container should consist of a single Granule or None, only. "
-            "Use `AcquisitionsContainer.get_granule` method prior to calling this function."
+            "Use `AcquisitionsContainer.get_granule()` prior to calling this function."
         )
 
     assert out_group is not None
@@ -308,20 +317,92 @@ def collect_ancillary(
 
     if era5_dir_path:
         collect_era5_ancillary(
-            acquisition,
-            acquisition.gridded_geo_box().centre_lonlat,
+            container,
             era5_dir_path,
+            cfg_paths,
             group,  # HDF5 writeable group
             compression=compression,
             filter_opts=filter_opts,
         )
+    else:
+        # NB: skip NBAR otherwise will overwrite ERA5 ancillaries
+        collect_nbar_ancillary(
+            container,
+            out_group=group,
+            offshore=is_offshore_territory(
+                acquisition, offshore_territory_boundary_path
+            ),
+            **cfg_paths,
+        )
 
-    collect_nbar_ancillary(
-        container,
-        out_group=group,
-        offshore=is_offshore_territory(acquisition, offshore_territory_boundary_path),
-        **nbar_paths,
-    )
+
+def collect_era5_ancillary(
+    container,
+    ancillary_path,  # ERA5 data dir
+    cfg_paths,
+    out_group,  # HDF5 writeable group
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
+    """
+    TODO: Collects ERA5/ECWMF based ancillary data.
+
+    `water vapour` is *not required* directly as it's covered by relative humidity
+    in the custom atmospheric data frame workflow
+    """
+
+    assert out_group is not None
+    fid = out_group
+    fid.attrs["era5-ancillary"] = True
+
+    acquisition = container.get_highest_resolution()[0][0]
+    geobox = acquisition.gridded_geo_box()
+    lon_lat = geobox.centre_lonlat
+    acq_datetime = acquisition.acquisition_datetime
+
+    # TODO: do individual profile values need to be written into the HDF5 file?
+    #  is writing only the profile data frame sufficient?
+    # work with single centroid point per acquisition for prototyping simplicity
+
+    # extract atmospheric profile data
+    pnt = POINT_FMT.format(p=0)
+    df = era5.profile_data_frame_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
+    data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
+    write_dataframe(df, data_name, fid, compression, filter_opts=filter_opts)
+
+    # TODO: follow HDF5 structure set by collect_nbar_ancillary()?
+    #  otherwise write a table or dict of values?
+
+    # NB: use constant for aerosols for DE Ant prototyping
+    #  Add data reader as the DE Ant pipeline evolves over time
+    aerosol = cfg_paths["aerosol"]
+    write_scalar(aerosol, DatasetName.AEROSOL.value, fid)  # TODO: any attrs needed?
+
+    ozone = era5.ozone_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
+    write_scalar(ozone, DatasetName.OZONE.value, fid)  # TODO: any attrs needed?
+
+    # TODO: check DEM, is offshore flag required???
+    offshore = False
+    dem_path = cfg_paths["dem_path"]
+    elev = get_elevation_data(geobox.centre_lonlat, dem_path, offshore=offshore)
+    write_scalar(elev[0], DatasetName.ELEVATION.value, fid, elev[1])
+
+    # TODO: check BRDF
+    dname_format = DatasetName.BRDF_FMT.value
+    for group in container.groups:
+        for acq in container.get_acquisitions(group=group):
+            if acq.band_type is not BandType.REFLECTIVE:
+                continue
+
+            data = get_brdf_data(acq, cfg_paths["brdf_dict"], offshore=offshore)
+
+            # output
+            for param in data:
+                dname = dname_format.format(
+                    parameter=param.value, band_name=acq.band_name
+                )
+                brdf_value = data[param].pop("value")
+                write_scalar(brdf_value, dname, fid, data[param])
 
 
 def collect_sbt_ancillary(
@@ -464,34 +545,6 @@ def collect_sbt_ancillary(
         )
 
         fid[pnt].attrs["lonlat"] = lonlat
-
-
-def collect_era5_ancillary(
-    acquisition,
-    lonlat,
-    ancillary_path,  # ERA5 data dir
-    out_group,  # HDF5 writeable group
-    compression=H5CompressionFilter.LZF,
-    filter_opts=None,
-):
-    """
-    TODO: Collects ERA5/ECWMF based ancillary data.
-    """
-    assert out_group is not None
-    fid = out_group
-    fid.attrs["era5-ancillary"] = True
-
-    acq_datetime = acquisition.acquisition_datetime
-
-    # TODO: do individual profile values need to be written into the HDF5 file?
-    #  is writing only the profile data frame sufficient?
-    # work with single centroid point per acquisition for prototyping simplicity
-    pnt = POINT_FMT.format(p=0)
-
-    df = era5.profile_data_frame_workflow(ancillary_path, acq_datetime, lonlat[::-1])
-
-    data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
-    write_dataframe(df, data_name, fid, compression, filter_opts=filter_opts)
 
 
 @attr.define
