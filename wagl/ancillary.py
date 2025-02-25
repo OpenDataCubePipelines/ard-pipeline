@@ -347,13 +347,12 @@ def collect_era5_ancillary(
     """
     TODO: Collects ERA5/ECWMF based ancillary data.
 
-    `water vapour` is *not required* directly as it's covered by relative humidity
-    in the custom atmospheric data frame workflow
+    Note: `water vapour` is *not required* directly as it's covered by relative
+    humidity in the custom atmospheric data frame workflow
     """
 
     assert out_group is not None
-    fid = out_group
-    fid.attrs["era5-ancillary"] = True
+    out_group.attrs["era5-ancillary"] = True
 
     acquisition = container.get_highest_resolution()[0][0]
     geobox = acquisition.gridded_geo_box()
@@ -368,7 +367,7 @@ def collect_era5_ancillary(
     pnt = POINT_FMT.format(p=0)
     df = era5.profile_data_frame_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
     data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
-    write_dataframe(df, data_name, fid, compression, filter_opts=filter_opts)
+    write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
 
     # TODO: follow HDF5 structure set by collect_nbar_ancillary()?
     #  otherwise write a table or dict of values?
@@ -376,16 +375,18 @@ def collect_era5_ancillary(
     # NB: use constant for aerosols for DE Ant prototyping
     #  Add data reader as the DE Ant pipeline evolves over time
     aerosol = cfg_paths["aerosol"]
-    write_scalar(aerosol, DatasetName.AEROSOL.value, fid)  # TODO: any attrs needed?
+    write_scalar(
+        aerosol, DatasetName.AEROSOL.value, out_group
+    )  # TODO: any attrs needed?
 
     ozone = era5.ozone_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
-    write_scalar(ozone, DatasetName.OZONE.value, fid)  # TODO: any attrs needed?
+    write_scalar(ozone, DatasetName.OZONE.value, out_group)  # TODO: any attrs needed?
 
     # TODO: check DEM, is offshore flag required???
     offshore = False
     dem_path = cfg_paths["dem_path"]
     elev = get_elevation_data(geobox.centre_lonlat, dem_path, offshore=offshore)
-    write_scalar(elev[0], DatasetName.ELEVATION.value, fid, elev[1])
+    write_scalar(elev[0], DatasetName.ELEVATION.value, out_group, elev[1])
 
     # TODO: check BRDF
     dname_format = DatasetName.BRDF_FMT.value
@@ -402,7 +403,7 @@ def collect_era5_ancillary(
                     parameter=param.value, band_name=acq.band_name
                 )
                 brdf_value = data[param].pop("value")
-                write_scalar(brdf_value, dname, fid, data[param])
+                write_scalar(brdf_value, dname, out_group, data[param])
 
 
 def collect_sbt_ancillary(
