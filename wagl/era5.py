@@ -402,14 +402,3 @@ def read_ozone_data(
     )
 
     return tco3
-
-
-# NB: comment this until it's known if the override is needed
-# def get_ozone_data_user_override(ozone_dict):
-#     """
-#     Return user override ozone value raise error if missing.
-#     """
-#
-#     data = float(ozone_dict["user"])
-#     metadata = {"id": np.array([], VLEN_STRING), "tier": OzoneTier.USER.name}
-#     return data, metadata
