@@ -1,8 +1,6 @@
-#!/usr/bin/env python
-
-"""MODTRAN drivers
+"""
+MODTRAN drivers
 ---------------.
-
 """
 
 import fnmatch
@@ -88,11 +86,13 @@ def format_json(
     lon_lat_group,
     workflow,
     out_group,
+    era5_data_dir=None,
 ):
-    """Creates json files for the albedo (0) and thermal."""
     """
     Creates json files for the albedo (0) and thermal.
     """
+    assert out_group is not None
+
     # angles data
     sat_view = satellite_solar_group[DatasetName.SATELLITE_VIEW.value]
     sat_azi = satellite_solar_group[DatasetName.SATELLITE_AZIMUTH.value]
@@ -106,8 +106,12 @@ def format_json(
 
     # ancillary data
     coordinator = ancillary_group[DatasetName.COORDINATOR.value]
-    aerosol = anc_grp[DatasetName.AEROSOL.value][()]
-    water_vapour = anc_grp[DatasetName.WATER_VAPOUR.value][()]
+    aerosol = anc_grp[DatasetName.AEROSOL.value][()]  # NB: [()] == [:]
+
+    if era5_data_dir is None:
+        # NB: ERA5 water vapour is accounted for in the custom atmos profile
+        water_vapour = anc_grp[DatasetName.WATER_VAPOUR.value][()]
+
     ozone = anc_grp[DatasetName.OZONE.value][()]
     elevation = anc_grp[DatasetName.ELEVATION.value][()]
 
@@ -143,8 +147,6 @@ def format_json(
     # get modtran profiles to use based on the centre latitude
     _, centre_lat = acquisitions[0].gridded_geo_box().centre_lonlat
 
-    assert out_group is not None
-
     if GroupName.ATMOSPHERIC_INPUTS_GRP.value not in out_group:
         out_group.create_group(GroupName.ATMOSPHERIC_INPUTS_GRP.value)
 
@@ -154,14 +156,18 @@ def format_json(
 
     json_data = {}
     # setup the json files required by MODTRAN
+
+    # NB: prototype ERA5 workflow, reuse parts of NBAR using `era5_data_dir` as
+    #  a flag to indicate a differences to the workflow. This may change as it
+    #  complicates this workflow (temporarily OK for DE Ant prototype).
     if workflow in (Workflow.STANDARD, Workflow.NBAR):
         acqs = [a for a in acquisitions if a.band_type == BandType.REFLECTIVE]
 
-        for p in range(npoints):
+        for p in range(npoints):  # TODO: only using 1 point for init proto
             for alb in Workflow.NBAR.albedos:
+                # configure common NBAR & ERA5 input data
                 input_data = {
                     "name": POINT_ALBEDO_FMT.format(p=p, a=str(alb.value)),
-                    "water": water_vapour,
                     "ozone": ozone,
                     "doy": acquisitions[0].julian_day(),
                     "visibility": -aerosol,
@@ -170,24 +176,61 @@ def format_json(
                     "time": acquisitions[0].decimal_hour(),
                     "sat_azimuth": azi_corrected[p],
                     "sat_height": acquisitions[0].altitude / 1000.0,
-                    "elevation": elevation,
                     "sat_view": view_corrected[p],
-                    "albedo": float(alb.value),
                     "filter_function": acqs[0].spectral_filter_name,
-                    "binary": False,
                 }
 
-                if centre_lat < -23.0:
-                    data = mpjson.midlat_summer_albedo(**input_data)
-                else:
-                    data = mpjson.tropical_albedo(**input_data)
+                if era5_data_dir:
+                    # customise ERA5 args for custom optical profiles
+                    pnt = POINT_FMT.format(p=p)
+                    dname = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
 
+                    # NB: this is the atmos profile dframe from era5.py
+                    # TODO: read as table or dframe?
+                    atmos_profile = read_h5_table(ancillary_group, dname)
+
+                    n_layers = atmos_profile.shape[0] + 6  # FIXME: check size
+                    elevation = atmos_profile.iloc[0]["GeoPotential_Height"]
+
+                    era5_profile_ext = {
+                        "n_layers": n_layers,
+                        "prof_alt": list(atmos_profile["GeoPotential_Height"]),
+                        "prof_pres": list(atmos_profile["Pressure"]),
+                        "prof_temp": list(atmos_profile["Temperature"]),
+                        "prof_water": list(atmos_profile["Relative_Humidity"]),
+                        "geopotential_height": elevation,
+                    }
+
+                    input_data.update(era5_profile_ext)
+                    data = mpjson.custom_optical_profile(**input_data)
+                else:
+                    # handle standard NBAR workflow
+                    input_data["elevation"]: elevation
+                    input_data["albedo"] = float(alb.value)
+                    input_data["water"] = water_vapour
+                    input_data["binary"] = False
+
+                    if centre_lat < -23.0:
+                        data = mpjson.midlat_summer_albedo(**input_data)
+                    else:
+                        data = mpjson.tropical_albedo(**input_data)
+
+                    # NB: drop `binary` to prevent value being serialised after
+                    #  profile creation.
+                    # NB: modifying the data dict for different purposes on the
+                    #  fly is somewhat ugly (for workflow logic)
+                    input_data.pop("binary")
+
+                # NB: keep `description` & `file_format` out of input_data literal,
+                #  otherwise the extra kwargs break the `mpjson` atmos profile functions
                 input_data["description"] = "Input file for MODTRAN"
                 input_data["file_format"] = "json"
-                input_data.pop("binary")
 
+                # NB: capture MODTRAN profiles in `json_data`
+                #  json_data is also the function return value
                 json_data[(p, alb)] = data
 
+                # serialise atmospheric profile as `data` & write to HDF5
                 data = json.dumps(data, cls=JsonEncoder, indent=4)
                 dname = ppjoin(
                     POINT_FMT.format(p=p),
@@ -245,7 +288,7 @@ def format_json(
         lonlat = (coordinator["longitude"][p], coordinator["latitude"][p])
         group[POINT_FMT.format(p=p)].attrs["lonlat"] = lonlat
 
-    return json_data, out_group
+    return json_data
 
 
 def run_modtran(
