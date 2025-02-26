@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 import json
 import tempfile
 from os.path import join as pjoin
@@ -248,6 +245,7 @@ def card4l(
             modtran_exe,
             compression,
             filter_opts,
+            era5_dir_path,
         )
 
         stash_interpolation(
@@ -502,6 +500,7 @@ def stash_atmospherics(
     modtran_exe,
     compression,
     filter_opts,
+    era5_dir_path=None,  # use as flag to indicate ERA5/DE Ant run
 ):
     log = STATUS_LOGGER.bind(
         level1=container.label, granule=granule, granule_group=None
@@ -520,10 +519,21 @@ def stash_atmospherics(
     sat_sol_grp = res_group[GroupName.SAT_SOL_GROUP.value]
     lon_lat_grp = res_group[GroupName.LON_LAT_GROUP.value]
 
-    # TODO: supported acqs in different groups pointing to different response funcs
-    json_data, _ = format_json(
-        acqs, ancillary_group, sat_sol_grp, lon_lat_grp, workflow, root
-    )
+    # NB: acqs with thermal bands are for SBT, ignore thermal code for DE Ant
+    if era5_dir_path:
+        json_data = format_json(
+            acqs,
+            ancillary_group,
+            sat_sol_grp,
+            lon_lat_grp,
+            workflow,
+            root,
+            era5_dir_path,
+        )
+    else:
+        json_data = format_json(
+            acqs, ancillary_group, sat_sol_grp, lon_lat_grp, workflow, root
+        )
 
     # atmospheric inputs group
     inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
@@ -531,6 +541,7 @@ def stash_atmospherics(
     json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".json"]))
     nvertices = vertices[0] * vertices[1]
 
+    # TODO: should some of MODTRAN data munging code move to modtran.py?
     # radiative transfer for each point and albedo
     for key in json_data:
         point, albedo = key
@@ -538,6 +549,7 @@ def stash_atmospherics(
         log.info("Radiative-Transfer", point=point, albedo=albedo.value)
 
         with tempfile.TemporaryDirectory() as tmpdir:
+            # TODO: possible refactor, pass work & point dir args & cut duplication
             prepare_modtran(acqs, point, [albedo], tmpdir)
 
             point_dir = pjoin(tmpdir, POINT_FMT.format(p=point))
@@ -548,7 +560,11 @@ def stash_atmospherics(
             with open(json_mod_infile, "w") as src:
                 json_dict = json_data[key]
 
+                # TODO: ugly, modifying JSON data in a high level workflow func
+                #  try moving to `format_json()` & passing `workdir` to populate
+                #  `json_data` with FILTNM
                 if albedo == Albedos.ALBEDO_TH:
+                    # NB: thermal albedo only for SBT
                     json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = (
                         "{}/{}".format(
                             workdir,
@@ -567,6 +583,11 @@ def stash_atmospherics(
                     )
 
                 else:
+                    # NB: adds or modifies the filter file setting
+                    # TODO: simplify json dict lookup
+                    #  filtnm = json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"]
+                    #  filtnm = f"{workdir}/{filtnm}")
+
                     json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = (
                         "{}/{}".format(
                             workdir,
