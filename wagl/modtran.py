@@ -57,7 +57,9 @@ class JsonEncoder(json.JSONEncoder):
 
 
 def prepare_modtran(acquisitions, coordinate, albedos, basedir):
-    """Prepares the working directory for a MODTRAN execution."""
+    """
+    Prepare working directory for a MODTRAN execution.
+    """
     point_dir = pjoin(basedir, POINT_FMT.format(p=coordinate))
 
     for albedo in albedos:
@@ -88,6 +90,9 @@ def format_json(
     out_group,
 ):
     """Creates json files for the albedo (0) and thermal."""
+    """
+    Creates json files for the albedo (0) and thermal.
+    """
     # angles data
     sat_view = satellite_solar_group[DatasetName.SATELLITE_VIEW.value]
     sat_azi = satellite_solar_group[DatasetName.SATELLITE_AZIMUTH.value]
@@ -135,7 +140,7 @@ def format_json(
     idx = azi_corrected > 360
     azi_corrected[idx] -= 360
 
-    # get the modtran profiles to use based on the centre latitude
+    # get modtran profiles to use based on the centre latitude
     _, centre_lat = acquisitions[0].gridded_geo_box().centre_lonlat
 
     assert out_group is not None
@@ -298,12 +303,13 @@ def run_modtran(
 
         group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
+        # NB: MODTRAN runs here
         subprocess.check_call([modtran_exe, json_mod_infile], cwd=workpath)
 
         chn_fname = glob.glob(pjoin(workpath, "*.chn"))[0]
         tp6_fname = glob.glob(pjoin(workpath, "*.tp6"))[0]
 
-        if albedo == Albedos.ALBEDO_TH:
+        if albedo == Albedos.ALBEDO_TH:  # NB: ignore this for NBAR
             acq = next(acq for acq in acqs if acq.band_type == BandType.THERMAL)
 
             channel_data = read_modtran_channel(chn_fname, tp6_fname, acq, albedo)
@@ -380,11 +386,13 @@ def calculate_coefficients(
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
 ):
-    """Calculate the atmospheric coefficients from the MODTRAN output
-    and used in the BRDF and atmospheric correction.
-    Coefficients are computed for each band for each each coordinate
-    for each atmospheric coefficient. The atmospheric coefficients can be
-    found in `Workflow.STANDARD.atmos_coefficients`.
+    """
+    Calculate atmospheric coefficients from MODTRAN output for BRDF & atmospheric
+    corrections.
+
+    Coefficients are computed for each band for each coordinate for each
+    atmospheric coefficient. The atmospheric coefficients can be found in
+    `Workflow.STANDARD.atmos_coefficients`.
 
     :param atmospheric_results_group:
         The root HDF5 `Group` that contains the atmospheric results
