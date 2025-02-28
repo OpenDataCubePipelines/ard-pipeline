@@ -44,11 +44,6 @@ def z_stop_datetime():
 
 
 @pytest.fixture
-def z_file_path():
-    return "/g/data/rt52/era5/pressure-levels/reanalysis/z/2024/z_era5_oper_pl_20240101-20240131.nc"
-
-
-@pytest.fixture
 def acquisition_datetime():
     # create fake acquisition_datetime
     return datetime.datetime(2023, 2, 4, 11, 23, 45)
