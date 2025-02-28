@@ -189,7 +189,10 @@ def format_json(
                     # TODO: read as table or dframe?
                     atmos_profile = read_h5_table(ancillary_group, dname)
 
-                    n_layers = atmos_profile.shape[0] + 6  # FIXME: check size
+                    # TODO: calculate n_layers in profile func?
+                    n_layers = (
+                        atmos_profile.shape[0] + 6
+                    )  # NB: +6 for extra data added in modtran_profile_json.py
                     elevation = atmos_profile.iloc[0]["GeoPotential_Height"]
 
                     era5_profile_ext = {

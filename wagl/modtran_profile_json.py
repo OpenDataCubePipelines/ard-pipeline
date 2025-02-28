@@ -552,7 +552,7 @@ def thermal_transmittance(
 
 
 def custom_optical_profile(
-    out_name,
+    name,
     ozone,
     n_layers,
     prof_alt,
@@ -569,7 +569,6 @@ def custom_optical_profile(
     geopotential_height,
     sat_view,
     filter_function,
-    binary,
 ):
     """
     MODTRAN 6.0.1 input: 'json' format template for use with a custom
@@ -611,7 +610,7 @@ def custom_optical_profile(
         "MODTRAN": [
             {
                 "MODTRANINPUT": {
-                    "NAME": out_name,
+                    "NAME": name,
                     "CASE": 0,
                     "RTOPTIONS": {
                         "MODTRN": "RT_MODTRAN",
