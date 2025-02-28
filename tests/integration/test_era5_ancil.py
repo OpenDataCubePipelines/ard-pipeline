@@ -47,7 +47,7 @@ def canberra_scene_sentinel2_container(canberra_scene_sentinel2_path):
 @pytest.fixture
 def scene_landsat_path():
     gdata = "/g/data/da82/AODH/USGS/L1/Landsat"
-    p = "/C1/092_084/LT50920842008269ASA00/LT05_L1TP_092084_20080925_20161029_01_T1.tar"
+    p = "C1/092_084/LT50920842008269ASA00/LT05_L1TP_092084_20080925_20161029_01_T1.tar"
     path = os.path.join(gdata, p)
     assert os.path.exists(path)
     return path
