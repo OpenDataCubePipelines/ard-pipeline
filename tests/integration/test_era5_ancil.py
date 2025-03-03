@@ -58,14 +58,16 @@ def nci_era5_dir_path():
 
 @pytest.fixture
 def cop_sentinel2_root():
+    # shorten long NCI file paths with this fixture
     return "/g/data/fj7/Copernicus/Sentinel-2/MSI/L1C/"
 
 
 @pytest.fixture
 def canberra_scene_sentinel2_path(cop_sentinel2_root):
-    # NB: return NCI specific path to test scene over Aus
-    path = "2024/2024-12/30S145E-35S150E/S2A_MSIL1C_20241207T001111_N0511_R073_T55HDD_20241207T011213.zip"
-    abs_path = os.path.join(cop_sentinel2_root, path)
+    # return NCI specific path to test scene over Aus, use 2023 to ensure ERA5
+    # data exists (as some 2024 data was missing as of 03/2025)
+    p = "2023/2023-12/35S145E-40S150E/S2B_MSIL1C_20231231T235229_N0510_R130_T55HGS_20240101T004900.zip"
+    abs_path = os.path.join(cop_sentinel2_root, p)
     assert os.path.exists(abs_path)
     return abs_path
 
@@ -89,6 +91,14 @@ def scene_landsat_path():
 def scene_landsat_container(scene_landsat_path):
     container = acquisition.acquisitions(scene_landsat_path)
     return container
+
+
+@pytest.fixture
+def output_filename_sentinel(canberra_scene_sentinel2_path):
+    bn = os.path.basename(canberra_scene_sentinel2_path)
+    no_ext = os.path.splitext(bn)[0]
+    out = f"{no_ext}.testing.wagl.h5"
+    return out
 
 
 @pytest.fixture
@@ -172,3 +182,29 @@ def test_collect_era5_ancillary_landsat(
     for val in plast[1:]:
         assert val is not None
         assert val != 0
+
+
+@pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
+def test_collect_era5_ancillary_sentinel(
+    canberra_scene_sentinel2_container, nci_era5_dir_path, output_filename_sentinel
+):
+    tmp_dir = init_tmp_dir()
+    dest_path = os.path.join(tmp_dir, output_filename_sentinel)
+
+    with h5py.File(dest_path, "w") as fid:
+        out_group = fid.create_group(constants.GroupName.ANCILLARY_GROUP.value)
+
+        ancillary.collect_era5_ancillary(
+            canberra_scene_sentinel2_container,
+            nci_era5_dir_path,
+            _default_cfg_paths,
+            out_group,
+        )
+
+    assert os.path.exists(dest_path)
+
+    # very basic test to ensure readable HDF5 output...
+    df = h5py.File(dest_path)
+
+    expected_aerosol = 0.05
+    assert df["ANCILLARY/AEROSOL"][()] == expected_aerosol
