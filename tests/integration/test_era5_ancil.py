@@ -92,8 +92,8 @@ def scene_landsat_container(scene_landsat_path):
 
 
 @pytest.fixture
-def output_filename(canberra_scene_sentinel2_path):
-    bn = os.path.basename(canberra_scene_sentinel2_path)
+def output_filename_landsat(scene_landsat_path):
+    bn = os.path.basename(scene_landsat_path)
     no_ext = os.path.splitext(bn)[0]
     out = f"{no_ext}.testing.wagl.h5"
     return out
@@ -121,11 +121,11 @@ def init_tmp_dir():
 
 
 @pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
-def test_collect_era5_ancillary(
-    scene_landsat_container, nci_era5_dir_path, output_filename
+def test_collect_era5_ancillary_landsat(
+    scene_landsat_container, nci_era5_dir_path, output_filename_landsat
 ):
     tmp_dir = init_tmp_dir()
-    dest_path = os.path.join(tmp_dir, output_filename)
+    dest_path = os.path.join(tmp_dir, output_filename_landsat)
 
     with h5py.File(dest_path, "w") as fid:
         out_group = fid.create_group(constants.GroupName.ANCILLARY_GROUP.value)
