@@ -1,3 +1,30 @@
+"""
+ERA5 Ancillary Integration testing.
+
+This is a quick & dirty integration test script, designed to run blocks of the
+ERA5 workflow in isolation from the full `ard-pipeline` workflow. It's treated
+as an integration test as it executes multiple python modules & reads real data
+for testing.
+
+NB: this code is **coupled to NCI** systems due to data access requirements.
+
+NCI usage:
+
+This test script is intended to be executed from an `ard-pipeline` conda
+environment. If you do not have conda environment, set one up using the README.
+
+1) Log into `gadi`
+
+2) Activate the `ard-pipeline` environment.
+
+3) `cd` to your git clone of `ard-pipeline`.
+
+4) Run `pytest --disable-warnings tests/integration/test_era5_ancil.py`
+
+Test runs may take anywhere from 1 to 10 minutes. The cause is unknown as NCI
+nodes have non-deterministic performance issues.
+"""
+
 import os
 import socket
 
