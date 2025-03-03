@@ -357,6 +357,16 @@ def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
         acquisition_datetime,
     )
 
+    # ERA5 data has a ~4 month production lag & may not exist for the acquisition
+    # fail fast in this DE Antarctica prototype
+    for p in multi_paths + single_paths:
+        if not os.path.exists(p):
+            msg = (
+                f"ERA5 data not found {p}\nIs the ERA5 data missing due to"
+                f" production lag?"
+            )
+            raise FileNotFoundError(msg)
+
     xf_multi, xf_single = open_profile_data_files(multi_paths, single_paths)
 
     multi_vars, single_vars = profile_data_extraction(
