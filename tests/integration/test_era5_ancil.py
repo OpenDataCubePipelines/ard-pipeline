@@ -153,11 +153,16 @@ def test_collect_era5_ancillary(
     profile = df["ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
     assert profile is not None
     assert len(profile) == 38  # number of rows
-    p0 = profile[0]
+    p0 = tuple(profile[0])  # convert ndarray to tuple to allow slicing
     assert p0[0] == 0  # check 1st row index is valid
 
     for val in p0[1:]:
         assert val is not None
         assert val != 0
 
-    assert profile[-1] == 37  # check valid last row index
+    plast = tuple(profile[-1])
+    assert plast[0] == 37  # check valid last row index
+
+    for val in plast[1:]:
+        assert val is not None
+        assert val != 0
