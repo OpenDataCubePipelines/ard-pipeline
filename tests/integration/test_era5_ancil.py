@@ -87,13 +87,45 @@ def test_collect_era5_ancillary(
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
 
-    dest = os.path.join(tmp_dir, output_filename)
+    dest_path = os.path.join(tmp_dir, output_filename)
 
-    with h5py.File(dest, "w") as fid:
+    with h5py.File(dest_path, "w") as fid:
         out_group = fid.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
         ancillary.collect_era5_ancillary(
             scene_landsat_container, nci_era5_dir_path, cfg_paths, out_group
         )
 
-    assert os.path.exists(dest)
+    assert os.path.exists(dest_path)
+
+    # verify H5 file contains ancillary data
+    # NB: as of 03/2025, ard-pipeline xarray version is 2024.02.0. This version
+    #  lacks features & can't seem to read H5 subgroups like POINT-0. Use h5py
+    #  for testing for now
+    df = h5py.File(dest_path)
+
+    expected_aerosol = 0.05
+    assert df["ANCILLARY/AEROSOL"][()] == expected_aerosol
+
+    # NB: expected_ozone = "TODO"
+    ozone = df["ANCILLARY/OZONE"][()]
+    assert ozone is not None
+    assert ozone != 0.0  # FIXME: copy ozone from source data?
+
+    # NB: expected elevation = ???
+    elevation = df["ANCILLARY/ELEVATION"][()]
+    assert elevation is not None
+    assert elevation > 0.0  # FIXME: copy elevation from source?
+
+    # check atmos profile
+    profile = df["ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
+    assert profile is not None
+    assert len(profile) == 38  # number of rows
+    p0 = profile[0]
+    assert p0[0] == 0  # check 1st row index is valid
+
+    for val in p0[1:]:
+        assert val is not None
+        assert val != 0
+
+    assert profile[-1] == 37  # check valid last row index
