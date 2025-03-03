@@ -6,12 +6,17 @@ import pytest
 
 from wagl import acquisition, ancillary, constants
 
-# check TMPDIR for testing
-TMP_DIR = "TMPDIR"
-
-if TMP_DIR not in os.environ:
-    # raise RuntimeError("Set $TMPDIR environment var for era5 integration testing")
+# check hostname & TMPDIR for platform checking
+if "gadi" not in socket.gethostname():
     TMP_DIR = False
+else:
+    TMP_DIR = "TMPDIR"
+
+    if TMP_DIR not in os.environ:
+        msg = "Set $TMPDIR env variable to temp directory"
+        raise RuntimeError(msg)
+
+_REASON = "Platform does not appear to be an NCI system"
 
 
 @pytest.fixture
@@ -67,7 +72,7 @@ def output_filename(canberra_scene_sentinel2_path):
     return out
 
 
-@pytest.mark.skipif(TMP_DIR is False, reason="Test system is not NCI")
+@pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
 def test_collect_era5_ancillary(
     scene_landsat_container, nci_era5_dir_path, output_filename
 ):
