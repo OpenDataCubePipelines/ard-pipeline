@@ -99,33 +99,39 @@ def output_filename(canberra_scene_sentinel2_path):
     return out
 
 
-@pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
-def test_collect_era5_ancillary(
-    scene_landsat_container, nci_era5_dir_path, output_filename
-):
-    # config copied from luigi cfg template & singlefile_workflow.py
-    cfg_paths = {
-        "aerosol": 0.05,
-        "dem_path": "/g/data/v10/eoancillarydata-2/elevation/world_1deg/DEM_one_deg_20June2019.h5:/SRTM/GA-DSM",
-        "brdf_dict": {
-            "brdf_path": "/g/data/v10/eoancillarydata-2/BRDF/MCD43A1.061",
-            "ocean_mask_path": "/g/data/v10/eoancillarydata-2/ocean_mask/base_oz_tile_set_water_mask_geotif.tif",
-        },
-    }
+# config copied from luigi cfg template & singlefile_workflow.py
+_default_cfg_paths = {
+    "aerosol": 0.05,
+    "dem_path": "/g/data/v10/eoancillarydata-2/elevation/world_1deg/DEM_one_deg_20June2019.h5:/SRTM/GA-DSM",
+    "brdf_dict": {
+        "brdf_path": "/g/data/v10/eoancillarydata-2/BRDF/MCD43A1.061",
+        "ocean_mask_path": "/g/data/v10/eoancillarydata-2/ocean_mask/base_oz_tile_set_water_mask_geotif.tif",
+    },
+}
 
+
+def init_tmp_dir():
     tmp_dir = os.path.abspath(os.environ[TMP_DIR])
     tmp_dir = os.path.join(tmp_dir, "ard-era5-testing")
 
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
 
+    return tmp_dir
+
+
+@pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
+def test_collect_era5_ancillary(
+    scene_landsat_container, nci_era5_dir_path, output_filename
+):
+    tmp_dir = init_tmp_dir()
     dest_path = os.path.join(tmp_dir, output_filename)
 
     with h5py.File(dest_path, "w") as fid:
         out_group = fid.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
         ancillary.collect_era5_ancillary(
-            scene_landsat_container, nci_era5_dir_path, cfg_paths, out_group
+            scene_landsat_container, nci_era5_dir_path, _default_cfg_paths, out_group
         )
 
     assert os.path.exists(dest_path)
