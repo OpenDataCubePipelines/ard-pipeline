@@ -297,7 +297,7 @@ def build_profile_data_frame(
     temperature = atmos.kelvin_2_celcius(multi_level_vars.temperature)
 
     var_name_mapping = {
-        "Geopotential_Height": geopotential_height,
+        "GeoPotential_Height": geopotential_height,
         "Pressure": reversed(ECWMF_LEVELS),
         "Temperature": temperature,
         "Relative_Humidity": relative_humidity,
