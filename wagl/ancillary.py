@@ -375,9 +375,16 @@ def collect_era5_ancillary(
     # NB: use constant for aerosols for DE Ant prototyping
     #  Add data reader as the DE Ant pipeline evolves over time
     aerosol = cfg_paths["aerosol"]
-    write_scalar(
-        aerosol, DatasetName.AEROSOL.value, out_group
-    )  # TODO: any attrs needed?
+
+    if "user" in aerosol:
+        aerosol_value = aerosol["user"]
+
+        write_scalar(
+            aerosol_value, DatasetName.AEROSOL.value, out_group
+        )  # TODO: any attrs needed?
+    else:
+        msg = "Reading aerosol from a data source is NOT yet implemented"
+        raise NotImplementedError(msg)
 
     ozone = era5.ozone_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
     write_scalar(ozone, DatasetName.OZONE.value, out_group)  # TODO: any attrs needed?
