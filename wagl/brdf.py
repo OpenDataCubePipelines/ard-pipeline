@@ -35,6 +35,7 @@ import shapely.geometry
 from osgeo import ogr
 from rasterio.crs import CRS
 from rasterio.features import rasterize
+from rasterio.warp import Resampling, reproject
 from shapely import ops, wkt
 from shapely.geometry import box
 from shapely.geometry.base import BaseGeometry
@@ -43,6 +44,12 @@ from skimage.transform import downscale_local_mean
 from wagl.acquisition import Acquisition
 from wagl.constants import BrdfDirectionalParameters, BrdfModelParameters, BrdfTier
 from wagl.data import read_subset
+from wagl.dsm import (
+    copernicus_wbm_image_for_latlon,
+    covering_geobox_subset,
+    list_copernicus_bands_for_geobox,
+)
+from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import VLEN_STRING
 from wagl.metadata import current_h5_metadata
 
@@ -415,7 +422,48 @@ def segmentize_polygon(src_poly, length_scale):
     return wkt.loads(src_poly_geom.ExportToWkt())
 
 
-def only_ocean_pixels(src_poly, src_crs, fid_mask):
+def read_copernicus_wbm(cop_pathname, dst_geobox):
+    OCEAN = 1
+    NODATA = 10  # outside the valid range 0-3
+
+    result = np.full(dst_geobox.shape, NODATA, dtype=np.uint8)
+    dst_crs = dst_geobox.crs.ExportToProj4()
+
+    for dataset_reader in list_copernicus_bands_for_geobox(
+        cop_pathname, copernicus_wbm_image_for_latlon, dst_geobox
+    ):
+        with dataset_reader as ds:
+            subset, subset_geobox = covering_geobox_subset(
+                dst_geobox, GriddedGeoBox.from_dataset(ds)
+            )
+
+            if subset is None:
+                continue
+
+            try:
+                reprojected = np.full(subset_geobox.shape, NODATA, dtype=np.uint8)
+
+                reproject(
+                    source=rasterio.band(ds, 1),
+                    destination=reprojected,
+                    dst_crs=dst_crs,
+                    dst_transform=subset_geobox.transform,
+                    dst_nodata=NODATA,
+                    resampling=Resampling.mode,
+                )
+                result[subset] = np.where(
+                    result[subset] == NODATA, reprojected, result[subset]
+                )
+            except ValueError:
+                # TODO investigate this
+                # possibly DEM tile not intersecting with the dst_geobox
+                pass
+
+    result = np.where(result == NODATA, OCEAN, result)
+    return result
+
+
+def only_ocean_pixels_mozaic(src_poly, src_crs, fid_mask):
     # TODO there is much code common between this function and load_brdf_tile
 
     dst_geotransform = fid_mask.transform
@@ -453,12 +501,53 @@ def only_ocean_pixels(src_poly, src_crs, fid_mask):
     return np.sum(ocean_mask & roi_mask) == 0
 
 
+def wbm_to_ocean_mask(result):
+    """
+    Converts an image from water-body mask (enum of 0-3) to land-ocean mask (bool).
+    """
+    OCEAN = 1
+    LAKE = 2
+    RIVER = 3
+    result = np.where(result == LAKE, OCEAN, result)
+    result = np.where(result == RIVER, OCEAN, result)
+
+    # only left with NO_WATER=0 and OCEAN=1
+    # mask as bool would be the inverted version
+    # (NO_WATER -> True, OCEAN -> False)
+    return (1 - result).astype(bool)
+
+
+def only_ocean_pixels_tiled(src_poly, cop_pathname, src_geobox):
+    wbm = read_copernicus_wbm(cop_pathname, src_geobox)
+    ocean_mask = wbm_to_ocean_mask(wbm)
+    assert ocean_mask.shape == src_geobox.shape
+
+    roi_mask = rasterize(
+        [(src_poly, 1)],
+        fill=0,
+        out_shape=src_geobox.shape,
+        transform=src_geobox.transform,
+    )
+    roi_mask = roi_mask.astype(bool)
+    assert roi_mask.shape == src_geobox.shape
+
+    return np.sum(ocean_mask & roi_mask) == 0
+
+
+def only_ocean_pixels(src_geobox, src_poly, src_crs, ocean_mask_path):
+    if os.path.isfile(ocean_mask_path):
+        with rasterio.open(ocean_mask_path, "r") as fid_mask:
+            return only_ocean_pixels_mozaic(src_poly, src_crs, fid_mask)
+
+    return only_ocean_pixels_tiled(src_poly, ocean_mask_path, src_geobox)
+
+
 def load_brdf_tile(
     src_poly,
     src_crs,
     fid: h5py.File,
     dataset_name: str,
-    fid_mask: rasterio.DatasetReader,
+    ocean_mask_path: str,
     satellite: str,
     offshore: bool = False,
 ) -> BrdfTileSummary:
@@ -472,6 +561,7 @@ def load_brdf_tile(
             *ds.attrs["geotransform"]
         )
         dst_crs = CRS.from_wkt(ds.attrs["crs_wkt"])
+        dst_geobox = GriddedGeoBox.from_h5_dataset(ds)
 
     else:
         ds = fid["HDFEOS/GRIDS/VIIRS_Grid_BRDF/Data Fields/"][dataset_name]
@@ -479,6 +569,12 @@ def load_brdf_tile(
         gt = extract_VIIRS_geotransform(fid)
         dst_geotransform = rasterio.transform.Affine.from_gdal(*gt)
         dst_crs = CRS.from_wkt(VIIRS_crs())
+        dst_geobox = GriddedGeoBox(
+            shape=(ds_height, ds_width),
+            origin=(dst_geotransform.xoff, dst_geotransform.yoff),
+            pixelsize=(dst_geotransform.a, dst_geotransform.e),
+            crs=VIIRS_crs(),
+        )
 
     # assumes the length scales are the same (m)
     dst_poly = ops.transform(
@@ -494,19 +590,23 @@ def load_brdf_tile(
     if not bound_poly.intersects(dst_poly):
         return BrdfTileSummary.empty()
 
-    ocean_poly = ops.transform(
-        lambda x, y: fid_mask.transform * (x, y),
-        box(0.0, 0.0, fid_mask.width, fid_mask.height),
-    )
+    if os.path.isfile(ocean_mask_path):
+        with rasterio.open(ocean_mask_path, "r") as fid_mask:
+            ocean_poly = ops.transform(
+                lambda x, y: fid_mask.transform * (x, y),
+                box(0.0, 0.0, fid_mask.width, fid_mask.height),
+            )
 
-    if not ocean_poly.intersects(dst_poly):
-        return BrdfTileSummary.empty()
+            if not ocean_poly.intersects(dst_poly):
+                return BrdfTileSummary.empty()
 
-    # read ocean mask file for correspoing tile window
-    # land=1, ocean=0
-    bound_poly_coords = list(bound_poly.exterior.coords)[:4]
-    ocean_mask, _ = read_subset(fid_mask, *bound_poly_coords)
-    ocean_mask = ocean_mask.astype(bool)
+            # read ocean mask file for correspoing tile window
+            # land=1, ocean=0
+            bound_poly_coords = list(bound_poly.exterior.coords)[:4]
+            ocean_mask, _ = read_subset(fid_mask, *bound_poly_coords)
+            ocean_mask = ocean_mask.astype(bool)
+    else:
+        ocean_mask = wbm_to_ocean_mask(read_copernicus_wbm(ocean_mask_path, dst_geobox))
 
     # inside=1, outside=0
     roi_mask = rasterize(
@@ -709,15 +809,20 @@ def get_tally(
         ocean_mask_path_to_use = brdf_config["extended_ocean_mask_path"]
 
     tally = {}
-    with rasterio.open(ocean_mask_path_to_use, "r") as fid_mask:
-        for ds in datasets:
-            tally[ds] = BrdfTileSummary.empty()
+    for ds in datasets:
+        tally[ds] = BrdfTileSummary.empty()
 
-            for tile in tile_list:
-                with h5py.File(tile, "r") as fid:
-                    tally[ds] += load_brdf_tile(
-                        src_poly, src_crs, fid, ds, fid_mask, satellite, offshore
-                    )
+        for tile in tile_list:
+            with h5py.File(tile, "r") as fid:
+                tally[ds] += load_brdf_tile(
+                    src_poly,
+                    src_crs,
+                    fid,
+                    ds,
+                    ocean_mask_path_to_use,
+                    satellite,
+                    offshore,
+                )
     return tally
 
 
@@ -812,8 +917,9 @@ def get_brdf_data(
     else:
         ocean_mask_path_to_use = brdf_config["extended_ocean_mask_path"]
 
-    with rasterio.open(ocean_mask_path_to_use, "r") as fid_mask:
-        only_ocean = only_ocean_pixels(src_poly, src_crs, fid_mask)
+    only_ocean = only_ocean_pixels(
+        acquisition.gridded_geo_box(), src_poly, src_crs, ocean_mask_path_to_use
+    )
 
     def get_tally2(mode: BrdfMode, dt: datetime.date):
         if only_ocean:

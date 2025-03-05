@@ -34,7 +34,7 @@ from wagl.constants import (
     WaterVapourTier,
 )
 from wagl.data import get_pixel, get_pixel_from_raster
-from wagl.dsm import copernicus_dem_images_for_latlon
+from wagl.dsm import copernicus_dem_image_for_latlon
 from wagl.hdf5 import (
     VLEN_STRING,
     H5CompressionFilter,
@@ -775,13 +775,14 @@ def get_elevation_data(lonlat: LonLat, pathname: PathWithDataset, offshore: bool
             metadata = {"id": np.array([md_uuid], VLEN_STRING)}
         else:
             if os.path.isdir(pathname):
-                imgs = copernicus_dem_images_for_latlon(
-                    pathname, [(floor(lonlat[1]), floor(lonlat[0]))]
+                img = os.path.join(
+                    pathname,
+                    copernicus_dem_image_for_latlon(floor(lonlat[1]), floor(lonlat[0])),
                 )
-                assert len(imgs) == 1
+
                 # TODO this assumes images on disk
                 # TODO support s3
-                data = get_pixel_from_raster(imgs[0], lonlat)
+                data = get_pixel_from_raster(img, lonlat)
             else:
                 data = get_pixel_from_raster(pathname, lonlat)
             metadata = {"id": np.array(["cop-30m-dem"], VLEN_STRING)}
