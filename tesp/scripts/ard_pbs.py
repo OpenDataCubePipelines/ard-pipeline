@@ -24,7 +24,7 @@ PBS_RESOURCES = """#!/bin/bash
 #PBS -q {queue}
 #PBS -l walltime={walltime},mem={memory}GB,ncpus={ncpus},jobfs={jobfs}GB,other=pernodejobfs
 #PBS -l wd
-#PBS -l storage={filesystem_projects}
+#PBS -l storage={filesystem_projects}{storage_projects}
 #PBS -me
 {email}
 """
@@ -432,6 +432,11 @@ def _submit_archive(indir, outdir, archive_list, batch_id, pbs_resources, env, t
 @click.option(
     "--walltime", default="48:00:00", help="Job walltime in `hh:mm:ss` format."
 )
+@click.option(
+    "--storage",
+    default="",
+    help="Additional PBS project storage codes, e.g. '+gdata/rt52+gdata/...'",
+)
 @click.option("--email", default="", help="Notification email address.")
 @click.option(
     "--index-datacube-env",
@@ -475,6 +480,7 @@ def main(
     archive_list,
     cleanup,
     test,
+    storage,
 ):
     """Equally partition a list of scenes across n nodes and submit
     n jobs into the PBS queue for ARD processing.
@@ -511,6 +517,7 @@ def main(
         jobfs=jobfs,
         filesystem_projects=fsys_projects,
         email=("#PBS -M " + email) if email else "",
+        storage_projects=storage if storage else "",
     )
 
     if test:
@@ -542,6 +549,7 @@ def main(
         jobfs=2,
         filesystem_projects="".join(fsys_projects),
         email=("#PBS -M " + email) if email else "",
+        storage_projects=storage if storage else "",
     )
 
     job_id = _submit_summary(
@@ -559,6 +567,7 @@ def main(
             jobfs=20,
             filesystem_projects="".join(fsys_projects),
             email=("#PBS -M " + email) if email else "",
+            storage_projects=storage if storage else "",
         )
         index_job_id = _submit_index(
             batch_logdir,
@@ -582,6 +591,7 @@ def main(
                 jobfs=20,
                 filesystem_projects="".join(fsys_projects),
                 email=("#PBS -M " + email) if email else "",
+                storage_projects=storage if storage else "",
             )
             archive_job_id = _submit_archive(
                 batch_logdir,
