@@ -505,16 +505,7 @@ def wbm_to_ocean_mask(result):
     """
     Converts an image from water-body mask (enum of 0-3) to land-ocean mask (bool).
     """
-    OCEAN = 1
-    LAKE = 2
-    RIVER = 3
-    result = np.where(result == LAKE, OCEAN, result)
-    result = np.where(result == RIVER, OCEAN, result)
-
-    # only left with NO_WATER=0 and OCEAN=1
-    # mask as bool would be the inverted version
-    # (NO_WATER -> True, OCEAN -> False)
-    return (1 - result).astype(bool)
+    return result == 0  # 0 is land (no water)
 
 
 def only_ocean_pixels_tiled(src_poly, cop_pathname, src_geobox):
