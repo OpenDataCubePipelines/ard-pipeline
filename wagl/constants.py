@@ -1,5 +1,5 @@
-"""Constants
----------.
+"""
+ARD Pipeline Constants
 """
 # pylint: disable=attribute-defined-outside-init
 
@@ -10,6 +10,13 @@ from os.path import join as pjoin
 POINT_FMT = "POINT-{p}"
 ALBEDO_FMT = "ALBEDO-{a}"
 POINT_ALBEDO_FMT = "".join([POINT_FMT, "-", ALBEDO_FMT])
+
+# ERA5 Ancillary constants
+# keys for atmospheric profiles, skip enum here for the simplest possible const
+GEOPOTENTIAL_HEIGHT = "GeoPotential_Height"
+PRESSURE = "Pressure"
+TEMPERATURE = "Temperature"
+RELATIVE_HUMIDITY = "Relative_Humidity"
 
 
 class Workflow(Enum):

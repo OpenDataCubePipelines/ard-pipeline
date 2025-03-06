@@ -19,8 +19,12 @@ import pandas as pd
 import wagl.modtran_profile_json as mpjson
 from wagl.constants import (
     ALBEDO_FMT,
+    GEOPOTENTIAL_HEIGHT,
     POINT_ALBEDO_FMT,
     POINT_FMT,
+    PRESSURE,
+    RELATIVE_HUMIDITY,
+    TEMPERATURE,
     Albedos,
     BandType,
     DatasetName,
@@ -193,14 +197,14 @@ def format_json(
                     n_layers = (
                         atmos_profile.shape[0] + 6
                     )  # NB: +6 for extra data added in modtran_profile_json.py
-                    elevation = atmos_profile.iloc[0]["GeoPotential_Height"]
+                    elevation = atmos_profile.iloc[0][GEOPOTENTIAL_HEIGHT]
 
                     era5_profile_ext = {
                         "n_layers": n_layers,
-                        "prof_alt": list(atmos_profile["GeoPotential_Height"]),
-                        "prof_pres": list(atmos_profile["Pressure"]),
-                        "prof_temp": list(atmos_profile["Temperature"]),
-                        "prof_water": list(atmos_profile["Relative_Humidity"]),
+                        "prof_alt": list(atmos_profile[GEOPOTENTIAL_HEIGHT]),
+                        "prof_pres": list(atmos_profile[PRESSURE]),
+                        "prof_temp": list(atmos_profile[TEMPERATURE]),
+                        "prof_water": list(atmos_profile[RELATIVE_HUMIDITY]),
                         "geopotential_height": elevation,
                     }
 
@@ -252,16 +256,16 @@ def format_json(
             atmos_profile = read_h5_table(ancillary_group, dname.format(p=p))
 
             n_layers = atmos_profile.shape[0] + 6
-            elevation = atmos_profile.iloc[0]["GeoPotential_Height"]
+            elevation = atmos_profile.iloc[0][GEOPOTENTIAL_HEIGHT]
 
             input_data = {
                 "name": POINT_ALBEDO_FMT.format(p=p, a="TH"),
                 "ozone": ozone,
                 "n": n_layers,
-                "prof_alt": list(atmos_profile["GeoPotential_Height"]),
-                "prof_pres": list(atmos_profile["Pressure"]),
-                "prof_temp": list(atmos_profile["Temperature"]),
-                "prof_water": list(atmos_profile["Relative_Humidity"]),
+                "prof_alt": list(atmos_profile[GEOPOTENTIAL_HEIGHT]),
+                "prof_pres": list(atmos_profile[PRESSURE]),
+                "prof_temp": list(atmos_profile[TEMPERATURE]),
+                "prof_water": list(atmos_profile[RELATIVE_HUMIDITY]),
                 "visibility": -aerosol,
                 "sat_height": acquisitions[0].altitude / 1000.0,
                 "gpheight": elevation,
