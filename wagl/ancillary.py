@@ -27,7 +27,11 @@ from wagl.acquisition import (
 from wagl.atmos import kelvin_2_celcius, relative_humdity
 from wagl.brdf import BrdfDict, BrdfMode, get_brdf_data
 from wagl.constants import (
+    GEOPOTENTIAL_HEIGHT,
     POINT_FMT,
+    PRESSURE,
+    RELATIVE_HUMIDITY,
+    TEMPERATURE,
     AerosolTier,
     BandType,
     DatasetName,
@@ -518,31 +522,31 @@ def collect_sbt_ancillary(
         )
 
         # combine the surface and higher pressure layers into a single array
-        cols = ["GeoPotential_Height", "Pressure", "Temperature", "Relative_Humidity"]
+        cols = [GEOPOTENTIAL_HEIGHT, PRESSURE, TEMPERATURE, RELATIVE_HUMIDITY]
         layers = pd.DataFrame(
             columns=cols, index=range(rh[0].shape[0]), dtype="float64"
         )
 
-        layers["GeoPotential_Height"] = gph[0]["GeoPotential_Height"].values
-        layers["Pressure"] = ECWMF_LEVELS[::-1]
-        layers["Temperature"] = tmp[0]["Temperature"].values
-        layers["Relative_Humidity"] = rh[0]["Relative_Humidity"].values
+        layers[GEOPOTENTIAL_HEIGHT] = gph[0][GEOPOTENTIAL_HEIGHT].values
+        layers[PRESSURE] = ECWMF_LEVELS[::-1]
+        layers[TEMPERATURE] = tmp[0][TEMPERATURE].values
+        layers[RELATIVE_HUMIDITY] = rh[0][RELATIVE_HUMIDITY].values
 
         # define the surface level
         df = pd.DataFrame(
             {
-                "GeoPotential_Height": sfc_hgt[0],
-                "Pressure": sfc_prs[0],
-                "Temperature": kelvin_2_celcius(t2m[0]),
-                "Relative_Humidity": sfc_rh,
+                GEOPOTENTIAL_HEIGHT: sfc_hgt[0],
+                PRESSURE: sfc_prs[0],
+                TEMPERATURE: kelvin_2_celcius(t2m[0]),
+                RELATIVE_HUMIDITY: sfc_rh,
             },
             index=[0],
         )
 
         # MODTRAN requires the height to be ascending
         # and the pressure to be descending
-        wh = (layers["GeoPotential_Height"] > sfc_hgt[0]) & (
-            layers["Pressure"] < sfc_prs[0].round()
+        wh = (layers[GEOPOTENTIAL_HEIGHT] > sfc_hgt[0]) & (
+            layers[PRESSURE] < sfc_prs[0].round()
         )
         df = df.append(layers[wh])
         df.reset_index(drop=True, inplace=True)

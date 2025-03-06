@@ -16,6 +16,7 @@ import pandas as pd
 import xarray
 
 import wagl.atmos as atmos
+from wagl.constants import GEOPOTENTIAL_HEIGHT, PRESSURE, RELATIVE_HUMIDITY, TEMPERATURE
 
 # strptime format for "YYYYMMDD" strings
 PATHNAME_DATE_FORMAT = "%Y%m%d"
@@ -297,10 +298,10 @@ def build_profile_data_frame(
     temperature = atmos.kelvin_2_celcius(multi_level_vars.temperature)
 
     var_name_mapping = {
-        "GeoPotential_Height": geopotential_height,
-        "Pressure": reversed(ECWMF_LEVELS),
-        "Temperature": temperature,
-        "Relative_Humidity": relative_humidity,
+        GEOPOTENTIAL_HEIGHT: geopotential_height,
+        PRESSURE: reversed(ECWMF_LEVELS),
+        TEMPERATURE: temperature,
+        RELATIVE_HUMIDITY: relative_humidity,
     }
 
     profile_frame = pd.DataFrame(var_name_mapping)

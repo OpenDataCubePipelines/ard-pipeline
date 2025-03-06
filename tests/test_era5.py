@@ -8,6 +8,7 @@ import pytest
 import xarray as xr
 
 from wagl import era5
+from wagl.constants import GEOPOTENTIAL_HEIGHT, PRESSURE, RELATIVE_HUMIDITY, TEMPERATURE
 
 RAW_NUM_LEVELS = 37
 TOTAL_NUM_LEVELS = 38  # 36 levels + 1 surface level
@@ -371,7 +372,7 @@ def test_build_profile_data_frame():
     profile_frame = era5.build_profile_data_frame(multi_level_data, single_level_data)
     assert profile_frame is not None
 
-    for key in ("Geopotential_Height", "Pressure", "Temperature", "Relative_Humidity"):
+    for key in (GEOPOTENTIAL_HEIGHT, PRESSURE, TEMPERATURE, RELATIVE_HUMIDITY):
         assert profile_frame[key].size == TOTAL_NUM_LEVELS
 
     print()
