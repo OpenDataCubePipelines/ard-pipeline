@@ -5,7 +5,8 @@ SUBROUTINE cast_shadow_main( &
     nlA_ori, nsA_ori, &
     nrow, ncol, nl, ns, dem_nr, dem_nc, &
     a, solar, sazi, dem, mask, &
-    ierr, mask_all)
+    htol, sun_disk, &
+    ierr, iwarn, mask_all)
 
     implicit none
 
@@ -67,7 +68,7 @@ SUBROUTINE cast_shadow_main( &
 !   ierr = 74: 'matrix A does not have sufficient x buffer'
 
     integer*4 k_setting
-    parameter (k_setting=2000)
+    parameter (k_setting=5000)
 
 ! arguments
     real*4 dem_data(nl, ns) !
@@ -84,21 +85,19 @@ SUBROUTINE cast_shadow_main( &
     real*4 dem(dem_nr, ns) !
     integer*2 mask(nlA_ori, nsA_ori) !
     integer*2 mask_all(nrow, ncol) !
-    integer*4 ierr
+    integer*4 ierr, iwarn
 
 ! internal variables
-    integer*4 nsA, nlA, nchf, i, j, ii, jj
+    integer*4 nsA, nlA, i, j, ii, jj
     integer*4 k, l, kkx, kky, nmax_sub, Mmax_sub
-    integer istat
     real*4 n_inc(k_setting) !
     real*4 m_inc(k_setting) !
     real*4 h_offset(k_setting) !
     real*8 hx, hy
-    real*4 zmax, zmin
+    real*4 zmax, zmin, zmaxA, zminA
     real*4 phi_sun
     real*4 sun_zen
-    real*4 htol
-    logical exists
+    real*4 htol, sun_disk
 
 !f2py intent(in) dem_data, solar_data, sazi_data
 !f2py intent(in) dresx, dresy
@@ -110,24 +109,28 @@ SUBROUTINE cast_shadow_main( &
 !f2py integer intent(hide),depend(Aoff_y1,nlA_ori,Aoff_y2,Aoff_x1,nsA_ori,Aoff_x2) :: dem_nr=Aoff_y1+nlA_ori+Aoff_y2, dem_nc=Aoff_x1+nsA_ori+Aoff_x2
 !f2py intent(hide) :: a, solar, sazi, dem, mask
 !f2py intent(out) ierr
+!f2py intent(out) iwarn
 !f2py intent(out) mask_all
 
 !   set the tolerance for occlusion in metres
-!   (usually >0 and less than 10.0m)
-    htol=1.0
+!   positive adds penumbral shadows
+!   negative rejects penumbral shadows
+!   In future sun_disk=0.0 and htol<0 eg -1
+    ierr=0
+    iwarn=0
 
     hx = dresx
     hy = dresy
 
 !--------------------------------------------------------------
 !   kky for line and kkx for column
-!   kky and kkx are the sub_marix number
+!   kky and kkx are the sub_matrix number
     kky=int(nrow/nlA_ori)
     kkx=int(ncol/nsA_ori)
 
 !write(*,*)"about to start main loop"
     do k=1, kky
-!       calculate sub_marix DEM dimensions
+!       calculate sub_matrix DEM dimensions
         nlA=nlA_ori
         mmax_sub=nlA+Aoff_y1+Aoff_y2
 
@@ -178,7 +181,7 @@ SUBROUTINE cast_shadow_main( &
             enddo
         enddo
 
-        ii=nlA/2
+        ii=(nlA+1)/2
 
 !       divide seveal sub_matrix according to columns
 !write(*,*)"about to start cols: kkx = ",kkx
@@ -186,11 +189,11 @@ SUBROUTINE cast_shadow_main( &
             nsA=nsA_ori
             nmax_sub=nsA+Aoff_x1+Aoff_x2
 
-            jj=(l-1)*nsA_ori+nsA/2
+            jj=(l-1)*nsA_ori+(nsA+1)/2
 
             phi_sun=sazi(ii,jj)
 !           NOTE zenith + 3 degrees
-            sun_zen=solar(ii,jj)+3
+            sun_zen=solar(ii,jj)+sun_disk
 !----------------------------bounds check----------------------------
             !dem(dem_nr, ns)
             !a(dem_nr, dem_nc)
@@ -212,12 +215,30 @@ SUBROUTINE cast_shadow_main( &
                     a(i,j)=dem(i,(l-1)*nsA_ori+j)
                 enddo
             enddo
+!
+!       get maximum and minimum heights in block A
+            zmaxA=maxval(a(1:mmax_sub,1:nmax_sub))
+            zminA=minval(a(1:mmax_sub,1:nmax_sub))
+!
+!  fill the output mask with values 1 (no shadow)
+            mask=1
+!
+! if the image is 'flat' (e.g. water) there is no need to do anything
+            if ((zmaxA-zminA).lt.0.01) then
+               go to 501
+            endif
+!
+            ierr=0
 !write(*,*)"about to call get_proj_shadows"
             call get_proj_shadows(hx, hy, nmax_sub, mmax_sub, &
-            htol, phi_sun, sun_zen, zmax, zmin, a, mask, h_offset, &
+            htol, phi_sun, sun_zen, zmaxA, zminA, a, mask, h_offset, &
             n_inc, m_inc, Aoff_x1, Aoff_y1, nsA, nlA, k_setting, &
-            dem_nr, dem_nc, nlA_ori, nsA_ori, ierr)
+            dem_nr, dem_nc, nlA_ori, nsA_ori, ierr, iwarn)
 
+            if(ierr.gt.0) then
+                return
+            endif
+501         continue
 !----------------------------bounds check----------------------------
             !mask(nlA_ori, nsA_ori)
             !mask_all(nrow, ncol)
@@ -253,10 +274,10 @@ SUBROUTINE cast_shadow_main( &
         if (ncol .gt. kkx*nsA_ori) then
             nsA=ncol-kkx*nsA_ori
             nmax_sub=nsA+Aoff_x1+Aoff_x2
-            jj=kkx*nsA_ori+nsA/2
+            jj=kkx*nsA_ori+(nsA+1)/2
             phi_sun=sazi(ii,jj)
 !           NOTE zenith + 3 degrees
-            sun_zen=solar(ii,jj)+3
+            sun_zen=solar(ii,jj)+sun_disk
 
 !----------------------------bounds check----------------------------
             !dem(dem_nr, ns)
@@ -279,11 +300,30 @@ SUBROUTINE cast_shadow_main( &
                     a(i,j)=dem(i,kkx*nsA_ori+j)
                 enddo
             enddo
+!
+!       get maximum and minimum heights in block A
+            zmaxA=maxval(a(1:mmax_sub,1:nmax_sub))
+            zminA=minval(a(1:mmax_sub,1:nmax_sub))
+!
+!  fill the output mask with values 1 (no shadow)
+            mask=1
+!
+! if the image is 'flat' (e.g. water) there is no need to do anything
+            if ((zmaxA-zminA).lt.0.01) then
+               go to 502
+            endif
+!
+            ierr=0
 
             call get_proj_shadows(hx, hy, nmax_sub, mmax_sub, &
-            htol, phi_sun, sun_zen, zmax, zmin, a, mask, h_offset, &
+            htol, phi_sun, sun_zen, zmaxA, zminA, a, mask, h_offset, &
             n_inc, m_inc, Aoff_x1, Aoff_y1, nsA, nlA, k_setting, &
-            dem_nr, dem_nc, nlA_ori, nsA_ori, ierr)
+            dem_nr, dem_nc, nlA_ori, nsA_ori, ierr, iwarn)
+
+            if(ierr.gt.0) then
+                return
+            endif
+502         continue
 
 !----------------------------bounds check----------------------------
             !mask(nlA_ori, nsA_ori)
@@ -362,18 +402,18 @@ SUBROUTINE cast_shadow_main( &
             enddo
         enddo
 
-        ii=nlA/2
+        ii=(nlA+1)/2
 
 !       divide seveal sub_matrix according to columns
         do l=1,kkx
             nsA=nsA_ori
             nmax_sub=nsA+Aoff_x1+Aoff_x2
 
-            jj=(l-1)*nsA_ori+nsA/2
+            jj=(l-1)*nsA_ori+(nsA+1)/2
 
             phi_sun=sazi(ii,jj)
 !           NOTE zenith + 3 degrees
-            sun_zen=solar(ii,jj)+3
+            sun_zen=solar(ii,jj)+sun_disk
 
 !----------------------------bounds check----------------------------
             !dem(dem_nr, ns)
@@ -396,11 +436,30 @@ SUBROUTINE cast_shadow_main( &
                     a(i,j)=dem(i,(l-1)*nsA_ori+j)
                 enddo
             enddo
+!
+!       get maximum and minimum heights in block A
+            zmaxA=maxval(a(1:mmax_sub,1:nmax_sub))
+            zminA=minval(a(1:mmax_sub,1:nmax_sub))
+!
+!  fill the output mask with values 1 (no shadow)
+            mask=1
+!
+! if the image is 'flat' (e.g. water) there is no need to do anything
+            if ((zmaxA-zminA).lt.0.01) then
+               go to 503
+            endif
+!
+            ierr=0
 
             call get_proj_shadows(hx, hy, nmax_sub, mmax_sub, &
-            htol, phi_sun, sun_zen, zmax, zmin, a, mask, h_offset, &
+            htol, phi_sun, sun_zen, zmaxA, zminA, a, mask, h_offset, &
             n_inc, m_inc, Aoff_x1, Aoff_y1, nsA, nlA, k_setting, &
-            dem_nr, dem_nc, nlA_ori, nsA_ori, ierr)
+            dem_nr, dem_nc, nlA_ori, nsA_ori, ierr, iwarn)
+
+            if(ierr.gt.0) then
+                return
+            endif
+503         continue
 
 !----------------------------bounds check----------------------------
             !mask(nlA_ori, nsA_ori)
@@ -432,11 +491,11 @@ SUBROUTINE cast_shadow_main( &
         if (ncol .gt. kkx*nsA_ori) then
             nsA=ncol-kkx*nsA_ori
             nmax_sub=nsA+Aoff_x1+Aoff_x2
-            jj=kkx*nsA_ori+nsA/2
+            jj=kkx*nsA_ori+(nsA+1)/2
 
             phi_sun=sazi(ii,jj)
 !           NOTE zenith + 3 degrees
-            sun_zen=solar(ii,jj)+3
+            sun_zen=solar(ii,jj)+sun_disk
 
 !----------------------------bounds check----------------------------
             !dem(dem_nr, ns)
@@ -459,11 +518,30 @@ SUBROUTINE cast_shadow_main( &
                     a(i,j)=dem(i,kkx*nsA_ori+j)
                 enddo
             enddo
+!
+!       get maximum and minimum heights in block A
+            zmaxA=maxval(a(1:mmax_sub,1:nmax_sub))
+            zminA=minval(a(1:mmax_sub,1:nmax_sub))
+!
+!  fill the output mask with values 1 (no shadow)
+            mask=1
+!
+! if the image is 'flat' (e.g. water) there is no need to do anything
+            if ((zmaxA-zminA).lt.0.01) then
+               go to 504
+            endif
+!
+            ierr=0
 
             call get_proj_shadows(hx, hy, nmax_sub, mmax_sub, &
-            htol, phi_sun, sun_zen, zmax, zmin, a, mask, h_offset, &
+            htol, phi_sun, sun_zen, zmaxA, zminA, a, mask, h_offset, &
             n_inc, m_inc, Aoff_x1, Aoff_y1, nsA, nlA, k_setting, &
-            dem_nr, dem_nc, nlA_ori, nsA_ori, ierr)
+            dem_nr, dem_nc, nlA_ori, nsA_ori, ierr, iwarn)
+
+            if(ierr.gt.0) then
+                return
+            endif
+504         continue
 
 !----------------------------bounds check----------------------------
             !mask(nlA_ori, nsA_ori)

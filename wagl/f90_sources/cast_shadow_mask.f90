@@ -1,23 +1,20 @@
 SUBROUTINE get_proj_shadows(hx, hy, ns, nl, &
     htol, phi_sun, sun_zen, zmax, zmin, a, mask, h_offset, &
     n_inc, m_inc, aoff_x, aoff_y, nsA, nlA, k_setting, &
-    dem_nr, dem_nc, nlA_ori, nsA_ori, ierr)
+    dem_nr, dem_nc, nlA_ori, nsA_ori, ierr, iwarn)
 
     implicit none
 
     integer ns, nl, dem_nr, dem_nc, nlA_ori, nsA_ori, k_setting
-    integer k_max, n_add, m_add, ierr, az_case, i, j
+    integer k_max, n_add, m_add, ierr, iwarn, az_case, i, j
 !   NOTE: n_inc and m_inc are Floating Point arrays
     real n_inc(k_setting), m_inc(k_setting)
     real h_offset(k_setting)
     real phi_sun,zmax,zmin,sun_zen,htol
     real*8 hx, hy
     real d, d0, a(dem_nr, dem_nc)
-    integer ncho, aoff_x, aoff_y, nsA, nlA
-    integer t_aoff_x,t_aoff_y,t_nsA,t_nlA
-    integer tval(8)
-    logical rstatus
-    integer*2 mask(nlA_ori, nsA_ori)
+    integer aoff_x, aoff_y, nsA, nlA
+    integer*2 mask(nlA_ori, nsA_ori), kount
 
 !
 !   calculate the border info for the sun position
@@ -26,34 +23,13 @@ SUBROUTINE get_proj_shadows(hx, hy, ns, nl, &
 !   local time.
 !   That is the sun azimuth is between East and North
 
-    call set_borderf(rstatus,phi_sun,zmax,zmin,sun_zen,hx,hy,az_case, &
+    ierr=0
+
+    call set_borderf(phi_sun,zmax,zmin,sun_zen,hx,hy,az_case, &
         d,d0,k_max,h_offset,n_inc,m_inc,n_add,m_add,k_setting,k_setting,ierr)
 
-    if (.not.rstatus) then
+    if (ierr.gt.0) then
         goto 99
-    endif
-
-!   define the maximum sized subset that can be processed
-    if (az_case.eq.1) then
-        t_aoff_x=0
-        t_aoff_y=m_add
-        t_nsA=ns-n_add
-        t_nlA=nl-m_add
-    else if (az_case.eq.2) then
-        t_aoff_x=n_add
-        t_aoff_y=m_add
-        t_nsA=ns-n_add
-        t_nlA=nl-m_add
-    else if (az_case.eq.3) then
-        t_aoff_x=n_add
-        t_aoff_y=0
-        t_nsA=ns-n_add
-        t_nlA=nl-m_add
-    else if (az_case.eq.4) then
-        t_aoff_x=0
-        t_aoff_y=0
-        t_nsA=ns-n_add
-        t_nlA=nl-m_add
     endif
 
 !   Set the sub-matrix A where shade is to be found
@@ -86,33 +62,46 @@ SUBROUTINE get_proj_shadows(hx, hy, ns, nl, &
 
     if(az_case.eq.1.or.az_case.eq.2) then
         if (aoff_y.lt.m_add) then
-            ierr = 73
-            goto 99
+            iwarn = 73
         endif
     else if (az_case.eq.3.or.az_case.eq.4) then
         if (aoff_y+nlA+m_add.gt.nl) then
-            ierr = 73
-            goto 99
+            iwarn = 73
         endif
     endif
 
     if(az_case.eq.2.or.az_case.eq.3) then
         if (aoff_x.lt.n_add) then
-            ierr = 74
-            goto 99
+            iwarn = 74
         endif
     else if (az_case.eq.1.or.az_case.eq.4) then
         if (aoff_x+nsA+n_add.gt.ns) then
-            ierr = 74
-            goto 99
+            iwarn = 74
         endif
     endif
+!
+!  Now check the border and the search length - change if needed
+!
+      kount=0
+      do i=1,k_max
+        if ((abs(m_inc(i)).lt.float(aoff_y)).and. &
+          (abs(n_inc(i)).lt.float(aoff_x))) then
+          kount=kount+1
+        endif
+      enddo
+
+      if(kount.lt.k_max) then
+        m_add=int(abs(m_inc(kount))+0.5)
+        n_add=int(abs(n_inc(kount))+0.5)
+        k_max=kount
+      endif
+!
 !    now set up the mask image to record shade pixels in
 !    A NOTE: mask has the dimensions of A and not the
 !    DEM - set as a 1-D array so that it can be indexed
 !    in the subroutine without worrying about set bounds
 
-!     Mask is a long integer (integer*4) due to recl issue
+!     Mask is an integer (integer*2) not byte
 !     First set to 1 so zero will represent deep shadow
 
     do i=1,nlA
