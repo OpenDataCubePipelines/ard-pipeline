@@ -269,7 +269,7 @@ def cast_shadow_main(
         sazi = sazi_data[y_idx, :]
         dem = dem_data[y_idx.start : (y_idx.start + mmax_sub), :]
 
-        ierr, mask = cast_shadow_prim(
+        ierr, _, mask = cast_shadow_prim(
             dem,
             solar,
             sazi,
