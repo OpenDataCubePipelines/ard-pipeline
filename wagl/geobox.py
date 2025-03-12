@@ -18,6 +18,9 @@ from shapely.geometry import Polygon, box
 from wagl.satellite_solar_angles import setup_spheroid
 from wagl.vincenty import vinc_dist
 
+osr.UseExceptions()  # stops a FutureWarning
+
+
 # Landsat tranforms have very small determinants
 # the following setting is required, and there is a
 # bug in rasterio.set_epsilon() ver < 1.0.5
