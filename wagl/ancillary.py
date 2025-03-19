@@ -349,10 +349,20 @@ def collect_era5_ancillary(
     filter_opts=None,
 ):
     """
-    TODO: Collects ERA5/ECWMF based ancillary data.
+    Collect ERA5/ECWMF based ancillary data.
+
+    TODO: ERA5 based aerosol is currently unimplemented (needs CAMS data).
 
     Note: `water vapour` is *not required* directly as it's covered by relative
     humidity in the custom atmospheric data frame workflow
+
+    :param container: Acquisition container
+    :param ancillary_path: str path to the ERA5 ancillary root
+    :param cfg_paths: Dict of nested config dicts, should contain aerosol dict as
+                      an absolute minimum, e.g. {"user": aerosol_val}.
+    :param out_group: output group from H5 dataset
+    :param compression:
+    :param filter_opts:
     """
 
     assert out_group is not None
@@ -377,7 +387,7 @@ def collect_era5_ancillary(
     #  otherwise write a table or dict of values?
 
     # NB: use constant for aerosols for DE Ant prototyping
-    #  Add data reader as the DE Ant pipeline evolves over time
+    # TODO: add CAMS data reader as the DE Ant pipeline evolves
     aerosol = cfg_paths["aerosol"]
 
     if "user" in aerosol:
@@ -387,8 +397,12 @@ def collect_era5_ancillary(
             aerosol_value, DatasetName.AEROSOL.value, out_group
         )  # TODO: any attrs needed?
     else:
-        msg = "Reading aerosol from a data source is NOT yet implemented"
-        raise NotImplementedError(msg)
+        if "pathname" in aerosol:
+            msg = "Reading aerosol from a data source is NOT yet implemented"
+            raise NotImplementedError(msg)
+        else:
+            msg = f"Missing key in aerosol config. Config={aerosol}"
+            raise RuntimeError(msg)
 
     ozone = era5.ozone_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
     write_scalar(ozone, DatasetName.OZONE.value, out_group)  # TODO: any attrs needed?

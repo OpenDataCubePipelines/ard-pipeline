@@ -111,7 +111,7 @@ def output_filename_landsat(scene_landsat_path):
 
 # config copied from luigi cfg template & singlefile_workflow.py
 _default_cfg_paths = {
-    "aerosol": 0.05,
+    "aerosol": {"user": 0.05},
     "dem_path": "/g/data/v10/eoancillarydata-2/elevation/world_1deg/DEM_one_deg_20June2019.h5:/SRTM/GA-DSM",
     "brdf_dict": {
         "brdf_path": "/g/data/v10/eoancillarydata-2/BRDF/MCD43A1.061",
