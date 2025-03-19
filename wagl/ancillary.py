@@ -404,7 +404,12 @@ def collect_era5_ancillary(
             msg = f"Missing key in aerosol config. Config={aerosol}"
             raise RuntimeError(msg)
 
-    ozone = era5.ozone_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
+    if DatasetName.OZONE.value in cfg_paths:
+        ozone_cfg = cfg_paths[DatasetName.OZONE.value]
+        ozone = ozone_cfg["user"]
+    else:
+        ozone = era5.ozone_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
+
     write_scalar(ozone, DatasetName.OZONE.value, out_group)  # TODO: any attrs needed?
 
     # TODO: check DEM, is offshore flag required???
