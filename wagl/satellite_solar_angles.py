@@ -20,6 +20,8 @@ from wagl.hdf5 import (
 )
 from wagl.tle import load_tle
 
+osr.UseExceptions()  # prevent some runtime warnings
+
 CRS = "EPSG:4326"
 
 
