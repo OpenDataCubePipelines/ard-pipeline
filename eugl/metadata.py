@@ -197,8 +197,13 @@ def s2cloudless_metadata(
     base_info = _get_s2cloudless_metadata()
 
     # info will be based on the valid pixels only (exclude 0)
-    # scaled probability density function
-    pdf = hist[1:] / hist[1:].sum() * 100
+    valid_pixel_count = hist[1:].sum()
+    if valid_pixel_count > 0:
+        # scaled probability density function
+        pdf = hist[1:] / valid_pixel_count * 100
+    else:
+        # No valid pixels: all zero
+        pdf = np.zeros_like(hist[1:])
 
     md = {
         "parameters": {
