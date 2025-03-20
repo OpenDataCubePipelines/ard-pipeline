@@ -490,6 +490,9 @@ def only_ocean_pixels_mozaic(src_poly, src_crs, fid_mask):
     ocean_mask, ocean_mask_geobox = read_subset(fid_mask, *bound_poly_coords)
     ocean_mask = ocean_mask.astype(bool)
 
+    if ocean_mask.shape[0] <= 0 or ocean_mask.shape[1] <= 0:
+        return True
+
     roi_mask = rasterize(
         [(dst_poly, 1)],
         fill=0,
