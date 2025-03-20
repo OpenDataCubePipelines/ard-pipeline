@@ -46,7 +46,6 @@ set +ux
 # shellcheck source=/dev/null
 . "${location}/bin/activate"
 
-conda install -c conda-forge -n base mamba
 conda env update -n base -f "$(dirname "$0")/environment.yaml"
 
 # Freeze the environment as it exists without our locally-installed  packages.
