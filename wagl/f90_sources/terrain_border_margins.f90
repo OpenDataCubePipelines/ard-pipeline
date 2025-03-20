@@ -1,4 +1,4 @@
-SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
+SUBROUTINE set_borderf(phi_sun, zmax, zmin, sun_zen, hx, hy, &
     az_case, d, d0, k_max, h_offset, n_inc, m_inc, n_add, m_add, &
     k_setting, add_max, ierr)
 
@@ -14,13 +14,11 @@ SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
     real*8 hx, hy
     real sinphc, cosphc, d, d0
     real pi_real, d2r_real
-    logical set_border
 
 !   set basic constants
     pi_real=4.0*atan(1.0)
     d2r_real=pi_real/180.0
 
-    set_border=.true.
     ierr=0
 
 !   the case is dependent on the sun azimuth
@@ -100,14 +98,12 @@ SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
 !   the two buffers will be on sides of the target image defined
 !   by the azimuth case
 
-    n_add=ifix(sngl(d*cosphc/hx+1.5))
-    m_add=ifix(sngl(d*sinphc/hy+1.5))
+    n_add=ifix(abs(sngl(d*cosphc/hx+0.5)))
+    m_add=ifix(abs(sngl(d*sinphc/hy+0.5)))
 
-    if ((n_add.gt.add_max .or. m_add.gt.add_max) .or. (n_add.lt.0.or.m_add.lt.0)) then
+    if (n_add.gt.add_max .or. m_add.gt.add_max) then
         ierr=63
         goto 99
     endif
-    return
-99  set_border=.false.
-    return
+99  return
 END SUBROUTINE set_borderf
