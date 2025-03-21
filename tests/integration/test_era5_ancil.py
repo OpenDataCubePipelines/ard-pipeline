@@ -88,6 +88,13 @@ def scene_landsat_path():
 
 
 @pytest.fixture
+def scene_landsat_base_path(scene_landsat_path):
+    """Return Landsat directory name."""
+    # HACK: parsing the fixture saves copying a substring should test data change
+    return scene_landsat_path.split("/")[-2]
+
+
+@pytest.fixture
 def scene_landsat_container(scene_landsat_path):
     container = acquisition.acquisitions(scene_landsat_path)
     return container
@@ -132,13 +139,17 @@ def init_tmp_dir():
 
 @pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
 def test_collect_era5_ancillary_landsat(
-    scene_landsat_container, nci_era5_dir_path, output_filename_landsat
+    scene_landsat_container,
+    scene_landsat_base_path,
+    nci_era5_dir_path,
+    output_filename_landsat,
 ):
     tmp_dir = init_tmp_dir()
     dest_path = os.path.join(tmp_dir, output_filename_landsat)
 
     with h5py.File(dest_path, "w") as fid:
-        out_group = fid.create_group(constants.GroupName.ANCILLARY_GROUP.value)
+        root_group = fid.create_group(scene_landsat_base_path)
+        out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
         ancillary.collect_era5_ancillary(
             scene_landsat_container, nci_era5_dir_path, _default_cfg_paths, out_group
@@ -151,22 +162,23 @@ def test_collect_era5_ancillary_landsat(
     #  lacks features & can't seem to read H5 subgroups like POINT-0. Use h5py
     #  for testing for now
     df = h5py.File(dest_path)
+    base = scene_landsat_base_path
 
     expected_aerosol = 0.05
-    assert df["ANCILLARY/AEROSOL"][()] == expected_aerosol
+    assert df[f"{base}/ANCILLARY/AEROSOL"][()] == expected_aerosol
 
     # NB: expected_ozone = "TODO"
-    ozone = df["ANCILLARY/OZONE"][()]
+    ozone = df[f"{base}/ANCILLARY/OZONE"][()]
     assert ozone is not None
     assert ozone != 0.0  # FIXME: copy ozone from source data?
 
     # NB: expected elevation = ???
-    elevation = df["ANCILLARY/ELEVATION"][()]
+    elevation = df[f"{base}/ANCILLARY/ELEVATION"][()]
     assert elevation is not None
     assert elevation > 0.0  # FIXME: copy elevation from source?
 
     # check atmos profile
-    profile = df["ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
+    profile = df[f"{base}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
     assert profile is not None
     assert len(profile) == 38  # number of rows
     p0 = tuple(profile[0])  # convert ndarray to tuple to allow slicing
