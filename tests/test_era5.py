@@ -8,6 +8,7 @@ import pytest
 import xarray as xr
 
 from wagl import era5
+from wagl.ancillary import ECWMF_LEVELS
 from wagl.constants import GEOPOTENTIAL_HEIGHT, PRESSURE, RELATIVE_HUMIDITY, TEMPERATURE
 
 RAW_NUM_LEVELS = 37
@@ -369,7 +370,9 @@ def test_build_profile_data_frame():
         temperature_sl, geopotential_sl, surface_pressure_sl, dewpoint_temperature_sl
     )
 
-    profile_frame = era5.build_profile_data_frame(multi_level_data, single_level_data)
+    profile_frame = era5.build_profile_data_frame(
+        multi_level_data, single_level_data, ECWMF_LEVELS
+    )
     assert profile_frame is not None
 
     for key in (GEOPOTENTIAL_HEIGHT, PRESSURE, TEMPERATURE, RELATIVE_HUMIDITY):
@@ -393,7 +396,7 @@ def test_build_profile_data_frame_real_data(
         xf_multi, xf_single, acquisition_datetime, mawson_peak_heard_island_lat_lon
     )
 
-    frame = era5.build_profile_data_frame(multi_vars, single_vars)
+    frame = era5.build_profile_data_frame(multi_vars, single_vars, ECWMF_LEVELS)
     assert frame is not None
 
     print()

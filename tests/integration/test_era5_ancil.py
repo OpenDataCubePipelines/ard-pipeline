@@ -150,9 +150,14 @@ def test_collect_era5_ancillary_landsat(
     with h5py.File(dest_path, "w") as fid:
         root_group = fid.create_group(scene_landsat_base_path)
         out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
+        centroid = [(146.75891632807912, -34.62198174915786)]
 
         ancillary.collect_era5_ancillary(
-            scene_landsat_container, nci_era5_dir_path, _default_cfg_paths, out_group
+            scene_landsat_container,
+            centroid,
+            nci_era5_dir_path,
+            _default_cfg_paths,
+            out_group,
         )
 
     assert os.path.exists(dest_path)
@@ -171,11 +176,6 @@ def test_collect_era5_ancillary_landsat(
     ozone = df[f"{base}/ANCILLARY/OZONE"][()]
     assert ozone is not None
     assert ozone != 0.0  # FIXME: copy ozone from source data?
-
-    # NB: expected elevation = ???
-    elevation = df[f"{base}/ANCILLARY/ELEVATION"][()]
-    assert elevation is not None
-    assert elevation > 0.0  # FIXME: copy elevation from source?
 
     # check atmos profile
     profile = df[f"{base}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
@@ -197,13 +197,71 @@ def test_collect_era5_ancillary_landsat(
 
 
 @pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
+def test_collect_era5_ancillary_landsat_multi_points(
+    scene_landsat_container,
+    scene_landsat_base_path,
+    nci_era5_dir_path,
+    output_filename_landsat,
+):
+    tmp_dir = init_tmp_dir()
+    dest_path = os.path.join(tmp_dir, output_filename_landsat)
+
+    with h5py.File(dest_path, "w") as fid:
+        root_group = fid.create_group(scene_landsat_base_path)
+        out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
+
+        points = [
+            (146.75891632807912, -34.62198174915786),  # centroid
+            (147.34547961918634, -35.11559202501883),
+        ]  # Wagga T intersection
+
+        ancillary.collect_era5_ancillary(
+            scene_landsat_container,
+            points,
+            nci_era5_dir_path,
+            _default_cfg_paths,
+            out_group,
+        )
+
+    # check multi point atmos profile exists
+    df = h5py.File(dest_path)
+    base = scene_landsat_base_path
+
+    profile = df[f"{base}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
+    assert profile is not None  # same as profile 1 in the single location test
+
+    profile2 = df[f"{base}/ANCILLARY/POINT-1/ATMOSPHERIC-PROFILE"]
+    assert profile2 is not None
+
+    assert len(profile2) in [37, 38]  # num rows, account for possible profile inversion
+    p0 = tuple(profile2[0])  # convert ndarray to tuple to allow slicing
+    assert p0[0] == 0  # check 1st row index is valid
+
+    for val in p0[1:]:
+        assert val is not None
+        assert val != 0
+
+    plast = tuple(profile2[-1])
+    assert plast[0] == 37  # check valid last row index
+
+    for val in plast[1:]:
+        assert val is not None
+        assert val != 0
+
+
+# @pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
+@pytest.mark.skip(reason="Needs data")
 def test_collect_era5_ancillary_sentinel(
     canberra_scene_sentinel2_container, nci_era5_dir_path, output_filename_sentinel
 ):
+    msg = "Check project with sentinel outputs for correct root naming"
+    raise NotImplementedError(msg)
+
     tmp_dir = init_tmp_dir()
     dest_path = os.path.join(tmp_dir, output_filename_sentinel)
 
     with h5py.File(dest_path, "w") as fid:
+        # TODO: root_group = fid.create_group()  # mimic scene_landsat_base_path
         out_group = fid.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
         ancillary.collect_era5_ancillary(

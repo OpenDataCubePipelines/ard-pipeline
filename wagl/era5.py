@@ -235,51 +235,9 @@ def build_era5_profile_paths(
     return multi_paths, single_paths
 
 
-# HACK: copied from ancillary.py (can't import wagl module without F90 build)
-ECWMF_LEVELS = [
-    1,
-    2,
-    3,
-    5,
-    7,
-    10,
-    20,
-    30,
-    50,
-    70,
-    100,
-    125,
-    150,
-    175,
-    200,
-    225,
-    250,
-    300,
-    350,
-    400,
-    450,
-    500,
-    550,
-    600,
-    650,
-    700,
-    750,
-    775,
-    800,
-    825,
-    850,
-    875,
-    900,
-    925,
-    950,
-    975,
-    1000,
-]
-
-
 # TODO: keep I/O out of this function
 def build_profile_data_frame(
-    multi_level_vars: MultiLevelVars, single_level_vars: SingleLevelVars
+    multi_level_vars: MultiLevelVars, single_level_vars: SingleLevelVars, ecwmf_levels
 ):
     """
     Returns a MODTRAN profile data frame by merging single & multiple level vars.
@@ -299,7 +257,7 @@ def build_profile_data_frame(
 
     var_name_mapping = {
         GEOPOTENTIAL_HEIGHT: geopotential_height,
-        PRESSURE: reversed(ECWMF_LEVELS),
+        PRESSURE: reversed(ecwmf_levels),
         TEMPERATURE: temperature,
         RELATIVE_HUMIDITY: relative_humidity,
     }
@@ -321,6 +279,19 @@ def build_profile_data_frame(
 
     profile_frame.index = profile_frame.index + 1  # shift index
     profile_frame = profile_frame.sort_index()
+
+    # HACK: temporarily detect & remove pressure inversion
+    #  inversion mostly occurs at row 1 when ERA5 surface pressure < ECWMF_LEVELS
+    #  max pressure of 1000 mbar.
+    if surface_pressure < ecwmf_levels[-2]:
+        msg = "Handle cases where surface pressure < several ECWMF_LEVELS layers"
+        raise NotImplementedError(msg)
+
+    pressure_inversion = surface_pressure < ecwmf_levels[-1]
+
+    if pressure_inversion:
+        profile_frame = profile_frame.drop(1)
+
     return profile_frame
 
 
@@ -346,10 +317,14 @@ def scale_z_to_geopotential_height(z, nodata=None):
     return scaled_data
 
 
-def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
+def profile_data_frame_workflow(
+    era5_data_dir, acquisition_datetime, lat_longs, ecwmf_levels
+):
     """
     TODO: describe overall workflow
     """
+
+    # NB: ecwmf_levels is an arg to prevent circular import from wagl.ancillary
 
     multi_paths, single_paths = build_era5_profile_paths(
         era5_data_dir,
@@ -370,12 +345,14 @@ def profile_data_frame_workflow(era5_data_dir, acquisition_datetime, lat_lon):
 
     xf_multi, xf_single = open_profile_data_files(multi_paths, single_paths)
 
-    multi_vars, single_vars = profile_data_extraction(
-        xf_multi, xf_single, acquisition_datetime, lat_lon
-    )
+    # use generator to keep files open for multiple data point reads
+    for lat_lon in lat_longs:
+        multi_vars, single_vars = profile_data_extraction(
+            xf_multi, xf_single, acquisition_datetime, lat_lon
+        )
 
-    frame = build_profile_data_frame(multi_vars, single_vars)
-    return frame
+        frame = build_profile_data_frame(multi_vars, single_vars, ecwmf_levels)
+        yield frame
 
 
 # TODO: is a user ozone override required?
