@@ -322,6 +322,7 @@ def collect_ancillary(
     if era5_dir_path:
         collect_era5_ancillary(
             container,
+            lonlats,
             era5_dir_path,
             cfg_paths,
             group,  # HDF5 writeable group
@@ -342,6 +343,7 @@ def collect_ancillary(
 
 def collect_era5_ancillary(
     container,
+    lonlats,
     ancillary_path,  # ERA5 data dir
     cfg_paths,
     out_group,  # HDF5 writeable group
@@ -349,14 +351,15 @@ def collect_era5_ancillary(
     filter_opts=None,
 ):
     """
-    Collect ERA5/ECWMF based ancillary data.
+    Collect ERA5/ECWMF ancillary data.
 
-    TODO: ERA5 based aerosol is currently unimplemented (needs CAMS data).
-
-    Note: `water vapour` is *not required* directly as it's covered by relative
-    humidity in the custom atmospheric data frame workflow
+    Extract alternative ancillaries to the standard NBAR workflow. Note that:
+    * TODO: ERA5 based aerosol is currently unimplemented (requires CAMS data).
+    * `water vapour` data does *not need to be read directly* as this is covered
+      by relative humidity in the custom atmospheric data frame workflow.
 
     :param container: Acquisition container
+    :param lonlats: sequence of (long, lat) coordinate pairs
     :param ancillary_path: str path to the ERA5 ancillary root
     :param cfg_paths: Dict of nested config dicts, should contain aerosol dict as
                       an absolute minimum, e.g. {"user": aerosol_val}.
@@ -369,25 +372,23 @@ def collect_era5_ancillary(
     out_group.attrs["era5-ancillary"] = True
 
     acquisition = container.get_highest_resolution()[0][0]
-    geobox = acquisition.gridded_geo_box()
-    lon_lat = geobox.centre_lonlat
     acq_datetime = acquisition.acquisition_datetime
 
-    # TODO: do individual profile values need to be written into the HDF5 file?
-    #  is writing only the profile data frame sufficient?
-    # work with single centroid point per acquisition for prototyping simplicity
+    # convert to lat/long ordering (xarray API ordering)
+    latlongs = [ll[::-1] for ll in lonlats]
 
-    # extract atmospheric profile data
-    pnt = POINT_FMT.format(p=0)
-    df = era5.profile_data_frame_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
-    data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
-    write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
+    # create atmospheric profile for each location
+    for n, df in enumerate(
+        era5.profile_data_frame_workflow(
+            ancillary_path, acq_datetime, latlongs, ECWMF_LEVELS
+        )
+    ):
+        pnt = POINT_FMT.format(p=n)
+        data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
+        write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
 
-    # TODO: follow HDF5 structure set by collect_nbar_ancillary()?
-    #  otherwise write a table or dict of values?
-
-    # NB: use constant for aerosols for DE Ant prototyping
-    # TODO: add CAMS data reader as the DE Ant pipeline evolves
+    # NB: use constant aerosol for DE Ant prototyping, value is in singlefile_workflow.py
+    # TODO: add CAMS aerosol reader as the ECWMF/DE Ant pipeline evolves
     aerosol = cfg_paths["aerosol"]
 
     if "user" in aerosol:
@@ -395,7 +396,7 @@ def collect_era5_ancillary(
 
         write_scalar(
             aerosol_value, DatasetName.AEROSOL.value, out_group
-        )  # TODO: any attrs needed?
+        )  # TODO: any custom attrs needed?
     else:
         if "pathname" in aerosol:
             msg = "Reading aerosol from a data source is NOT yet implemented"
@@ -404,21 +405,27 @@ def collect_era5_ancillary(
             msg = f"Missing key in aerosol config. Config={aerosol}"
             raise RuntimeError(msg)
 
+    # read ozone data
+    geobox = acquisition.gridded_geo_box()
+
     if DatasetName.OZONE.value in cfg_paths:
         ozone_cfg = cfg_paths[DatasetName.OZONE.value]
         ozone = ozone_cfg["user"]
     else:
-        ozone = era5.ozone_workflow(ancillary_path, acq_datetime, lon_lat[::-1])
+        ozone = era5.ozone_workflow(
+            ancillary_path, acq_datetime, geobox.centre_lonlat[::-1]
+        )
 
     write_scalar(ozone, DatasetName.OZONE.value, out_group)  # TODO: any attrs needed?
 
+    # read elevation data
     # TODO: check DEM, is offshore flag required???
     offshore = False
     dem_path = cfg_paths["dem_path"]
     elev = get_elevation_data(geobox.centre_lonlat, dem_path, offshore=offshore)
     write_scalar(elev[0], DatasetName.ELEVATION.value, out_group, elev[1])
 
-    # TODO: check BRDF
+    # read BRDF data
     dname_format = DatasetName.BRDF_FMT.value
     for group in container.groups:
         for acq in container.get_acquisitions(group=group):
