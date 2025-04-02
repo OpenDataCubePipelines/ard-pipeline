@@ -173,6 +173,7 @@ class SingleLevelVars(typing.NamedTuple):
     dewpoint_temperature: numbers.Number
 
 
+# TODO: make args more explicit for any non prototype code
 def profile_data_extraction(
     multi_level_datasets,
     single_level_datasets,
@@ -201,9 +202,10 @@ def profile_data_extraction(
         get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
     ]
 
+    # bundle the extracted atmos profile layers
     multi_level_vars = MultiLevelVars(*raw_multi_level)
 
-    # Extract single level vars:
+    # Extract single level/surface vars:
     # 2t -> temperature at 2m
     # z -> geopotential
     # sp -> surface pressure
@@ -214,6 +216,7 @@ def profile_data_extraction(
         get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
     ]
 
+    # bundle the extracted atmos profile surface layer vars
     single_level_vars = SingleLevelVars(*raw_single_level)
     return multi_level_vars, single_level_vars
 
@@ -286,16 +289,17 @@ def build_profile_data_frame(
         kelvin=True,
     )
 
-    # transform data for column order & scaling
+    # transform column order & scale for MODTRAN
     geopotential_height = reversed(
         scale_z_to_geopotential_height(multi_level_vars.geopotential)
     )
     relative_humidity = reversed(multi_level_vars.relative_humidity)
     temperature = atmos.kelvin_2_celcius(multi_level_vars.temperature)
 
+    # MODTRAN requires monotonically decreasing pressure (ecwmf_levels)
     var_name_mapping = {
         GEOPOTENTIAL_HEIGHT: geopotential_height,
-        PRESSURE: reversed(ecwmf_levels),
+        PRESSURE: reversed(ecwmf_levels),  # switch to decreasing pressure order
         TEMPERATURE: temperature,
         RELATIVE_HUMIDITY: relative_humidity,
     }
@@ -307,6 +311,8 @@ def build_profile_data_frame(
     geopotential_height = scale_z_to_geopotential_height(single_level_vars.geopotential)
     temperature = atmos.kelvin_2_celcius(single_level_vars.temperature)
 
+    # construct data frame with single level vars as the surface data & multi
+    # level data as the rest of the atmospheric values as elevation increases
     # insert surface level parameters, expand rows to 38 levels
     profile_frame.loc[-1] = [
         geopotential_height,
@@ -318,9 +324,10 @@ def build_profile_data_frame(
     profile_frame.index = profile_frame.index + 1  # shift index
     profile_frame = profile_frame.sort_index()
 
-    # HACK: temporarily detect & remove pressure inversion
-    #  inversion mostly occurs at row 1 when ERA5 surface pressure < ECWMF_LEVELS
-    #  max pressure of 1000 mbar.
+    # HACK: temporarily detect & remove pressure inversion as MODTRAN exits with
+    #  errors if there is a pressure inversion
+    # inversion mostly occurs at row 1 when ERA5 surface pressure < ECWMF_LEVELS
+    # max pressure of 1000 mbar.
     if surface_pressure < ecwmf_levels[-2]:
         msg = "Handle cases where surface pressure < several ECWMF_LEVELS layers"
         raise NotImplementedError(msg)
@@ -371,7 +378,7 @@ def profile_data_frame_workflow(
     :param ecwmf_levels: see wagl.ancillary.ECWMF_LEVELS.
     """
 
-    # NB: ecwmf_levels is an arg to prevent circular import from wagl.ancillary
+    # NB: ecwmf_levels is an arg to avoid wagl.ancillary circular import
 
     multi_paths, single_paths = build_era5_profile_paths(
         era5_data_dir,
@@ -393,6 +400,7 @@ def profile_data_frame_workflow(
     xf_multi, xf_single = open_profile_data_files(multi_paths, single_paths)
 
     # use generator to keep files open for multiple data point reads
+    # NB: it's possible some reads are repeated for coarse data
     for lat_lon in lat_longs:
         multi_vars, single_vars = profile_data_extraction(
             xf_multi, xf_single, acquisition_datetime, lat_lon
@@ -431,6 +439,7 @@ def read_ozone_data(
     :param lat_long: (latitude, longitude) tuple
     """
 
+    # splitting out this functionality keeps I/O in `ozone_workflow()`
     tco3 = get_closest_value(
         ozone_dataset,
         ERA5_TOTAL_COLUMN_OZONE,
