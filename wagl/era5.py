@@ -1,7 +1,20 @@
 """
-This module is a prototype for working with ERA5 reanalysis NetCDF files on NCI.
+This prototype module uses ERA5 reanalysis data for ard-pipeline ancillaries.
 
-See NCI `rt52` project for a clone of the ERA5 data.
+ERA5 is an alternate ancillary data source to that utilised in the standard NBAR
+workflow over Australia, and is used in the DE Antarctica project.
+
+See NCI's `rt52` project for the ERA5 data mirror (in NetCDF).
+
+Usage notes:
+
+The main top level functions are:
+* `profile_data_frame_workflow()`
+* `ozone_workflow()`
+
+The workflows are designed by *composition* to encapsulate the complexity with
+the ERA5 file structure & data access. Typically, only the workflow functions
+should be used unless specific use cases require fine-grained control.
 """
 
 # NB: avoid importing wagl.acquisition as it needs Fortran dependencies
@@ -134,12 +147,26 @@ ERA5_TOTAL_COLUMN_OZONE = "tco3"
 
 
 class MultiLevelVars(typing.NamedTuple):
+    """
+    Container for ERA5 atmospheric values for all above surface layers.
+
+    This convenience class collects ECWMF/ERA5 layered atmospheric data into a
+    single location for processing into custom MODTRAN profiles.
+    """
+
     relative_humidity: typing.Sequence
     temperature: typing.Sequence
     geopotential: typing.Sequence
 
 
 class SingleLevelVars(typing.NamedTuple):
+    """
+    Container for ERA5 atmospheric values for surface level readings.
+
+    This convenience class collects ECWMF/ERA5 surface level atmospheric data
+    into a single location for processing into custom MODTRAN profiles.
+    """
+
     temperature: numbers.Number
     geopotential: numbers.Number
     surface_pressure: numbers.Number
@@ -240,7 +267,18 @@ def build_profile_data_frame(
     multi_level_vars: MultiLevelVars, single_level_vars: SingleLevelVars, ecwmf_levels
 ):
     """
-    Returns a MODTRAN profile data frame by merging single & multiple level vars.
+    Builds MODTRAN atmospheric profile data frames.
+
+    Merges single/surface & multiple level atmospheric data into a 2D table as
+    a MODTRAN input. Scaling & re-ordering is performed to ensure the data is
+    suitable for MODTRRAN requirements (e.g. decreasing pressure with height).
+
+    :param multi_level_vars: a MultiLevelVars instance of the non-surface ERA5
+                             atmospheric data layers.
+    :param single_level_vars: SingleLevelVars instance of the surface level data.
+    :param ecwmf_levels: Sequence of ECWMF pressure levels. This is assumed to
+                         be in **increasing** order.
+    :return: a profile data frame (table) suitable for MODTRAN.
     """
     rh = atmos.relative_humdity(
         single_level_vars.temperature,
@@ -321,7 +359,16 @@ def profile_data_frame_workflow(
     era5_data_dir, acquisition_datetime, lat_longs, ecwmf_levels
 ):
     """
-    TODO: describe overall workflow
+    Top level workflow generator function for per coordinate MODTRAN data frames.
+
+    This generator produces a MODTRAN suitable atmospheric profile data frame for
+    each coordinate in `lat_longs`. ERA5 data is assumed to be accessible via a
+    filesystem path.
+
+    :param era5_data_dir: path to the root ERA5 data directory.
+    :param acquisition_datetime: time of acquisition.
+    :param lat_longs: Sequence of (lat, long) coordinate tuples.
+    :param ecwmf_levels: see wagl.ancillary.ECWMF_LEVELS.
     """
 
     # NB: ecwmf_levels is an arg to prevent circular import from wagl.ancillary
@@ -359,7 +406,9 @@ def profile_data_frame_workflow(
 # NB: this doesn't require the luigi ozone setting
 def ozone_workflow(era5_data_dir, acquisition_datetime, lat_long):
     """
-    TODO
+    Top level workflow function to capture ozone ancillary data.
+
+    NB: only supports a single point sampling as per the wagl NBAR workflow.
     """
     ozone_path = build_era5_path(
         era5_data_dir, ERA5_TOTAL_COLUMN_OZONE, acquisition_datetime, single=True
