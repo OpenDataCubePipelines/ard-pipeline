@@ -324,20 +324,8 @@ def build_profile_data_frame(
     profile_frame.index = profile_frame.index + 1  # shift index
     profile_frame = profile_frame.sort_index()
 
-    # HACK: temporarily detect & remove pressure inversion as MODTRAN exits with
-    #  errors if there is a pressure inversion
-    # inversion mostly occurs at row 1 when ERA5 surface pressure < ECWMF_LEVELS
-    # max pressure of 1000 mbar.
-    if surface_pressure < ecwmf_levels[-2]:
-        msg = "Handle cases where surface pressure < several ECWMF_LEVELS layers"
-        raise NotImplementedError(msg)
-
-    pressure_inversion = surface_pressure < ecwmf_levels[-1]
-
-    if pressure_inversion:
-        profile_frame = profile_frame.drop(1)
-
-    return profile_frame
+    clean_profile_frame = remove_inversions(profile_frame)
+    return clean_profile_frame
 
 
 def scale_z_to_geopotential_height(z, nodata=None):
@@ -360,6 +348,22 @@ def scale_z_to_geopotential_height(z, nodata=None):
 
     scaled_data = z / STANDARD_GRAVITY / 1000.0
     return scaled_data
+
+
+def remove_inversions(profile_frame):
+    """
+    Drop pressure inversion data to clean the atmospheric profile for MODTRAN.
+
+    Assumptions: the function assumes the profile row 0 is surface level data.
+
+    :param profile_frame: Atmospheric profile data frame, see `build_profile_data_frame()`.
+    """
+    # TODO: does this need to filter on geopotential height too?
+    surface_pressure = profile_frame["Pressure"][0]
+
+    # using <= keeps surface pressure row & flags higher pressure layers
+    inversions = profile_frame["Pressure"] <= surface_pressure
+    return profile_frame[inversions]
 
 
 def profile_data_frame_workflow(

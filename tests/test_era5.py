@@ -2,8 +2,10 @@ import calendar
 import datetime
 import os
 import socket
+from io import StringIO
 
 import numpy as np
+import pandas as pd
 import pytest
 import xarray as xr
 
@@ -416,6 +418,66 @@ def test_scale_z_to_geopotential_height_nodata_fail():
 
     with pytest.raises(NotImplementedError):
         era5.scale_z_to_geopotential_height(z, nodata)
+
+
+# Mimic atmospheric profile with no pressure inversion
+NO_INVERSION_CSV = """GeoPotential_Height,Pressure,Temperature,Relative_Humidity
+0,0.236045,1007.347,17.728143,55.185634
+1,0.212373,1000.0,-18.994675,52.298523
+2,0.427279,975.0,-23.951721,57.085167
+3,0.647330,950.0,-25.334412,48.109035
+4,0.873114,925.0,-33.466919,51.839661
+5,1.103682,900.0,-36.328644,57.452885
+"""
+
+
+def test_remove_inversions_skip_non_inversion():
+    file_like = StringIO(NO_INVERSION_CSV)
+    df = pd.read_csv(file_like)
+    assert df.shape == (6, 4)
+
+    res = era5.remove_inversions(df)
+    assert res.shape == (6, 4)
+
+
+# Atmospheric profile with a pressure inversion
+WITH_INVERSION_CSV = """GeoPotential_Height,Pressure,Temperature,Relative_Humidity
+0,0.236045,997.203047,17.728143,55.185634
+1,0.212373,1000.0,-18.994675,52.298523
+2,0.427279,975.0,-23.951721,57.085167
+3,0.647330,950.0,-25.334412,48.109035
+4,0.873114,925.0,-33.466919,51.839661
+5,1.103682,900.0,-36.328644,57.452885
+"""
+
+
+def test_remove_inversions():
+    file_like = StringIO(WITH_INVERSION_CSV)
+    df = pd.read_csv(file_like)
+    assert df.shape == (6, 4)  # nrows, ncols order
+
+    res = era5.remove_inversions(df)
+    assert res.shape == (5, 4)
+
+
+# Atmospheric profile with multiple pressure inversion rows
+WITH_MULTI_INVERSION_CSV = """GeoPotential_Height,Pressure,Temperature,Relative_Humidity
+0,0.236045,970.5,17.728143,55.185634
+1,0.212373,1000.0,-18.994675,52.298523
+2,0.427279,975.0,-23.951721,57.085167
+3,0.647330,950.0,-25.334412,48.109035
+4,0.873114,925.0,-33.466919,51.839661
+5,1.103682,900.0,-36.328644,57.452885
+"""
+
+
+def test_remove_inversions_multiple_rows():
+    file_like = StringIO(WITH_MULTI_INVERSION_CSV)
+    df = pd.read_csv(file_like)
+    assert df.shape == (6, 4)  # nrows, ncols order
+
+    res = era5.remove_inversions(df)
+    assert res.shape == (4, 4)
 
 
 @pytest.fixture
