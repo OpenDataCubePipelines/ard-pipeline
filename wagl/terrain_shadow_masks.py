@@ -253,6 +253,14 @@ def cast_shadow_main(
     nrow, ncol = solar_data.shape
     nl, ns = dem_data.shape
 
+    sources = dem_data.attrs["id"]
+    if sources.shape == (1,) and sources[0] == "cop-30m-dem":
+        htol = 1.0
+        sun_disk = 0.0
+    else:
+        htol = 1.0
+        sun_disk = 3.0
+
     # the DEM data should have the same dimensions as the angle data
     # but with padding
     assert nl == aoff_y1 + nrow + aoff_y2
@@ -269,7 +277,7 @@ def cast_shadow_main(
         sazi = sazi_data[y_idx, :]
         dem = dem_data[y_idx.start : (y_idx.start + mmax_sub), :]
 
-        ierr, mask = cast_shadow_prim(
+        ierr, _, mask = cast_shadow_prim(
             dem,
             solar,
             sazi,
@@ -281,6 +289,8 @@ def cast_shadow_main(
             aoff_y2,
             nla_ori,
             nsa_ori,
+            htol,
+            sun_disk,
         )
 
         if ierr:
