@@ -5,7 +5,7 @@ A Python package for producing standarised imagery in the form of:
 * Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR)
 * NBART; NBAR with Terrain Illumination correction
 * Surface Brightness Temperature
-* Pixel Quality (per pixel metadata)
+* Pixel Quality (per pixel metadata, such as cloud or cloud shadow masks)
 
 The luigi task workflow for producing NBAR for a Landsat 5TM scene is given below.
 
