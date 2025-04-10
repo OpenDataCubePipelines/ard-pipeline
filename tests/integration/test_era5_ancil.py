@@ -61,24 +61,24 @@ def nci_era5_dir_path():
 
 
 @pytest.fixture
-def cop_sentinel2_root():
+def sentinel2_root():
     # shorten long NCI file paths with this fixture
     return "/g/data/fj7/Copernicus/Sentinel-2/MSI/L1C/"
 
 
 @pytest.fixture
-def canberra_scene_sentinel2_path(cop_sentinel2_root):
+def wagga_scene_sentinel2_path(sentinel2_root):
     # return NCI specific path to test scene over Aus, use 2023 to ensure ERA5
     # data exists (as some 2024 data was missing as of 03/2025)
-    p = "2023/2023-12/35S145E-40S150E/S2B_MSIL1C_20231231T235229_N0510_R130_T55HGS_20240101T004900.zip"
-    abs_path = os.path.join(cop_sentinel2_root, p)
+    p = "2021/2021-01/30S145E-35S150E/S2B_MSIL1C_20210122T001109_N0209_R073_T55HEB_20210122T012405.zip"
+    abs_path = os.path.join(sentinel2_root, p)
     assert os.path.exists(abs_path)
     return abs_path
 
 
 @pytest.fixture
-def canberra_scene_sentinel2_container(canberra_scene_sentinel2_path):
-    container = acquisition.acquisitions(canberra_scene_sentinel2_path)
+def wagga_scene_sentinel2_container(wagga_scene_sentinel2_path):
+    container = acquisition.acquisitions(wagga_scene_sentinel2_path)
     return container
 
 
@@ -105,8 +105,8 @@ def scene_landsat_container(scene_landsat_path):
 
 
 @pytest.fixture
-def output_filename_sentinel(canberra_scene_sentinel2_path):
-    bn = os.path.basename(canberra_scene_sentinel2_path)
+def output_filename_sentinel(wagga_scene_sentinel2_path):
+    bn = os.path.basename(wagga_scene_sentinel2_path)
     no_ext = os.path.splitext(bn)[0]
     out = f"{no_ext}.testing.wagl.h5"
     return out
@@ -253,23 +253,27 @@ def test_collect_era5_ancillary_landsat_multi_points(
         assert val != 0
 
 
-# @pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
-@pytest.mark.skip(reason="Needs data")
+@pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
 def test_collect_era5_ancillary_sentinel(
-    canberra_scene_sentinel2_container, nci_era5_dir_path, output_filename_sentinel
+    wagga_scene_sentinel2_container, nci_era5_dir_path, output_filename_sentinel
 ):
-    msg = "Check project with sentinel outputs for correct root naming"
-    raise NotImplementedError(msg)
-
     tmp_dir = init_tmp_dir()
     dest_path = os.path.join(tmp_dir, output_filename_sentinel)
 
+    acq = wagga_scene_sentinel2_container.get_highest_resolution()[0][0]
+    geobox = acq.gridded_geo_box()
+    lonlats = (geobox.centre_lonlat, (147.34547961918634, -35.11559202501883))
+
+    # root group name copies naming from workflow H5 output files
+    rootname = wagga_scene_sentinel2_container.granules[0]
+
     with h5py.File(dest_path, "w") as fid:
-        # TODO: root_group = fid.create_group()  # mimic scene_landsat_base_path
-        out_group = fid.create_group(constants.GroupName.ANCILLARY_GROUP.value)
+        root_group = fid.create_group(rootname)  # mimic scene_landsat_base_path
+        out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
         ancillary.collect_era5_ancillary(
-            canberra_scene_sentinel2_container,
+            wagga_scene_sentinel2_container,
+            lonlats,
             nci_era5_dir_path,
             _default_cfg_paths,
             out_group,
@@ -281,4 +285,11 @@ def test_collect_era5_ancillary_sentinel(
     df = h5py.File(dest_path)
 
     expected_aerosol = 0.05
-    assert df["ANCILLARY/AEROSOL"][()] == expected_aerosol
+    assert df[f"{rootname}/ANCILLARY/AEROSOL"][()] == expected_aerosol
+
+    profile = df[f"{rootname}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
+    assert profile is not None  # same as profile 1 in the single location test
+
+    profile2 = df[f"{rootname}/ANCILLARY/POINT-1/ATMOSPHERIC-PROFILE"]
+    assert profile2 is not None
+    assert len(profile2) in [37, 38]  # num rows, account for possible profile inversion
