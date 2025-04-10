@@ -27,6 +27,7 @@ nodes have non-deterministic performance issues.
 
 import os
 import socket
+import warnings
 
 import h5py
 import pytest
@@ -41,13 +42,13 @@ if on_gadi:
     TMP_DIR = "TMPDIR"
 else:
     msg = "Running era5 ancil testing not supported outside NCI yet..."
-    raise NotImplementedError(msg)
+    warnings.warn(msg)
 
-if TMP_DIR not in os.environ:
+if on_gadi and TMP_DIR not in os.environ:
     msg = "Set $TMPDIR env variable to temp directory"
     raise RuntimeError(msg)
 
-_REASON = "Platform does not appear to be an NCI system"
+_REASON = "Platform unrecognised as NCI system"
 
 
 @pytest.fixture
@@ -141,7 +142,7 @@ def init_tmp_dir():
     return tmp_dir
 
 
-@pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
+@pytest.mark.skipif(not on_gadi, reason=_REASON)
 def test_collect_era5_ancillary_landsat(
     scene_landsat_container,
     scene_landsat_base_path,
@@ -200,7 +201,7 @@ def test_collect_era5_ancillary_landsat(
         assert val != 0
 
 
-@pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
+@pytest.mark.skipif(not on_gadi, reason=_REASON)
 def test_collect_era5_ancillary_landsat_multi_points(
     scene_landsat_container,
     scene_landsat_base_path,
@@ -253,7 +254,7 @@ def test_collect_era5_ancillary_landsat_multi_points(
         assert val != 0
 
 
-@pytest.mark.skipif(TMP_DIR is False, reason=_REASON)
+@pytest.mark.skipif(not on_gadi, reason=_REASON)
 def test_collect_era5_ancillary_sentinel(
     wagga_scene_sentinel2_container, nci_era5_dir_path, output_filename_sentinel
 ):
