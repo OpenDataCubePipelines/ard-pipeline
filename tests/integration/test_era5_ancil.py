@@ -34,25 +34,29 @@ import pytest
 from wagl import acquisition, ancillary, constants
 
 # check hostname & TMPDIR for platform checking
-if "gadi" not in socket.gethostname():
-    TMP_DIR = False
-else:
-    TMP_DIR = "TMPDIR"
+# this could provide false matches for hostnames containing "gadi"
+on_gadi = "gadi" in socket.gethostname()
 
-    if TMP_DIR not in os.environ:
-        msg = "Set $TMPDIR env variable to temp directory"
-        raise RuntimeError(msg)
+if on_gadi:
+    TMP_DIR = "TMPDIR"
+else:
+    msg = "Running era5 ancil testing not supported outside NCI yet..."
+    raise NotImplementedError(msg)
+
+if TMP_DIR not in os.environ:
+    msg = "Set $TMPDIR env variable to temp directory"
+    raise RuntimeError(msg)
 
 _REASON = "Platform does not appear to be an NCI system"
 
 
 @pytest.fixture
 def nci_era5_dir_path():
-    # HACK: this is NCI platform specific
-    if "gadi" in socket.gethostname():
+    # HACK: this module is NCI platform specific
+    if on_gadi:
         return "/g/data/rt52/era5"
 
-    msg = "This test is currently coupled to the NCI environment"
+    msg = "This fixture is currently coupled to the NCI environment"
     raise RuntimeError(msg)
 
 
