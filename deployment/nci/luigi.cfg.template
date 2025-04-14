@@ -2,7 +2,7 @@
 workflow = NBAR
 vertices = (3, 3)
 modtran_exe = mod6c_cons
-srtm_pathname = /g/data/v10/eoancillarydata-2/elevation/tc_aus_3sec/dsm1sv1_0_Clean.h5:/SRTM/GA-DSM
+srtm_pathname =
 cop_pathname = /g/data/v10/eoancillarydata-2/elevation/copernicus_30m/copernicus-30m-dem.tif
 tle_path = /g/data/v10/eoancillarydata-2/sensor-specific
 brdf = {"brdf_path": "/g/data/v10/eoancillarydata-2/BRDF/MCD43A1.061",
@@ -12,10 +12,9 @@ brdf = {"brdf_path": "/g/data/v10/eoancillarydata-2/BRDF/MCD43A1.061",
         "viirs_i_path": "/g/data/v10/eoancillarydata-2/BRDF/VNP43IA1.001",
         "viirs_m_path": "/g/data/v10/eoancillarydata-2/BRDF/VNP43MA1.001"}
 offshore_territory_boundary_path = /g/data/v10/eoancillarydata-2/DEA-non-offshore-product-extent.geojson
-dem_path = /g/data/v10/eoancillarydata-2/elevation/world_1deg/DEM_one_deg_20June2019.h5:/SRTM/GA-DSM
+dem_path =
 ecmwf_path =
 era5_dir_path = /g/data/rt52/era5
-invariant_height_fname = /g/data/v10/eoancillarydata-2/mars/daily-data/invariant/geo-potential-dem.tif
 compression = BITSHUFFLE
 h5_driver =
 
