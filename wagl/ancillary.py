@@ -418,14 +418,8 @@ def collect_era5_ancillary(
 
     write_scalar(ozone, DatasetName.OZONE.value, out_group)  # TODO: any attrs needed?
 
-    # read elevation data
-    # TODO: check DEM, is offshore flag required???
-    offshore = False
-    dem_path = cfg_paths["dem_path"]
-    elev = get_elevation_data(geobox.centre_lonlat, dem_path, offshore=offshore)
-    write_scalar(elev[0], DatasetName.ELEVATION.value, out_group, elev[1])
-
     # read BRDF data
+    offshore = False
     dname_format = DatasetName.BRDF_FMT.value
     for group in container.groups:
         for acq in container.get_acquisitions(group=group):
