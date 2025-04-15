@@ -469,8 +469,7 @@ def stash_ancillary(
     if era5_dir_path:
         # ERA5 prototype requires less ancillary data
         paths = {
-            "aerosol": aerosol,
-            "dem_path": dem_path,
+            "aerosol": aerosol,  # TODO: handle MERRA2 aerosol
             "brdf_dict": brdf,
         }
     else:
