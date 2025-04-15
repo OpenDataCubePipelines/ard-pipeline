@@ -114,7 +114,9 @@ def format_json(
     # ancillary data
     coordinator = ancillary_group[DatasetName.COORDINATOR.value]
 
-    # NB: MERRA-2, read all points
+    # NB: retrieve MERRA-2 aerosol for each sample coordinate, this improves the
+    #  original ard-pipeline which only sampled a single location
+    # TODO: this breaks the original workflow that expects 1 aerosol in the HDF5
     npoints = coordinator.shape[0]
     aerosol = [anc_grp[f"POINT-{n}/{DatasetName.AEROSOL.value}"][()] for n in npoints]
 
