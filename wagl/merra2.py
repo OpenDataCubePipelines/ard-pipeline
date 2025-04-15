@@ -20,6 +20,14 @@ def aerosol_workflow(merra2_data_dir, acquisition_datetime, lat_longs):
     Top level workflow function to capture MERRA2 aerosol ancillary data.
     """
     aerosol_path = build_merra2_path(merra2_data_dir, acquisition_datetime)
+
+    if not os.path.exists(aerosol_path):
+        msg = (
+            f"MERRA-2 data not found {aerosol_path}\nIs the data collection"
+            f"incomplete or the merra2_dir_path setting incorrect?"
+        )
+        raise FileNotFoundError(msg)
+
     dataset = xarray.open_dataset(aerosol_path)
 
     for lat_long in lat_longs:
