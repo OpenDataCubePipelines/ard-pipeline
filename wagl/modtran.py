@@ -136,6 +136,9 @@ def select_profile_worldwide(acquisition_datetime, centre_lat, input_data):
     return data
 
 
+# TODO: this function breaks the single responsibility principle by performing
+#  multiple data transformation steps. Splitting this into components is useful
+#  if the MODTRAN interface requires finer grained testing
 def format_json(
     acquisitions,
     ancillary_group,
@@ -163,7 +166,10 @@ def format_json(
 
     # ancillary data
     coordinator = ancillary_group[DatasetName.COORDINATOR.value]
-    aerosol = anc_grp[DatasetName.AEROSOL.value][()]  # NB: [()] == [:]
+
+    # NB: MERRA-2, read all points
+    npoints = coordinator.shape[0]
+    aerosol = [anc_grp[f"POINT-{n}/{DatasetName.AEROSOL.value}"][()] for n in npoints]
 
     if era5_data_dir is None:
         # NB: ERA5 water vapour is accounted for in the custom atmos profile
@@ -172,7 +178,6 @@ def format_json(
     ozone = anc_grp[DatasetName.OZONE.value][()]
     elevation = anc_grp[DatasetName.ELEVATION.value][()]
 
-    npoints = coordinator.shape[0]
     view = np.zeros(npoints, dtype="float32")
     azi = np.zeros(npoints, dtype="float32")
     lat = np.zeros(npoints, dtype="float64")
@@ -227,7 +232,7 @@ def format_json(
                     "name": POINT_ALBEDO_FMT.format(p=p, a=str(alb.value)),
                     "ozone": ozone,
                     "doy": acquisitions[0].julian_day(),
-                    "visibility": -aerosol,
+                    "visibility": -aerosol[p],
                     "lat": lat[p],
                     "lon": rlon[p],
                     "time": acquisitions[0].decimal_hour(),
