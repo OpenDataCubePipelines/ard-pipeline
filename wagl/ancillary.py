@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """Ancillary dataset retrieval and storage."""
 
 import configparser
@@ -225,8 +223,7 @@ def collect_ancillary(
 
         Required keys for ERA5 / DE Antarctica:
 
-        * aerosol (a numeric constant as of prototype stage)
-        * dem_path
+        * aerosol (a numeric constant as of prototype stage)  TODO fix
         * brdf_dict
 
     :param offshore_territory_boundary_path:
