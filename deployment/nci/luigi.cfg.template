@@ -15,6 +15,7 @@ offshore_territory_boundary_path = /g/data/v10/eoancillarydata-2/DEA-non-offshor
 dem_path =
 ecmwf_path =
 era5_dir_path = /g/data/rt52/era5
+merra2_dir_path =
 compression = BITSHUFFLE
 h5_driver =
 
