@@ -36,15 +36,15 @@ def _is_valid(aerosol):
 
 
 def test_build_merra2_path(wagga_datetime):
-    base_dir = ""  # TODO: fix path once a MERRA2 mirror exists
-    path = merra2.build_merra2_path(base_dir, wagga_datetime)
+    path = merra2.build_merra2_path(MERRA2_DATA_DIR, wagga_datetime)
 
-    # TODO: temporary until a fixed MERRA2 "mirror" is created
-    assert path == "MERRA2_300.tavg1_2d_aer_Nx.20080925.nc4"
+    # TODO: temporary until a known MERRA-2 "mirror" is created
+    exp = f"{MERRA2_DATA_DIR}/M2T1NXAER.5.12.4/2008/09/MERRA2_300.tavg1_2d_aer_Nx.20080925.nc4"
+    assert path == exp
 
 
 def test_get_closest_value(wagga_datetime, wagga_lat_long):
-    path = f"{MERRA2_DATA_DIR}/MERRA2_300.tavg1_2d_aer_Nx.20080925.nc4"
+    path = f"{MERRA2_DATA_DIR}/M2T1NXAER.5.12.4/2008/09/MERRA2_300.tavg1_2d_aer_Nx.20080925.nc4"
     ds = xarray.open_dataset(path)
 
     aerosol = merra2.get_closest_value(ds, wagga_datetime, wagga_lat_long)
@@ -52,5 +52,6 @@ def test_get_closest_value(wagga_datetime, wagga_lat_long):
 
 
 def test_aerosol_workflow(wagga_datetime, wagga_lat_long):
-    aerosol = merra2.aerosol_workflow(MERRA2_DATA_DIR, wagga_datetime, wagga_lat_long)
-    _is_valid(aerosol)
+    coord = (wagga_lat_long,)
+    for aerosol in merra2.aerosol_workflow(MERRA2_DATA_DIR, wagga_datetime, coord):
+        _is_valid(aerosol)
