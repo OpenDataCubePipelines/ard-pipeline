@@ -17,7 +17,7 @@ from geopandas import GeoSeries
 from shapely import wkt
 from shapely.geometry import Point, Polygon
 
-from wagl import era5
+from wagl import era5, merra2
 from wagl.acquisition import (
     Acquisition,
     AcquisitionsContainer,
@@ -193,6 +193,7 @@ def collect_ancillary(
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
     era5_dir_path=None,
+    merra2_dir_path=None,
 ):
     """Collects the ancillary required for NBAR and optionally SBT.
     This could be better handled if using the `opendatacube` project
@@ -260,7 +261,10 @@ def collect_ancillary(
         chosen H5CompressionFilter instance.
 
     :param era5_dir_path:
-        Path to the ERA5 root data dir (e.g. /g/data/rt52/era5) or None
+        Path to the ERA5 root data dir (e.g. /g/data/rt52/era5) or None.
+
+    :param merra2_dir_path:
+        Path to the MERRA1 root data dir or None.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -321,6 +325,7 @@ def collect_ancillary(
             container,
             lonlats,
             era5_dir_path,
+            merra2_dir_path,
             cfg_paths,
             group,  # HDF5 writeable group
             compression=compression,
@@ -342,6 +347,7 @@ def collect_era5_ancillary(
     container,
     lonlats,
     era5_dir_path,  # ERA5 data dir
+    merra2_dir_path,
     cfg_paths,
     out_group,  # HDF5 writeable group
     compression=H5CompressionFilter.LZF,
@@ -350,19 +356,30 @@ def collect_era5_ancillary(
     """
     Collect ERA5/ECWMF ancillary data.
 
-    Extract alternative ancillaries to the standard NBAR workflow. Note that:
-    * TODO: ERA5 based aerosol is currently unimplemented (requires CAMS data).
-    * `water vapour` data does *not need to be read directly* as this is covered
-      by relative humidity in the custom atmospheric data frame workflow.
+    Extract alternative ancillaries from the standard NBAR workflow. Note that
+    ECWMF aerosol ERA5 requires CAMS data, which was not available at NCI as of
+    early 2025. MERRA-2 data is an alternate source.
 
-    :param container: Acquisition container
-    :param lonlats: sequence of (long, lat) coordinate pairs
-    :param ancillary_path: str path to the ERA5 ancillary root
-    :param cfg_paths: Dict of nested config dicts, should contain aerosol dict as
-                      an absolute minimum, e.g. {"user": aerosol_val}.
-    :param out_group: output group from H5 dataset
+    `water vapour` data does *not need to be read directly* as it is substituted
+    by `relative humidity` in the custom atmospheric data frame workflow.
+
+    :param container:
+        Acquisition container
+    :param lonlats:
+        sequence of (long, lat) coordinate pairs
+    :param era5_dir_path:
+        str path to the ERA5 ancillary root
+    :param merra2_dir_path:
+        TODO
+    :param cfg_paths:
+        Dict of nested config dicts, should contain aerosol dict as an absolute
+        minimum, e.g. {"user": aerosol_val} if MERRA 2 is unavailable.
+    :param out_group:
+        output group from H5 dataset
     :param compression:
+        TODO
     :param filter_opts:
+        TODO
     """
 
     assert out_group is not None
@@ -384,23 +401,36 @@ def collect_era5_ancillary(
         data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
         write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
 
-    # NB: use constant aerosol for DE Ant prototyping, value is in singlefile_workflow.py
-    # TODO: add CAMS aerosol reader as the ECWMF/DE Ant pipeline evolves
-    aerosol = cfg_paths["aerosol"]
+    # NB: read MERRA2 aerosol for DE Ant if data available
+    if merra2_dir_path and "aerosol" in cfg_paths:
+        msg = "Both MERRA2 dir and aerosol settings specified. Select only one."
+        raise AncillaryError(msg)
 
-    if "user" in aerosol:
-        aerosol_value = aerosol["user"]
-
-        write_scalar(
-            aerosol_value, DatasetName.AEROSOL.value, out_group
-        )  # TODO: any custom attrs needed?
+    if merra2_dir_path:
+        for n, lat_long in enumerate(latlongs):
+            # TODO: make efficient by reading from 1 file multiple times
+            aerosol = merra2.aerosol_workflow(merra2_dir_path, acq_datetime, lat_long)
+            pnt = POINT_FMT.format(p=n)
+            data_name = ppjoin(pnt, DatasetName.AEROSOL.value)
+            write_scalar(aerosol, data_name, out_group)
     else:
-        if "pathname" in aerosol:
-            msg = "Reading aerosol from a data source is NOT yet implemented"
-            raise NotImplementedError(msg)
+        aerosol = cfg_paths["aerosol"]
+
+        if "user" in aerosol:
+            aerosol_value = aerosol["user"]
+
+            write_scalar(
+                aerosol_value, DatasetName.AEROSOL.value, out_group
+            )  # TODO: any custom attrs needed?
         else:
-            msg = f"Missing key in aerosol config. Config={aerosol}"
-            raise RuntimeError(msg)
+            if "pathname" in aerosol:
+                # AerosolDict has `pathname` for HDF5 inputs. This doesn't apply
+                # to MERRA2 which is a collection of NetCDFs
+                msg = "Reading aerosol from HDF5 file is NOT yet implemented"
+                raise NotImplementedError(msg)
+            else:
+                msg = f"Missing key in aerosol config. Config={aerosol}"
+                raise RuntimeError(msg)
 
     # read ozone data
     geobox = acquisition.gridded_geo_box()
