@@ -49,10 +49,11 @@ def build_merra2_path(base_dir, date_time: datetime.datetime):
     """
 
     year, month, day = date_time.year, date_time.month, date_time.day
-    base = f"MERRA2_300.tavg1_2d_aer_Nx.{year}{month:02d}{day:02d}.nc4"
+    basename = f"MERRA2_300.tavg1_2d_aer_Nx.{year}{month:02d}{day:02d}.nc4"
 
-    # TODO: add base dir & vars as required
-    path = os.path.join(base_dir, base)
+    # Add the variable/year/month dir structure
+    root_dir = f"{base_dir}/M2T1NXAER.5.12.4/{year}/{month:02d}"
+    path = os.path.join(root_dir, basename)
     return path
 
 
