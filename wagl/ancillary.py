@@ -341,7 +341,7 @@ def collect_ancillary(
 def collect_era5_ancillary(
     container,
     lonlats,
-    ancillary_path,  # ERA5 data dir
+    era5_dir_path,  # ERA5 data dir
     cfg_paths,
     out_group,  # HDF5 writeable group
     compression=H5CompressionFilter.LZF,
@@ -377,7 +377,7 @@ def collect_era5_ancillary(
     # create atmospheric profile for each location
     for n, df in enumerate(
         era5.profile_data_frame_workflow(
-            ancillary_path, acq_datetime, latlongs, ECWMF_LEVELS
+            era5_dir_path, acq_datetime, latlongs, ECWMF_LEVELS
         )
     ):
         pnt = POINT_FMT.format(p=n)
@@ -410,7 +410,7 @@ def collect_era5_ancillary(
         ozone = ozone_cfg["user"]
     else:
         ozone = era5.ozone_workflow(
-            ancillary_path, acq_datetime, geobox.centre_lonlat[::-1]
+            era5_dir_path, acq_datetime, geobox.centre_lonlat[::-1]
         )
 
     write_scalar(ozone, DatasetName.OZONE.value, out_group)  # TODO: any attrs needed?
