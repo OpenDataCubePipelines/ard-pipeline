@@ -1,3 +1,18 @@
+"""
+Tests for reading MERRA-2 aerosol ancillary data.
+
+to run the tests, run pytest like:
+$ MERRA2_DATA_DIR="/some/dir/merra2_root"  pytest tests/test_merra2.py
+
+Where MERRA2_DATA_DIR is a directory with the M2T1NXAER.5.12.4 variable & sub
+structure of year/month dirs.
+
+If testing on a non-NCI system, copy gadi:/g/data/da82/AODH/USGS/L1/Landsat/C1/092_084/...
+    ... LT50920842008269ASA00/LT05_L1TP_092084_20080925_20161029_01_T1.tar
+to a directory like /home/user/data/M2T1NXAER.5.12.4/2008/09/ and use that for
+the environment variable.
+"""
+
 import datetime
 import os
 
