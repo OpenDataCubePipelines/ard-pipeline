@@ -15,16 +15,16 @@ TOTAL_AEROSOL_EXTINCTION = "TOTEXTTAU"
 
 
 # TODO: is user aerosol override handling required?
-def aerosol_workflow(merra2_data_dir, acquisition_datetime, lat_long):
+def aerosol_workflow(merra2_data_dir, acquisition_datetime, lat_longs):
     """
     Top level workflow function to capture MERRA2 aerosol ancillary data.
-
-    NB: only supports a single point sampling as per the wagl NBAR workflow.
     """
     aerosol_path = build_merra2_path(merra2_data_dir, acquisition_datetime)
     dataset = xarray.open_dataset(aerosol_path)
-    aerosol = get_closest_value(dataset, acquisition_datetime, lat_long)
-    return aerosol
+
+    for lat_long in lat_longs:
+        aerosol = get_closest_value(dataset, acquisition_datetime, lat_long)
+        yield aerosol
 
 
 # MERRA2 data has file names like:
