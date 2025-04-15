@@ -407,6 +407,9 @@ def collect_era5_ancillary(
         raise AncillaryError(msg)
 
     if merra2_dir_path:
+        # NB: retrieve aerosol for each sample coordinate, this improves on the
+        #  original ard-pipeline which only sampled a single location, however
+        #  this breaks the standard NBAR workflow
         for n, aerosol in merra2.aerosol_workflow(
             merra2_dir_path, acq_datetime, latlongs
         ):
