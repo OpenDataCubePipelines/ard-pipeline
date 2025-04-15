@@ -401,15 +401,15 @@ def collect_era5_ancillary(
         data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
         write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
 
-    # NB: read MERRA2 aerosol for DE Ant if data available
+    # NB: read MERRA2 aerosol if data available
     if merra2_dir_path and "aerosol" in cfg_paths:
         msg = "Both MERRA2 dir and aerosol settings specified. Select only one."
         raise AncillaryError(msg)
 
     if merra2_dir_path:
-        for n, lat_long in enumerate(latlongs):
-            # TODO: make efficient by reading from 1 file multiple times
-            aerosol = merra2.aerosol_workflow(merra2_dir_path, acq_datetime, lat_long)
+        for n, aerosol in merra2.aerosol_workflow(
+            merra2_dir_path, acq_datetime, latlongs
+        ):
             pnt = POINT_FMT.format(p=n)
             data_name = ppjoin(pnt, DatasetName.AEROSOL.value)
             write_scalar(aerosol, data_name, out_group)
@@ -432,7 +432,7 @@ def collect_era5_ancillary(
                 msg = f"Missing key in aerosol config. Config={aerosol}"
                 raise RuntimeError(msg)
 
-    # read ozone data
+    # read single point ozone data
     geobox = acquisition.gridded_geo_box()
 
     if DatasetName.OZONE.value in cfg_paths:
