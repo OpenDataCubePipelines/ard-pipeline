@@ -118,7 +118,9 @@ def format_json(
     #  original ard-pipeline which only sampled a single location
     # TODO: this breaks the original workflow that expects 1 aerosol in the HDF5
     npoints = coordinator.shape[0]
-    aerosol = [anc_grp[f"POINT-{n}/{DatasetName.AEROSOL.value}"][()] for n in npoints]
+    aerosol = [
+        anc_grp[f"POINT-{n}/{DatasetName.AEROSOL.value}"][()] for n in range(npoints)
+    ]
 
     if era5_data_dir is None:
         # NB: ERA5 water vapour is accounted for in the custom atmos profile
