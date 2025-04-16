@@ -63,7 +63,6 @@ def card4l(
     dem_path,
     srtm_pathname,
     cop_pathname,
-    invariant_fname,
     modtran_exe,
     out_fname,
     ecmwf_path=None,
@@ -135,11 +134,6 @@ def card4l(
 
     :param cop_pathname:
         A string pathname of the mosaiced Copernicus 30m DEM .tif file.
-
-    :param invariant_fname:
-        A string containing the full file pathname to the image file
-        containing the invariant geo-potential data for use within
-        the SBT process.
 
     :param modtran_exe:
         A string containing the full file pathname to the MODTRAN
@@ -234,7 +228,6 @@ def card4l(
             brdf,
             offshore_territory_boundary_path,
             ecmwf_path,
-            invariant_fname,
             vertices,
             compression,
             filter_opts,
@@ -451,7 +444,6 @@ def stash_ancillary(
     brdf,
     offshore_territory_boundary_path,
     ecmwf_path,
-    invariant_fname,
     vertices,
     compression,
     filter_opts,
@@ -495,7 +487,6 @@ def stash_ancillary(
         paths,
         offshore_territory_boundary_path,
         ecmwf_path,
-        invariant_fname,
         vertices,
         root,
         compression,
