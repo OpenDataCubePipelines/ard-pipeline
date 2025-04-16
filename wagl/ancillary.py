@@ -389,9 +389,11 @@ def collect_era5_ancillary(
         write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
 
     # NB: read MERRA2 aerosol if data available
-    if merra2_dir_path and "aerosol" in cfg_paths:
-        msg = "Both MERRA2 dir and aerosol settings specified. Select only one."
-        raise AncillaryError(msg)
+    # FIXME: either preference merra2_dir_path over aerosol, figure out how to
+    #  not specify an aerosol (use {}?) or delete aerosol override???
+    # if merra2_dir_path and "aerosol" in cfg_paths:
+    #    msg = "Both MERRA2 dir and aerosol settings specified. Select only one."
+    #    raise AncillaryError(msg)
 
     if merra2_dir_path:
         # NB: retrieve aerosol for each sample coordinate, this improves on the
