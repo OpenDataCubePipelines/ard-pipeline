@@ -125,7 +125,6 @@ def format_json(
         water_vapour = anc_grp[DatasetName.WATER_VAPOUR.value][()]
 
     ozone = anc_grp[DatasetName.OZONE.value][()]
-    elevation = anc_grp[DatasetName.ELEVATION.value][()]
 
     view = np.zeros(npoints, dtype="float32")
     azi = np.zeros(npoints, dtype="float32")
