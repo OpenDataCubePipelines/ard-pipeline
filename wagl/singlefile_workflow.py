@@ -77,7 +77,6 @@ class DataStandardisation(luigi.Task):
     water_vapour = luigi.DictParameter(default={"user": 1.5}, significant=False)
     dem_path = luigi.Parameter(significant=False)
     ecmwf_path = luigi.Parameter(significant=False)
-    invariant_height_fname = luigi.Parameter(significant=False)
     offshore_territory_boundary_path = luigi.Parameter(significant=False)
     srtm_pathname = luigi.Parameter(significant=False)
     cop_pathname = luigi.Parameter(significant=False)
@@ -123,7 +122,6 @@ class DataStandardisation(luigi.Task):
                 self.dem_path,
                 self.srtm_pathname,
                 self.cop_pathname,
-                self.invariant_height_fname,
                 self.modtran_exe,
                 out_fname,
                 ecmwf_path,
@@ -169,7 +167,6 @@ class ARD(luigi.WrapperTask):
                     "water_vapour": self.water_vapour,
                     "dem_path": self.dem_path,
                     "ecmwf_path": self.ecmwf_path,
-                    "invariant_height_fname": self.invariant_height_fname,
                     "dsm_fname": self.dsm_fname,
                     "tle_path": self.tle_path,
                     "rori": self.rori,
