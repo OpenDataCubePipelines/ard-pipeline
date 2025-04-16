@@ -187,7 +187,6 @@ def collect_ancillary(
     cfg_paths: NbarPathsDict,
     offshore_territory_boundary_path: str,
     sbt_path=None,
-    invariant_fname=None,
     vertices=(3, 3),
     out_group=None,
     compression=H5CompressionFilter.LZF,
@@ -234,10 +233,6 @@ def collect_ancillary(
     :param sbt_path:
         A `str` containing the base directory pointing to the
         ancillary products required for the SBT workflow.
-
-    :param invariant_fname:
-        A `str` containing the file path name to the invariant
-        geopotential image file.
 
     :param vertices:
         An integer 2-tuple indicating the number of rows and columns
@@ -310,15 +305,7 @@ def collect_ancillary(
         attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
 
     if sbt_path:
-        collect_sbt_ancillary(
-            acquisition,
-            lonlats,
-            sbt_path,
-            invariant_fname,
-            out_group=group,
-            compression=compression,
-            filter_opts=filter_opts,
-        )
+        raise AncillaryError("SBT is disabled")
 
     if era5_dir_path:
         collect_era5_ancillary(
