@@ -5,7 +5,7 @@ As of April 2025, GA does not have a local MERRA2 mirror (e.g. hosted at NCI),
 unlike the ECWMF ERA5 data. This partially prevents development of a true MERRA2
 solution for `ard-pipeline`.
 
-MERRA-2 data improves upon the standard ARD workflow as a subset of global
+MERRA2 data improves upon the standard ARD workflow as a subset of global
 NetCDF attributes show:
 
 Filename = "MERRA2_300.tavg1_2d_aer_Nx.20080901.nc4" ;
@@ -41,7 +41,7 @@ def aerosol_workflow(merra2_data_dir, acquisition_datetime, lat_longs):
 
     if not os.path.exists(aerosol_path):
         msg = (
-            f"MERRA-2 data not found {aerosol_path}\nIs the data collection"
+            f"MERRA2 data not found {aerosol_path}\nIs the data collection"
             f"incomplete or the merra2_dir_path setting incorrect?"
         )
         raise FileNotFoundError(msg)
@@ -57,7 +57,7 @@ def aerosol_workflow(merra2_data_dir, acquisition_datetime, lat_longs):
 # MERRA2_300.tavg1_2d_aer_Nx.20080901.nc4
 def build_merra2_path(base_dir, date_time: datetime.datetime):
     """
-    Build & return expected path to an MERRA 2 NetCDF data file.
+    Build & return expected path to an MERRA2 NetCDF data file.
 
     Given acquisition metadata, create expected path containing the ancillary
     data at the acquisition time.
