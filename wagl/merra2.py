@@ -28,6 +28,7 @@ import os
 
 import xarray
 
+PRODUCT_NAME_VERSION = "M2T1NXAER.5.12.4"  # NB: hardcodes prod & version
 TOTAL_AEROSOL_EXTINCTION = "TOTEXTTAU"
 
 
@@ -69,7 +70,7 @@ def build_merra2_path(base_dir, date_time: datetime.datetime):
     basename = f"MERRA2_300.tavg1_2d_aer_Nx.{year}{month:02d}{day:02d}.nc4"
 
     # Add the variable/year/month dir structure
-    root_dir = f"{base_dir}/M2T1NXAER.5.12.4/{year}/{month:02d}"
+    root_dir = f"{base_dir}/{PRODUCT_NAME_VERSION}/{year}/{month:02d}"
     path = os.path.join(root_dir, basename)
     return path
 
