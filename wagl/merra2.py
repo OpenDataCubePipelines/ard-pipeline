@@ -4,6 +4,23 @@ Prototype interface for reading MERRA2 aerosol optical thickness ancillary data.
 As of April 2025, GA does not have a local MERRA2 mirror (e.g. hosted at NCI),
 unlike the ECWMF ERA5 data. This partially prevents development of a true MERRA2
 solution for `ard-pipeline`.
+
+MERRA-2 data improves upon the standard ARD workflow as a subset of global
+NetCDF attributes show:
+
+Filename = "MERRA2_300.tavg1_2d_aer_Nx.20080901.nc4" ;
+Format = "NetCDF-4/HDF-5" ;
+SpatialCoverage = "global" ;
+ShortName = "M2T1NXAER" ;
+GranuleID = "MERRA2_300.tavg1_2d_aer_Nx.20080901.nc4" ;
+Title = "MERRA2 tavg1_2d_aer_Nx: 2d,1-Hourly,Time-averaged,Single-Level,Assimilation,Aerosol Diagnostics" ;
+
+LatitudeResolution = "0.5" ;
+LongitudeResolution = "0.625" ;
+
+With sub-degree resolution, a Landsat scene around 2 by 2.5 degrees should have
+a different aerosol value for each sample coordinate. This improves upon having
+a single aerosol value (or default value) for an entire scene.
 """
 
 import datetime
