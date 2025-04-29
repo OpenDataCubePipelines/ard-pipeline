@@ -20,7 +20,7 @@ Parameters to be inserted are:
 # pragma pylint: disable=line-too-long
 
 # TODO: are any other models useful?
-MODTRAN_AEROSOL_MODELS = ["AER-RURAL", "AER_MARITIME_NAVY"]
+MODTRAN_AEROSOL_MODELS = ["AER_RURAL", "AER_MARITIME_NAVY"]
 
 
 def midlat_summer_albedo(
