@@ -16,10 +16,11 @@ dem_path =
 ecmwf_path =
 era5_dir_path = /g/data/rt52/era5
 merra2_dir_path =
+modtran_aerosol_model = AER_RURAL
 compression = BITSHUFFLE
 h5_driver =
 
-# Ozone, water vapour & aerosol left out for the defaults
+# DE Ant: ozone & water vapour entries removed for default ERA5 workflow
 
 [Package]
 yamls_dir =

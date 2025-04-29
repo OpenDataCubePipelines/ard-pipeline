@@ -19,6 +19,9 @@ Parameters to be inserted are:
 """
 # pragma pylint: disable=line-too-long
 
+# TODO: are any other models useful?
+MODTRAN_AEROSOL_MODELS = ["AER-RURAL", "AER_MARITIME_NAVY"]
+
 
 def midlat_summer_albedo(
     name,
@@ -569,6 +572,7 @@ def custom_optical_profile(
     geopotential_height,
     sat_view,
     filter_function,
+    modtran_aerosol_model=None,
 ):
     """
     MODTRAN 6.0.1 input: 'json' format template for use with a custom
@@ -605,6 +609,10 @@ def custom_optical_profile(
         0.072370000184,
         1.4610000107e-05,
     ]
+
+    # TODO: is AER_MARITIME_NAVY an acceptable DE Ant default?
+    ihaze = modtran_aerosol_model if modtran_aerosol_model else "AER_MARITIME_NAVY"
+    assert ihaze in MODTRAN_AEROSOL_MODELS
 
     custom_profile = {
         "MODTRAN": [
@@ -672,7 +680,7 @@ def custom_optical_profile(
                         "ASTMX": 0.0,
                         "ASTMO": 0.69999998808,
                         "APLUS": "  ",
-                        "IHAZE": "AER_MARITIME_NAVY",
+                        "IHAZE": ihaze,
                         "CNOVAM": False,
                         "ISEASN": "SEASN_AUTO",
                         "ARUSS": "   ",

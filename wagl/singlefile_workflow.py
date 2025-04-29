@@ -93,6 +93,7 @@ class DataStandardisation(luigi.Task):
     normalized_solar_zenith = luigi.FloatParameter(default=45.0)
     era5_dir_path = luigi.Parameter()  # TODO: try luigi.PathParameter(exists=True) ?
     merra2_dir_path = luigi.Parameter()
+    modtran_aerosol_model = luigi.OptionalParameter(default="")
 
     def output(self):
         fmt = "{label}.wagl.h5"
@@ -135,6 +136,7 @@ class DataStandardisation(luigi.Task):
                 self.normalized_solar_zenith,
                 self.era5_dir_path,
                 self.merra2_dir_path,
+                self.modtran_aerosol_model,
             )
 
 

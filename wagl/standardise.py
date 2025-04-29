@@ -75,6 +75,7 @@ def card4l(
     normalized_solar_zenith=45.0,
     era5_dir_path=None,
     merra2_dir_path=None,
+    modtran_aerosol_model=None,
 ):
     """CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -129,7 +130,7 @@ def card4l(
         containing the reduced resolution DEM.
 
     :param srtm_pathname:
-        A string pathname of the SRTM DSM with a ':' to seperate the
+        A string pathname of the SRTM DSM with a ':' to separate the
         filename from the import HDF5 dataset name.
 
     :param cop_pathname:
@@ -192,6 +193,9 @@ def card4l(
 
     :param merra2_dir_path:
         Path to MERRA-2 data (likely for Antarctic processing)
+
+    :param modtran_aerosol_model:
+        MODTRAN Aerosol model (e.g. "AER_RURAL")
     """
 
     container = acquisitions(level1, hint=acq_parser_hint)
@@ -245,6 +249,7 @@ def card4l(
             compression,
             filter_opts,
             era5_dir_path,
+            modtran_aerosol_model,
         )
 
         stash_interpolation(
@@ -506,6 +511,7 @@ def stash_atmospherics(
     compression,
     filter_opts,
     era5_dir_path=None,  # use as flag to indicate ERA5/DE Ant run
+    modtran_aerosol_model=None,
 ):
     log = STATUS_LOGGER.bind(
         level1=container.label, granule=granule, granule_group=None
@@ -526,6 +532,7 @@ def stash_atmospherics(
 
     # NB: acqs with thermal bands are for SBT, ignore thermal code for DE Ant
     if era5_dir_path:
+        # use custom atmospheric profile for ERA5/MERRA2 ancils
         json_data = format_json(
             acqs,
             ancillary_group,
@@ -534,6 +541,7 @@ def stash_atmospherics(
             workflow,
             root,
             era5_dir_path,
+            modtran_aerosol_model,
         )
     else:
         json_data = format_json(

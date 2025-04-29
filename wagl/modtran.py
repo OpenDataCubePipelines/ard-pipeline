@@ -94,6 +94,7 @@ def format_json(
     workflow,
     out_group,
     era5_data_dir=None,
+    modtran_aerosol_model=None,
 ):
     """
     Creates json files for the albedo (0) and thermal.
@@ -214,6 +215,7 @@ def format_json(
                         "prof_temp": list(atmos_profile[TEMPERATURE]),
                         "prof_water": list(atmos_profile[RELATIVE_HUMIDITY]),
                         "geopotential_height": elevation,
+                        "modtran_aerosol_model": modtran_aerosol_model,
                     }
 
                     input_data.update(era5_profile_ext)
