@@ -307,15 +307,17 @@ def collect_ancillary(
         raise AncillaryError("SBT is disabled")
 
     if era5_dir_path:
+        # ERA5 is split into several steps as some ancillaries are not ERA5
         collect_era5_ancillary(
             container,
             lonlats,
             era5_dir_path,
-            cfg_paths,
             group,  # HDF5 writeable group
             compression=compression,
             filter_opts=filter_opts,
         )
+
+        collect_brdf_ancillary(container, cfg_paths["brdf_dict"], out_group)
     else:
         is_offshore = is_offshore_territory(
             acquisition, offshore_territory_boundary_path
@@ -339,7 +341,6 @@ def collect_era5_ancillary(
     container,
     lonlats,
     era5_dir_path,  # ERA5 data dir
-    cfg_paths,
     out_group,  # HDF5 writeable group
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
@@ -361,8 +362,6 @@ def collect_era5_ancillary(
         sequence of (long, lat) coordinate pairs
     :param era5_dir_path:
         str path to the ERA5 ancillary root
-    :param cfg_paths:
-        Dict of nested config dicts, an empty dict works if the ERA5 data has ozone.
     :param out_group:
         output group from H5 dataset
     :param compression:
@@ -395,25 +394,6 @@ def collect_era5_ancillary(
     geobox = acquisition.gridded_geo_box()
     ozone = era5.ozone_workflow(era5_dir_path, acq_datetime, geobox.centre_lonlat[::-1])
     write_scalar(ozone, DatasetName.OZONE.value, out_group)
-
-    # TODO: duplicate code, refactor BRDF to standalone function
-    # read BRDF data
-    offshore = False
-    dname_format = DatasetName.BRDF_FMT.value
-    for group in container.groups:
-        for acq in container.get_acquisitions(group=group):
-            if acq.band_type is not BandType.REFLECTIVE:
-                continue
-
-            data = get_brdf_data(acq, cfg_paths["brdf_dict"], offshore=offshore)
-
-            # output
-            for param in data:
-                dname = dname_format.format(
-                    parameter=param.value, band_name=acq.band_name
-                )
-                brdf_value = data[param].pop("value")
-                write_scalar(brdf_value, dname, out_group, data[param])
 
 
 def collect_merra2_ancillary(container, lonlats, merra2_dir_path, out_group):
@@ -464,6 +444,30 @@ def collect_default_aerosol(cfg_paths, out_group):
         else:
             msg = f"Missing key in aerosol config. aerosol config is {aerosol}"
             raise AncillaryError(msg)
+
+
+def collect_brdf_ancillary(container, brdf_dict, out_group):
+    """
+    TODO
+    """
+
+    # read BRDF data
+    offshore = False
+    dname_format = DatasetName.BRDF_FMT.value
+    for group in container.groups:
+        for acq in container.get_acquisitions(group=group):
+            if acq.band_type is not BandType.REFLECTIVE:
+                continue
+
+            data = get_brdf_data(acq, brdf_dict, offshore=offshore)
+
+            # output
+            for param in data:
+                dname = dname_format.format(
+                    parameter=param.value, band_name=acq.band_name
+                )
+                brdf_value = data[param].pop("value")
+                write_scalar(brdf_value, dname, out_group, data[param])
 
 
 def collect_sbt_ancillary(
@@ -795,21 +799,7 @@ def collect_nbar_ancillary(
     elev = get_elevation_data(geobox.centre_lonlat, dsm_path, offshore)
     write_scalar(elev[0], DatasetName.ELEVATION.value, fid, elev[1])
 
-    # brdf
-    dname_format = DatasetName.BRDF_FMT.value
-    for group in container.groups:
-        for acq in container.get_acquisitions(group=group):
-            if acq.band_type is not BandType.REFLECTIVE:
-                continue
-            data = get_brdf_data(acq, brdf_dict, offshore=offshore)
-
-            # output
-            for param in data:
-                dname = dname_format.format(
-                    parameter=param.value, band_name=acq.band_name
-                )
-                brdf_value = data[param].pop("value")
-                write_scalar(brdf_value, dname, fid, data[param])
+    collect_brdf_ancillary(container, brdf_dict, out_group)
 
 
 def get_aerosol_data(
