@@ -390,23 +390,13 @@ def collect_era5_ancillary(
         data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
         write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
 
-    # read single point ozone data
+    # read multipoint ERA5 ozone values
+    # this breaks the standard NBAR workflow which expects a single aerosol
     geobox = acquisition.gridded_geo_box()
-
-    if (
-        DatasetName.OZONE.value in cfg_paths
-    ):  # TODO: refactor cfg option to standalone func
-        ozone_cfg = cfg_paths[DatasetName.OZONE.value]
-        ozone = ozone_cfg["user"]
-    else:
-        # read multipoint ERA5 ozone values
-        ozone = era5.ozone_workflow(
-            era5_dir_path, acq_datetime, geobox.centre_lonlat[::-1]
-        )
-
-    # TODO: write any other attrs?
+    ozone = era5.ozone_workflow(era5_dir_path, acq_datetime, geobox.centre_lonlat[::-1])
     write_scalar(ozone, DatasetName.OZONE.value, out_group)
 
+    # TODO: duplicate code, refactor BRDF to standalone function
     # read BRDF data
     offshore = False
     dname_format = DatasetName.BRDF_FMT.value
