@@ -281,7 +281,7 @@ def collect_ancillary(
 
     boxline_dataset = satellite_solar_group[DatasetName.BOXLINE.value][:]
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
-    lonlats = zip(coordinator["longitude"], coordinator["latitude"])
+    lonlats = tuple(zip(coordinator["longitude"], coordinator["latitude"]))
 
     desc = (
         "Contains the row and column array coordinates used for the "
@@ -317,7 +317,7 @@ def collect_ancillary(
             filter_opts=filter_opts,
         )
 
-        collect_brdf_ancillary(container, cfg_paths["brdf_dict"], out_group)
+        collect_brdf_ancillary(container, cfg_paths["brdf_dict"], group)
     else:
         is_offshore = is_offshore_territory(
             acquisition, offshore_territory_boundary_path
@@ -331,10 +331,10 @@ def collect_ancillary(
         )
 
     # NB: preferentially read MERRA2 aerosol data where available
-    if merra2_dir_path:
-        collect_merra2_ancillary(container, lonlats, merra2_dir_path, out_group)
+    if merra2_dir_path is not None:
+        collect_merra2_ancillary(container, lonlats, merra2_dir_path, group)
     else:
-        collect_default_aerosol(cfg_paths, out_group)
+        collect_default_aerosol(cfg_paths, group)
 
 
 def collect_era5_ancillary(
