@@ -276,7 +276,7 @@ def collect_ancillary(
     assert out_group is not None
     fid = out_group
 
-    group = fid.create_group(GroupName.ANCILLARY_GROUP.value)
+    ancil_group = fid.create_group(GroupName.ANCILLARY_GROUP.value)
     acquisition = container.get_highest_resolution()[0][0]
 
     boxline_dataset = satellite_solar_group[DatasetName.BOXLINE.value][:]
@@ -290,12 +290,12 @@ def collect_ancillary(
     attrs = {"description": desc, "array_coordinate_offset": 0}
     kwargs = compression.settings(filter_opts)
     dset_name = DatasetName.COORDINATOR.value
-    coord_dset = group.create_dataset(dset_name, data=coordinator, **kwargs)
+    coord_dset = ancil_group.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
 
     # check if modtran interpolation points coincide
     if not all(
-        check_interpolation_sample_geometry(container, group, grp_name)
+        check_interpolation_sample_geometry(container, ancil_group, grp_name)
         for grp_name in container.supported_groups
     ):
         coord_dset[:] = default_interpolation_grid(
@@ -307,17 +307,17 @@ def collect_ancillary(
         raise AncillaryError("SBT is disabled")
 
     if era5_dir_path:
-        # ERA5 is split into several steps as some ancillaries are not ERA5
+        # ERA5 is split into a separate step as some ancillaries are not ERA5
         collect_era5_ancillary(
             container,
             lonlats,
             era5_dir_path,
-            group,  # HDF5 writeable group
+            ancil_group,  # HDF5 writeable group
             compression=compression,
             filter_opts=filter_opts,
         )
 
-        collect_brdf_ancillary(container, cfg_paths["brdf_dict"], group)
+        collect_brdf_ancillary(container, cfg_paths["brdf_dict"], ancil_group)
     else:
         is_offshore = is_offshore_territory(
             acquisition, offshore_territory_boundary_path
@@ -325,16 +325,16 @@ def collect_ancillary(
 
         collect_nbar_ancillary(
             container,
-            out_group=group,
+            out_group=ancil_group,
             offshore=is_offshore,
             **cfg_paths,
         )
 
     # NB: preferentially read MERRA2 aerosol data where available
     if merra2_dir_path is not None:
-        collect_merra2_ancillary(container, lonlats, merra2_dir_path, group)
+        collect_merra2_ancillary(container, lonlats, merra2_dir_path, ancil_group)
     else:
-        collect_default_aerosol(cfg_paths, group)
+        collect_default_aerosol(cfg_paths, ancil_group)
 
 
 def collect_era5_ancillary(
