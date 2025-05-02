@@ -281,7 +281,7 @@ def collect_ancillary(
 
     boxline_dataset = satellite_solar_group[DatasetName.BOXLINE.value][:]
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
-    lonlats = tuple(zip(coordinator["longitude"], coordinator["latitude"]))
+    lat_longs = tuple(zip(coordinator["latitude"], coordinator["longitude"]))
 
     desc = (
         "Contains the row and column array coordinates used for the "
@@ -310,7 +310,7 @@ def collect_ancillary(
         # ERA5 is split into a separate step as some ancillaries are not ERA5
         collect_era5_ancillary(
             container,
-            lonlats,
+            lat_longs,
             era5_dir_path,
             ancil_group,  # HDF5 writeable group
             compression=compression,
@@ -332,14 +332,14 @@ def collect_ancillary(
 
     # NB: preferentially read MERRA2 aerosol data where available
     if merra2_dir_path is not None:
-        collect_merra2_ancillary(container, lonlats, merra2_dir_path, ancil_group)
+        collect_merra2_ancillary(container, lat_longs, merra2_dir_path, ancil_group)
     else:
         collect_default_aerosol(cfg_paths, ancil_group)
 
 
 def collect_era5_ancillary(
     container,
-    lonlats,
+    lat_longs,
     era5_dir_path,  # ERA5 data dir
     out_group,  # HDF5 writeable group
     compression=H5CompressionFilter.LZF,
@@ -358,8 +358,8 @@ def collect_era5_ancillary(
 
     :param container:
         Acquisition container
-    :param lonlats:
-        sequence of (long, lat) coordinate pairs
+    :param lat_longs:
+        sequence of (lat, long) coordinate pairs (follows xarray API ordering)
     :param era5_dir_path:
         str path to the ERA5 ancillary root
     :param out_group:
@@ -376,13 +376,10 @@ def collect_era5_ancillary(
     acquisition = container.get_highest_resolution()[0][0]
     acq_datetime = acquisition.acquisition_datetime
 
-    # convert to lat/long ordering (xarray API ordering)
-    latlongs = [ll[::-1] for ll in lonlats]
-
     # create atmospheric profile for each location
     for n, df in enumerate(
         era5.profile_data_frame_workflow(
-            era5_dir_path, acq_datetime, latlongs, ECWMF_LEVELS
+            era5_dir_path, acq_datetime, lat_longs, ECWMF_LEVELS
         )
     ):
         pnt = POINT_FMT.format(p=n)
@@ -396,14 +393,14 @@ def collect_era5_ancillary(
     write_scalar(ozone, DatasetName.OZONE.value, out_group)
 
 
-def collect_merra2_ancillary(container, lonlats, merra2_dir_path, out_group):
+def collect_merra2_ancillary(container, lat_longs, merra2_dir_path, out_group):
     """
     Extract MERRA2 based aerosol ancillary data.
 
     :param container:
         Acquisition container
-    :param lonlats:
-        sequence of (long, lat) coordinate pairs
+    :param lat_longs:
+        sequence of (lat, long) coordinate pairs (follows xarray API ordering)
     :param merra2_dir_path:
         path to the MERRA2 data root dir
     :param out_group:
@@ -413,14 +410,11 @@ def collect_merra2_ancillary(container, lonlats, merra2_dir_path, out_group):
     acquisition = container.get_highest_resolution()[0][0]
     acq_datetime = acquisition.acquisition_datetime
 
-    # convert to lat/long ordering (xarray API ordering)
-    latlongs = [ll[::-1] for ll in lonlats]
-
     # NB: retrieve aerosol at each coord, improving default NBAR workflow which
     #  only sampled a single location. This breaks the NBAR workflow which only
     #  expects a single aerosol value in the H5 data.
     for n, aerosol in enumerate(
-        merra2.aerosol_workflow(merra2_dir_path, acq_datetime, latlongs)
+        merra2.aerosol_workflow(merra2_dir_path, acq_datetime, lat_longs)
     ):
         pnt = POINT_FMT.format(p=n)
         data_name = ppjoin(pnt, DatasetName.AEROSOL.value)
