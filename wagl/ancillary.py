@@ -331,7 +331,11 @@ def collect_ancillary(
         )
 
     # NB: preferentially read MERRA2 aerosol data where available
-    if merra2_dir_path is not None:
+    if merra2_dir_path:  # ignore None & empty string 'paths'
+        if not os.path.exists(merra2_dir_path):
+            msg = f"Invalid MERRA2 directory path: {merra2_dir_path}"
+            raise AncillaryError(msg)
+
         collect_merra2_ancillary(container, lat_longs, merra2_dir_path, ancil_group)
     else:
         collect_default_aerosol(cfg_paths, ancil_group)
