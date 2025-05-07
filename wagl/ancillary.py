@@ -221,9 +221,8 @@ def collect_ancillary(
         * dem_path
         * brdf_dict
 
-        Required keys for ERA5 / DE Antarctica:
+        Key(s) required for ERA5 / MERRA2 for DE Antarctica:
 
-        * aerosol (a numeric constant as of prototype stage)  TODO fix
         * brdf_dict
 
     :param offshore_territory_boundary_path:
@@ -231,8 +230,7 @@ def collect_ancillary(
         the outside of which is considered "offshore"
 
     :param sbt_path:
-        A `str` containing the base directory pointing to the
-        ancillary products required for the SBT workflow.
+        This option is disabled.
 
     :param vertices:
         An integer 2-tuple indicating the number of rows and columns
@@ -256,10 +254,12 @@ def collect_ancillary(
         chosen H5CompressionFilter instance.
 
     :param era5_dir_path:
-        Path to the ERA5 root data dir (e.g. /g/data/rt52/era5) or None.
+        Path to the ERA5 root data dir (e.g. /g/data/rt52/era5) or None to skip
+        the alternate ancillary source.
 
     :param merra2_dir_path:
-        Path to the MERRA1 root data dir or None.
+        Path to the MERRA1 root data dir or None to skip the alternate ancillary
+        source.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
