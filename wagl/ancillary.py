@@ -309,7 +309,7 @@ def collect_ancillary(
     if era5_dir_path:
         # ERA5 is split into a separate step as some ancillaries are not ERA5
         collect_era5_ancillary(
-            container,
+            acquisition,
             lat_longs,
             era5_dir_path,
             ancil_group,  # HDF5 writeable group
@@ -336,13 +336,13 @@ def collect_ancillary(
             msg = f"Invalid MERRA2 directory path: {merra2_dir_path}"
             raise AncillaryError(msg)
 
-        collect_merra2_ancillary(container, lat_longs, merra2_dir_path, ancil_group)
+        collect_merra2_ancillary(acquisition, lat_longs, merra2_dir_path, ancil_group)
     else:
         collect_default_aerosol(cfg_paths, ancil_group)
 
 
 def collect_era5_ancillary(
-    container,
+    acquisition,
     lat_longs,
     era5_dir_path,  # ERA5 data dir
     out_group,  # HDF5 writeable group
@@ -360,8 +360,8 @@ def collect_era5_ancillary(
     of early 2025. See collect_merra2_ancillary() below as MERRA-2 provides an
     alternate aerosol data source.
 
-    :param container:
-        Acquisition container
+    :param acquisition:
+        Landsat or Sentinel 2 acquisition (not the container)
     :param lat_longs:
         sequence of (lat, long) coordinate pairs (follows xarray API ordering)
     :param era5_dir_path:
@@ -377,7 +377,6 @@ def collect_era5_ancillary(
     assert out_group is not None
     out_group.attrs["era5-ancillary"] = True
 
-    acquisition = container.get_highest_resolution()[0][0]
     acq_datetime = acquisition.acquisition_datetime
 
     # create atmospheric profile for each location
@@ -397,12 +396,14 @@ def collect_era5_ancillary(
     write_scalar(ozone, DatasetName.OZONE.value, out_group)
 
 
-def collect_merra2_ancillary(container, lat_longs, merra2_dir_path, out_group):
+def collect_merra2_ancillary(acquisition, lat_longs, merra2_dir_path, out_group):
     """
     Extract MERRA2 based aerosol ancillary data.
 
-    :param container:
-        Acquisition container
+    MERRA2 provides aerosol ancillaries as NCI lacks a data mirror for equivalent ECWMF data (as of Q1/Q2 2025).
+
+    :param acquisition:
+        Landsat or Sentinel 2 acquisition (not the container)
     :param lat_longs:
         sequence of (lat, long) coordinate pairs (follows xarray API ordering)
     :param merra2_dir_path:
@@ -411,7 +412,6 @@ def collect_merra2_ancillary(container, lat_longs, merra2_dir_path, out_group):
         output group from H5 dataset
     """
 
-    acquisition = container.get_highest_resolution()[0][0]
     acq_datetime = acquisition.acquisition_datetime
 
     # NB: retrieve aerosol at each coord, improving default NBAR workflow which
