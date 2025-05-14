@@ -331,6 +331,7 @@ def collect_ancillary(
         )
 
     # NB: preferentially read MERRA2 aerosol data where available
+    # MERRA2 breaks the standard NBAR workflow which expects a single aerosol
     if merra2_dir_path:  # ignore None & empty string 'paths'
         if not os.path.exists(merra2_dir_path):
             msg = f"Invalid MERRA2 directory path: {merra2_dir_path}"
@@ -379,7 +380,7 @@ def collect_era5_ancillary(
 
     acq_datetime = acquisition.acquisition_datetime
 
-    # create atmospheric profile for each location
+    # create atmospheric profile for each sampling location
     for n, df in enumerate(
         era5.profile_data_frame_workflow(
             era5_dir_path, acq_datetime, lat_longs, ECWMF_LEVELS
@@ -389,11 +390,13 @@ def collect_era5_ancillary(
         data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
         write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
 
-    # read multipoint ERA5 ozone values
-    # this breaks the standard NBAR workflow which expects a single aerosol
-    geobox = acquisition.gridded_geo_box()
-    ozone = era5.ozone_workflow(era5_dir_path, acq_datetime, geobox.centre_lonlat[::-1])
-    write_scalar(ozone, DatasetName.OZONE.value, out_group)
+    # read ERA ozone at all sampling coords
+    # NB: there's point creation duplication. The alternative is using zip() to
+    #  jointly call the profile & ozone workflows, with tricky loop
+    for n, ozone in era5.ozone_workflow(era5_dir_path, acq_datetime, lat_longs):
+        pnt = POINT_FMT.format(p=n)
+        data_name = ppjoin(pnt, DatasetName.OZONE.value.value)
+        write_scalar(ozone, data_name, out_group)
 
 
 def collect_merra2_ancillary(acquisition, lat_longs, merra2_dir_path, out_group):

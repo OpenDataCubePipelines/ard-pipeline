@@ -127,7 +127,9 @@ def format_json(
         # NB: ERA5 water vapour is accounted for in the custom atmos profile
         water_vapour = anc_grp[DatasetName.WATER_VAPOUR.value][()]
 
-    ozone = anc_grp[DatasetName.OZONE.value][()]
+    ozone = [
+        anc_grp[f"POINT-{n}/{DatasetName.OZONE.value}"][()] for n in range(npoints)
+    ]
 
     view = np.zeros(npoints, dtype="float32")
     azi = np.zeros(npoints, dtype="float32")
@@ -171,8 +173,8 @@ def format_json(
     # setup the json files required by MODTRAN
 
     # NB: prototype ERA5 workflow, reuse parts of NBAR using `era5_data_dir` as
-    #  a flag to indicate a differences to the workflow. This may change as it
-    #  complicates this workflow (temporarily OK for DE Ant prototype).
+    #  a flag to indicate workflow differences. This may change as adding ERA5
+    #  complicates this workflow (temporarily ignored for DE Ant prototype).
     if workflow in (Workflow.STANDARD, Workflow.NBAR):
         acqs = [a for a in acquisitions if a.band_type == BandType.REFLECTIVE]
 
@@ -181,7 +183,7 @@ def format_json(
                 # configure common NBAR & ERA5 input data
                 input_data = {
                     "name": POINT_ALBEDO_FMT.format(p=p, a=str(alb.value)),
-                    "ozone": ozone,
+                    "ozone": ozone[p],
                     "doy": acquisitions[0].julian_day(),
                     "visibility": -aerosol[p],
                     "lat": lat[p],
