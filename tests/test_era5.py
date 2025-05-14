@@ -575,6 +575,7 @@ def test_read_ozone_data_from_era5_netcdf(
     assert float(tco3)  # FIXME: rubbish test
 
 
+@pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
 def test_ozone_workflow(
     era5_data_dir,
     acquisition_datetime,
