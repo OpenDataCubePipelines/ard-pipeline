@@ -416,18 +416,18 @@ def profile_data_frame_workflow(
 
 # TODO: is a user ozone override required?
 # NB: this doesn't require the luigi ozone setting
-def ozone_workflow(era5_data_dir, acquisition_datetime, lat_long):
+def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
     """
-    Top level workflow function to capture ozone ancillary data.
-
-    NB: only supports a single point sampling as per the wagl NBAR workflow.
+    Top level workflow generator to read ERA5 ozone ancillary data.
     """
     ozone_path = build_era5_path(
         era5_data_dir, ERA5_TOTAL_COLUMN_OZONE, acquisition_datetime, single=True
     )
     dataset = xarray.open_dataset(ozone_path)
-    ozone = read_ozone_data(dataset, acquisition_datetime, lat_long)
-    return ozone
+
+    for lat_lon in lat_longs:
+        ozone = read_ozone_data(dataset, acquisition_datetime, lat_lon)
+        yield ozone
 
 
 def read_ozone_data(

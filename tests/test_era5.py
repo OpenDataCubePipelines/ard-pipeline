@@ -117,6 +117,11 @@ def mawson_peak_heard_island_lat_lon():
 
 
 @pytest.fixture
+def davis_station_lat_lon():
+    return -68.576667, 77.9675
+
+
+@pytest.fixture
 def era5_data_dir():
     """
     Return dir path to use for temporary testing.
@@ -568,6 +573,20 @@ def test_read_ozone_data_from_era5_netcdf(
 
     assert tco3 is not None
     assert float(tco3)  # FIXME: rubbish test
+
+
+def test_ozone_workflow(
+    era5_data_dir,
+    acquisition_datetime,
+    mawson_peak_heard_island_lat_lon,
+    davis_station_lat_lon,
+):
+    lat_longs = (mawson_peak_heard_island_lat_lon, davis_station_lat_lon)
+
+    # ensure generator workflow accepts multiple coordinates
+    for ozone in era5.ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
+        assert ozone is not None
+        assert float(ozone)  # rough, ugly test it's a float
 
 
 # NB: comment this until it's known if the override is needed
