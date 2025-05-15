@@ -397,7 +397,7 @@ def collect_era5_ancillary(
         era5.ozone_workflow(era5_dir_path, acq_datetime, lat_longs)
     ):
         pnt = POINT_FMT.format(p=n)
-        data_name = ppjoin(pnt, DatasetName.OZONE.value.value)
+        data_name = ppjoin(pnt, DatasetName.OZONE.value)
         write_scalar(ozone, data_name, out_group)
 
 
