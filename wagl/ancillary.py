@@ -393,7 +393,9 @@ def collect_era5_ancillary(
     # read ERA ozone at all sampling coords
     # NB: there's point creation duplication. The alternative is using zip() to
     #  jointly call the profile & ozone workflows, with tricky loop
-    for n, ozone in era5.ozone_workflow(era5_dir_path, acq_datetime, lat_longs):
+    for n, ozone in enumerate(
+        era5.ozone_workflow(era5_dir_path, acq_datetime, lat_longs)
+    ):
         pnt = POINT_FMT.format(p=n)
         data_name = ppjoin(pnt, DatasetName.OZONE.value.value)
         write_scalar(ozone, data_name, out_group)
