@@ -95,6 +95,8 @@ ECWMF_LEVELS = [
 class AncillaryError(Exception):
     """Specific error handle for ancillary retrieval."""
 
+    pass
+
 
 def get_4d_idx(day):
     """A small utility function for indexing into a 4D dataset
@@ -160,7 +162,6 @@ class OzoneDict(TypedDict):
     # An optional, user-specified value.
     user: Optional[float]
     # The folder that contains ozone files.
-    # For DE Aus, file paths format is expected to be: " TODO .{year}.h5"
     # DE Antarctica uses ERA5 data with paths like:
     # /g/data/rt52/era5/single-levels/reanalysis/tco3/2023/tco3_era5_oper_sfc_20230201-20230228.nc
     pathname: Optional[str]
@@ -175,6 +176,7 @@ class NbarPathsDict(TypedDict):
     brdf_dict: BrdfDict
 
 
+# TODO: remove sbt_path parameter?
 def collect_ancillary(
     container: AcquisitionsContainer,
     satellite_solar_group,
@@ -188,10 +190,11 @@ def collect_ancillary(
     era5_dir_path=None,
     merra2_dir_path=None,
 ):
-    """Collects the ancillary required for NBAR and optionally SBT.
-    This could be better handled if using the `opendatacube` project
-    to handle ancillary retrieval, rather than directory passing,
-    and filename grepping.
+    """
+    Collects the ancillary required for NBAR.
+
+    This could be better handled if using the `opendatacube` project to handle
+    ancillary retrieval, rather than directory passing & filename grepping.
 
     :param container:
         An instance of an `AcquisitionsContainer` object.
@@ -224,7 +227,7 @@ def collect_ancillary(
         the outside of which is considered "offshore"
 
     :param sbt_path:
-        This option is disabled.
+        This option is disabled & ignored.
 
     :param vertices:
         An integer 2-tuple indicating the number of rows and columns
@@ -296,9 +299,6 @@ def collect_ancillary(
             acquisition, vertices, boxline_dataset
         )
         attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
-
-    if sbt_path:
-        raise AncillaryError("SBT is disabled")
 
     if era5_dir_path:
         # ERA5 is split into a separate step as some ancillaries are not ERA5
