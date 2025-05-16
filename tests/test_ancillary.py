@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pandas as pd
+import pytest
 
 from wagl import (
     acquisition,
@@ -9,7 +10,12 @@ from wagl import (
 )
 
 
-def test_collect_era5_ancillary():
+@pytest.fixture
+def lat_longs():
+    return (-35, 149), (-35.5, 149.5), (-36, 150)
+
+
+def test_collect_era5_ancillary(lat_longs):
     # Loose test to ensure ERA5 collection workflow runs end to end. Underlying
     # I/O functionality is skipped with mocks. This is not ideal, but is a problem
     # with the s/w architecture burying I/O dependencies in the code.
@@ -18,7 +24,6 @@ def test_collect_era5_ancillary():
     # details of era5.profile_data_frame_workflow(). If the workflow changes,
     # it's possible this test will require changes
     acq = mock.MagicMock(acquisition.Acquisition)
-    lat_longs = ((-35, 149), (-35.5, 149.5), (-36, 150))
     out_group = mock.MagicMock()
     era5_data_dir = "fake-dir"
 
@@ -47,4 +52,21 @@ def test_collect_era5_ancillary():
         assert m_write_dataframe.call_count == 3
 
         m_ozone_workflow.assert_called()
+        assert m_write_scalar.call_count == 3
+
+
+def test_collect_merra2_ancillary(lat_longs):
+    acq = mock.MagicMock(acquisition.Acquisition)
+    out_group = mock.MagicMock()
+    merra2_data_dir = "fake-dir"
+
+    with (
+        mock.patch(
+            "wagl.merra2.aerosol_workflow", return_value=[0.004, 0.005, 0.006]
+        ) as m_aerosol_workflow,
+        mock.patch("wagl.ancillary.write_scalar") as m_write_scalar,
+    ):
+        ancillary.collect_merra2_ancillary(acq, lat_longs, merra2_data_dir, out_group)
+
+        assert m_aerosol_workflow.called
         assert m_write_scalar.call_count == 3
