@@ -212,7 +212,7 @@ def format_json(
                     "water": water_vapour,
                     "ozone": ozone,
                     "doy": acquisitions[0].julian_day(),
-                    "visibility": -aerosol,
+                    "visibility": -aerosol["aerosol_value"][p],
                     "lat": lat[p],
                     "lon": rlon[p],
                     "time": acquisitions[0].decimal_hour(),

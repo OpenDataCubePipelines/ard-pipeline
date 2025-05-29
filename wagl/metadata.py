@@ -342,7 +342,15 @@ def create_ard_yaml(
         elevation_data = elevation_provenance(anc_grp)
 
         result = {
-            "aerosol": aerosol_data,
+            "aerosol": {
+                "id": aerosol_data["id"],
+                "tier": aerosol_data["tier"],
+                "value": {
+                    "longitude": list(aerosol_data["value"]["longitude"]),
+                    "latitude": list(aerosol_data["value"]["latitude"]),
+                    "sample": list(aerosol_data["value"]["aerosol_value"]),
+                },
+            },
             "water_vapour": water_vapour_data,
             "ozone": ozone_data,
             "elevation": elevation_data,

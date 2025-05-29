@@ -15,6 +15,8 @@ import attr
 import h5py
 import numpy as np
 import pandas as pd
+import pyproj
+import rasterio
 from geopandas import GeoSeries
 from shapely import wkt
 from shapely.geometry import Point, Polygon
@@ -291,7 +293,7 @@ def collect_ancillary(
 
     boxline_dataset = satellite_solar_group[DatasetName.BOXLINE.value][:]
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
-    lonlats = zip(coordinator["longitude"], coordinator["latitude"])
+    lonlats = list(zip(coordinator["longitude"], coordinator["latitude"]))
 
     desc = (
         "Contains the row and column array coordinates used for the "
@@ -326,6 +328,7 @@ def collect_ancillary(
 
     collect_nbar_ancillary(
         container,
+        lonlats,
         out_group=group,
         offshore=is_offshore_territory(acquisition, offshore_territory_boundary_path),
         **nbar_paths,
@@ -581,8 +584,84 @@ def find_needed_acquisition_ancillary(
     return tiers, paths
 
 
+def xy_index(lon, lat, geobox):
+    to_crs = pyproj.CRS.from_string(str(geobox.crs))
+    from_crs = pyproj.CRS.from_epsg(4326)
+    transformer = pyproj.Transformer.from_crs(from_crs, to_crs, always_xy=True)
+    x, y = transformer.transform(lon, lat)  # in geobox coords
+    i, j = ~geobox.transform * (x, y)  # in pixel coords (float)
+    return int(i), int(j)
+
+
+def circular_mask(geobox, xy, radius_in_pixels):
+    x = np.arange(geobox.shape[1]).reshape(1, geobox.shape[1]) * np.ones(
+        (geobox.shape[0], 1), dtype=int
+    )
+    y = np.arange(geobox.shape[0]).reshape(geobox.shape[0], 1) * np.ones(
+        (1, geobox.shape[1]), dtype=int
+    )
+    dist = ((x - xy[0]) / radius_in_pixels[0]) ** 2 + (
+        (y - xy[1]) / radius_in_pixels[1]
+    ) ** 2
+    return dist < 1
+
+
+def aerosol_average(aerosol, clear_pixel_mask, aperture):
+    """
+    - `aerosol` is data
+    - `clear_pixel_mask` indicates whether the pixel is clear or cloud/cirrus/water/shadow/...
+    - `aperture` is the circular mask around the modtran sample point
+    """
+    mask = clear_pixel_mask * aperture
+    if np.sum(mask) > 0:
+        return np.sum(aerosol * mask) / np.sum(mask)
+
+    # if no pixels within aperture, settle for scene average
+    raise ValueError
+    return np.sum(aerosol * clear_pixel_mask) / np.sum(clear_pixel_mask)
+
+
+def get_aerosol_data_batch4(container, lonlats):
+    extracted_folder = "/g/data/u46/users/ia1511/Work/projects/support-eccoe/batch-4/extracted-ancillaries"
+    scene_id = container.granules[0]
+    instr = "LS9" if scene_id.startswith("LC9") else "LS8"
+    anc_folder = f"{extracted_folder}/{instr}/{scene_id}"
+
+    def imread(path):
+        with rasterio.open(path) as fl:
+            return fl.read(1)
+
+    mask = imread(f"{anc_folder}/lasrc_aerosol_mask.tif")
+    aerosol = imread(f"{anc_folder}/lasrc_aerosol_final.tif")
+
+    # not panchromatic band
+    geobox = container.get_mode_resolution()[0][0].gridded_geo_box()
+
+    sample_indices_xy = [xy_index(lon, lat, geobox) for lon, lat in lonlats]
+    # 50 km radius, 30m pixels
+    radius_in_pixels = tuple(50000.0 / entry for entry in geobox.pixelsize)
+    circ_masks = [
+        circular_mask(geobox, xy, radius_in_pixels) for xy in sample_indices_xy
+    ]
+
+    points = pd.Series([index for index, _ in enumerate(lonlats)])
+    lons = pd.Series([lon for lon, lat in lonlats])
+    lats = pd.Series([lat for lon, lat in lonlats])
+    avg = pd.Series([aerosol_average(aerosol, mask, cm) for cm in circ_masks])
+
+    return pd.DataFrame(
+        data={
+            "point": points,
+            "longitude": lons,
+            "latitude": lats,
+            "aerosol_value": avg,
+        }
+    )
+
+
 def collect_nbar_ancillary(
     container: AcquisitionsContainer,
+    lonlats: List[LonLat],
     aerosol_dict: AerosolDict = None,
     water_vapour_dict: WaterVapourDict = None,
     ozone_dict: OzoneDict = None,
@@ -645,8 +724,13 @@ def collect_nbar_ancillary(
     dt = acquisition.acquisition_datetime
     geobox = acquisition.gridded_geo_box()
 
-    aerosol = get_aerosol_data(acquisition, aerosol_dict)
-    write_scalar(aerosol[0], DatasetName.AEROSOL.value, fid, aerosol[1])
+    aerosol = get_aerosol_data_batch4(container, lonlats)
+    write_dataframe(
+        aerosol,
+        DatasetName.AEROSOL.value,
+        fid,
+        attrs={"id": np.array([], VLEN_STRING), "tier": AerosolTier.USER.name},
+    )
 
     wv = get_water_vapour(acquisition, water_vapour_dict)
     write_scalar(wv[0], DatasetName.WATER_VAPOUR.value, fid, wv[1])
