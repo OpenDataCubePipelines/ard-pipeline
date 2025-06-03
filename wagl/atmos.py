@@ -12,12 +12,13 @@ def kelvin_2_celcius(kelvin):
     return kelvin - 273.15
 
 
-def relative_humdity(surface_temp, dewpoint_temp, kelvin=True, clip_negative=True):
+def relative_humidity(surface_temp, dewpoint_temp, kelvin=True, clip_overflow=True):
     """
     Calculates relative humidity given a surface temperature & dewpoint temperature.
 
     MODTRAN doesn't handle negative RH values, thus the default behaviour is to
-    clip negative values to zero to sanitise calculation.
+    clip over values to zero or 100 to sanitise RH calculations. Negative RH is
+    clipped to zero, RH > 100 is clipped to 100.
     """
     if kelvin:
         surf_t = kelvin_2_celcius(surface_temp)
@@ -28,7 +29,8 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True, clip_negative=Tru
 
     rh = 100 * ((112.0 - 0.1 * surf_t + dew_t) / (112.0 + 0.9 * surf_t)) ** 8
 
-    if clip_negative:
+    if clip_overflow:
         rh = np.where(rh < 0.0, 0.0, rh)
+        rh = np.where(rh > 100.0, 100.0, rh)
 
     return rh
