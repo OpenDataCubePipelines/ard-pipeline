@@ -22,7 +22,7 @@ from wagl.acquisition import (
     Acquisition,
     AcquisitionsContainer,
 )
-from wagl.atmos import kelvin_2_celcius, relative_humdity
+from wagl.atmos import kelvin_2_celcius, relative_humidity
 from wagl.brdf import BrdfDict, BrdfMode, get_brdf_data
 from wagl.constants import (
     GEOPOTENTIAL_HEIGHT,
@@ -538,7 +538,7 @@ def collect_sbt_ancillary(
         t2m = ecwmf_temperature_2metre(ancillary_path, lonlat, dt)
         sfc_prs = ecwmf_surface_pressure(ancillary_path, lonlat, dt)
         sfc_hgt = ecwmf_elevation(invariant_fname, lonlat)
-        sfc_rh = relative_humdity(t2m[0], dew[0])
+        sfc_rh = relative_humidity(t2m[0], dew[0])
 
         # output the scalar data along with the attrs
         dname = ppjoin(pnt, DatasetName.DEWPOINT_TEMPERATURE.value)

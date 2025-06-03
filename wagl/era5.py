@@ -274,7 +274,7 @@ def build_profile_data_frame(
 
     Merges single/surface & multiple level atmospheric data into a 2D table as
     a MODTRAN input. Scaling & re-ordering is performed to ensure the data is
-    suitable for MODTRRAN requirements (e.g. decreasing pressure with height).
+    suitable for MODTRAN requirements (e.g. decreasing pressure with height).
 
     :param multi_level_vars: a MultiLevelVars instance of the non-surface ERA5
                              atmospheric data layers.
@@ -283,7 +283,7 @@ def build_profile_data_frame(
                          be in **increasing** order.
     :return: a profile data frame (table) suitable for MODTRAN.
     """
-    rh = atmos.relative_humdity(
+    rh = atmos.relative_humidity(
         single_level_vars.temperature,
         single_level_vars.dewpoint_temperature,
         kelvin=True,
