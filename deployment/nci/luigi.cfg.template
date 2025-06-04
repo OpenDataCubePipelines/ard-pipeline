@@ -3,10 +3,12 @@ workflow = NBAR
 vertices = (3, 3)
 modtran_exe = mod6c_cons
 srtm_pathname =
-cop_pathname = /g/data/v10/eoancillarydata-2/elevation/copernicus_30m/copernicus-30m-dem.tif
+cop_pathname = /g/data/v10/eoancillarydata-2/elevation/copernicus_30m_world
 tle_path = /g/data/v10/eoancillarydata-2/sensor-specific
-brdf = {"brdf_path": "/g/data/v10/eoancillarydata-2/BRDF/MCD43A1.061",
-        "brdf_fallback_path": "/g/data/v10/eoancillarydata-2/BRDF_FALLBACK/MCD43A1.006",
+
+# DE Ant specific BRDF
+brdf = {"brdf_path": "/g/data/yp75/projects/eo-auxiliary/BRDF/MCD43A1.061",
+        "brdf_fallback_path": "TODO_no_fallback",
         "ocean_mask_path": "/g/data/v10/eoancillarydata-2/ocean_mask/base_oz_tile_set_water_mask_geotif.tif",
         "extended_ocean_mask_path": "/g/data/v10/eoancillarydata-2/ocean_mask/copernicus-wbm-modis-grid-min.tif",
         "viirs_i_path": "/g/data/v10/eoancillarydata-2/BRDF/VNP43IA1.001",
@@ -15,7 +17,7 @@ offshore_territory_boundary_path = /g/data/v10/eoancillarydata-2/DEA-non-offshor
 dem_path =
 ecmwf_path =
 era5_dir_path = /g/data/rt52/era5
-merra2_dir_path =
+merra2_dir_path = /g/data/yp75/projects/eo-auxiliary/MERRA2
 modtran_aerosol_model = AER_RURAL
 compression = BITSHUFFLE
 h5_driver =
