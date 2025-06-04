@@ -4,6 +4,9 @@ TODO: Module for atmospheric calculations.
 
 import numpy as np
 
+MIN_RELATIVE_HUMIDITY = 0.0
+MAX_RELATIVE_HUMIDITY = 100.0
+
 
 def kelvin_2_celcius(kelvin):
     """A small utility function for converting degrees Kelvin to
@@ -30,7 +33,6 @@ def relative_humidity(surface_temp, dewpoint_temp, kelvin=True, clip_overflow=Tr
     rh = 100 * ((112.0 - 0.1 * surf_t + dew_t) / (112.0 + 0.9 * surf_t)) ** 8
 
     if clip_overflow:
-        rh = np.where(rh < 0.0, 0.0, rh)
-        rh = np.where(rh > 100.0, 100.0, rh)
+        rh = np.clip(rh, MIN_RELATIVE_HUMIDITY, MAX_RELATIVE_HUMIDITY)
 
     return rh
