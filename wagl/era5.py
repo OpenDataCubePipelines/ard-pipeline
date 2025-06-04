@@ -293,7 +293,13 @@ def build_profile_data_frame(
     geopotential_height = reversed(
         scale_z_to_geopotential_height(multi_level_vars.geopotential)
     )
-    relative_humidity = reversed(multi_level_vars.relative_humidity)
+
+    # Sanitise relative humidity range for MODTRAN
+    relative_humidity = multi_level_vars.relative_humidity[::-1]
+    relative_humidity = relative_humidity.clip(
+        atmos.MIN_RELATIVE_HUMIDITY, atmos.MAX_RELATIVE_HUMIDITY
+    )
+
     temperature = atmos.kelvin_2_celcius(multi_level_vars.temperature)
 
     # MODTRAN requires monotonically decreasing pressure (ecwmf_levels)
