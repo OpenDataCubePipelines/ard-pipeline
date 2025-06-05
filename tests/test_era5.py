@@ -350,11 +350,10 @@ def test_era5_profile_data_extraction(
     assert single.geopotential is not None
 
 
-def test_build_profile_data_frame():
-    # test building a profile data frame with fake data
-
+@pytest.fixture
+def simulated_era5_vars():
     # create fake multi level ERA5 data
-    relative_humidity_ml = list(range(55, 55 - RAW_NUM_LEVELS, -1))  # descending RH
+    relative_humidity_ml = np.array(range(55, 55 - RAW_NUM_LEVELS, -1))  # descending RH
     temperature_ml = np.array([280 - (i * 5) for i in range(RAW_NUM_LEVELS)])
     geopotential_ml = np.array(
         [2000 + (i * 100) for i in range(RAW_NUM_LEVELS)]
@@ -368,14 +367,20 @@ def test_build_profile_data_frame():
     )
 
     # create fake single level ERA5 data
-    temperature_sl = 285.0  # NB: start with kelvin
+    temperature_sl = 285.0  # NB: start with degrees kelvin
     geopotential_sl = 2300.0
     surface_pressure_sl = 1100.0 * 100  # NB: mimic the units in NetCDF
-    dewpoint_temperature_sl = 2270.0  # NB: start with kelvin
+    dewpoint_temperature_sl = 2270.0  # NB: start with degrees kelvin
 
     single_level_data = era5.SingleLevelVars(
         temperature_sl, geopotential_sl, surface_pressure_sl, dewpoint_temperature_sl
     )
+    return multi_level_data, single_level_data
+
+
+def test_build_profile_data_frame(simulated_era5_vars):
+    # test building a profile data frame with fake data
+    multi_level_data, single_level_data = simulated_era5_vars
 
     profile_frame = era5.build_profile_data_frame(
         multi_level_data, single_level_data, ECWMF_LEVELS
@@ -385,8 +390,35 @@ def test_build_profile_data_frame():
     for key in (GEOPOTENTIAL_HEIGHT, PRESSURE, TEMPERATURE, RELATIVE_HUMIDITY):
         assert profile_frame[key].size == TOTAL_NUM_LEVELS
 
-    print()
-    print(profile_frame)
+    # Ensure floating point RH: see https://github.com/OpenDataCubePipelines/ard-pipeline/issues/109
+    # and data clipping to [0-100] range
+    rh_segment = profile_frame[RELATIVE_HUMIDITY]
+    assert rh_segment.dtype == np.float64
+    assert (rh_segment >= 0.0).all(), "Relative humidity has negative values"
+    assert (rh_segment <= 100.0).all(), "Relative humidity has > 100% values"
+
+    # print()
+    # print(profile_frame)
+
+
+def test_build_profile_data_frame_rh_clipping(simulated_era5_vars):
+    # test building a profile data frame with fake data
+    multi_level_data, single_level_data = simulated_era5_vars
+
+    # ensure relative humidity has values outside [0-100]
+    multi_level_data.relative_humidity[0] = 107.0
+    multi_level_data.relative_humidity[-1] = -5.0
+
+    profile_frame = era5.build_profile_data_frame(
+        multi_level_data, single_level_data, ECWMF_LEVELS
+    )
+
+    # Ensure floating point RH: see https://github.com/OpenDataCubePipelines/ard-pipeline/issues/109
+    # and data clipping to [0-100] range
+    rh_segment = profile_frame[RELATIVE_HUMIDITY]
+    assert rh_segment.dtype == np.float64
+    assert (rh_segment >= 0.0).all(), "Relative humidity has negative values"
+    assert (rh_segment <= 100.0).all(), "Relative humidity has > 100% values"
 
 
 @pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
