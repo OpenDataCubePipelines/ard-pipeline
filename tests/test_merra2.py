@@ -70,3 +70,10 @@ def test_aerosol_workflow(wagga_datetime, wagga_lat_long):
     coord = (wagga_lat_long,)
     for aerosol in merra2.aerosol_workflow(MERRA2_DATA_DIR, wagga_datetime, coord):
         _is_valid(aerosol)
+
+
+def test_get_production_stream_number():
+    assert merra2.get_production_stream_number(datetime.date(1981, 2, 5)) == 100
+    assert merra2.get_production_stream_number(datetime.date(1995, 3, 6)) == 200
+    assert merra2.get_production_stream_number(datetime.date(2004, 4, 7)) == 300
+    assert merra2.get_production_stream_number(datetime.date(2019, 5, 8)) == 400
