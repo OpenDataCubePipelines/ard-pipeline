@@ -112,7 +112,7 @@ def get_production_stream_number(date_time):
     # MERRA2_400 	2011.01.01  present
 
     for start, end, run_id in MERRA2_RUNID:
-        if (end is not None) and start < date_time < end:
+        if (end is not None) and start <= date_time <= end:
             return run_id
 
     return run_id  # noqa, defaults to last run id
