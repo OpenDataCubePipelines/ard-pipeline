@@ -73,7 +73,12 @@ def test_aerosol_workflow(wagga_datetime, wagga_lat_long):
 
 
 def test_get_production_stream_number():
+    # Test edges of date range to ensure dates are inclusive
+    assert merra2.get_production_stream_number(datetime.date(1981, 1, 1)) == 100
     assert merra2.get_production_stream_number(datetime.date(1981, 2, 5)) == 100
+    assert merra2.get_production_stream_number(datetime.date(1991, 12, 31)) == 100
+
+    # verify remaining stream number versions
     assert merra2.get_production_stream_number(datetime.date(1995, 3, 6)) == 200
     assert merra2.get_production_stream_number(datetime.date(2004, 4, 7)) == 300
     assert merra2.get_production_stream_number(datetime.date(2019, 5, 8)) == 400
