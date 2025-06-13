@@ -425,6 +425,9 @@ def profile_data_frame_workflow(
 def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
     """
     Top level workflow generator to read ERA5 ozone ancillary data.
+
+    Total column ozone (tco3) is read from ERA5 in kg/m2 & is converted to ATM-CM
+    atmosphere centimetres for MODTRAN.
     """
     ozone_path = build_era5_path(
         era5_data_dir, ERA5_TOTAL_COLUMN_OZONE, acquisition_datetime, single=True
@@ -432,8 +435,25 @@ def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
     dataset = xarray.open_dataset(ozone_path)
 
     for lat_lon in lat_longs:
-        ozone = read_ozone_data(dataset, acquisition_datetime, lat_lon)
-        yield ozone
+        ozone_kgm2 = read_ozone_data(dataset, acquisition_datetime, lat_lon)
+        ozone_atm_cm = convert_ozone_atm_cm(ozone_kgm2)
+        yield ozone_atm_cm
+
+
+def convert_ozone_atm_cm(tco3_kgm2):
+    """
+    Convert ERA5 kg/m2 to ATM-CM (atmosphere centimetres).
+
+    MODTRAN requires ATM-CM as its ozone unit.
+    """
+    # See https://codes.ecmwf.int/grib/param-db/206
+
+    # TODO: handle NODATA?
+    #  NCI's converted ERA5 uses -32767 (int16) for NODATA
+    #  ERA5 direct GRIB uses GRIB_missingValue: 3.4028234663852886e+38
+    #  ERA5 direct NetCDF uses GRIB_missingValue: 3.4028234663852886e+38 (keeps GRIB attr name)
+    #  2023/02 ERA5 data does not appear to contain any NODATA
+    return (tco3_kgm2 / 2.1415) * 100
 
 
 def read_ozone_data(
