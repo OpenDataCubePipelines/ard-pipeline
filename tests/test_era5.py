@@ -622,6 +622,18 @@ def test_ozone_workflow(
         assert float(ozone)  # rough, ugly test it's a float
 
 
+def test_convert_ozone_atm_cm():
+    # from era5/single-levels/reanalysis/tco3/2023/tco3_era5_oper_sfc_20230201-20230228.nc
+    data = (0.00463773, 0.008840475, 0.01304322)  # min, mid & max tco3
+
+    tco3 = np.array(data)
+    tco3_atm_cm = era5.convert_ozone_atm_cm(tco3)
+
+    # rough test, ensure results within a reasonable ATM-CM range
+    assert (0.2 < tco3_atm_cm).all()
+    assert (tco3_atm_cm < 0.7).all()
+
+
 # NB: comment this until it's known if the override is needed
 # def test_get_ozone_data_from_override():
 #     user_override = 0.000111
