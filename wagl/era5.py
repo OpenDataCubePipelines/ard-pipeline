@@ -24,6 +24,7 @@ import datetime
 import numbers
 import os.path
 import typing
+import warnings
 
 import pandas as pd
 import xarray
@@ -37,6 +38,11 @@ MIDNIGHT_1900 = datetime.datetime(1900, 1, 1)  # "0" time for Jan 1900
 
 # See https://en.wikipedia.org/wiki/Standard_gravity
 STANDARD_GRAVITY = 9.80665
+
+# Valid ozone data ranges can be found here: https://ozonewatch.gsfc.nasa.gov/
+TCO3_MINIMUM_ATM_CM = 0.0
+TCO3_MAXIMUM_ATM_CM = 700.0 / 1000  # convert Dobson units to ATM-CM
+TCO3_LOW_ATM_CM = 100.0 / 1000
 
 
 # TODO: annotate as dataclass to provide Py style sorting?
@@ -421,7 +427,6 @@ def profile_data_frame_workflow(
 
 
 # TODO: is a user ozone override required?
-# NB: this doesn't require the luigi ozone setting
 def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
     """
     Top level workflow generator to read ERA5 ozone ancillary data.
@@ -437,22 +442,65 @@ def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
     for lat_lon in lat_longs:
         ozone_kgm2 = read_ozone_data(dataset, acquisition_datetime, lat_lon)
         ozone_atm_cm = convert_ozone_atm_cm(ozone_kgm2)
+
+        # NB: initial approach is to assume data is valid, fail fast if anything
+        #  unwanted is detected. Use those results to guide NODATA analysis
+        if has_invalid_minimum_ozone_atm_cm(ozone_atm_cm):
+            msg = (
+                f"{ozone_path} contains invalid zero &/or negative values. "
+                f"The DE Antarctica prototype has not determined handling"
+                f"requirements for this outcome yet."
+            )
+            raise NotImplementedError(msg)
+
+        if has_invalid_maximum_ozone_atm_cm(ozone_atm_cm):
+            msg = (
+                f"{ozone_path} contains invalid positive tco3 values. The "
+                f"DE Antarctica prototype has not determined handling"
+                f"requirements for this outcome yet."
+            )
+            raise NotImplementedError(msg)
+
+        if has_low_minimum_ozone_atm_cm(ozone_atm_cm):
+            msg = (
+                f"Low/sub 0.1 ATM CM Ozone found at {lat_lon} on {acquisition_datetime}"
+            )
+            warnings.warn(msg)
+
         yield ozone_atm_cm
+
+
+def has_invalid_minimum_ozone_atm_cm(tco3_atm_cm):
+    return (tco3_atm_cm <= TCO3_MINIMUM_ATM_CM).any()
+
+
+def has_low_minimum_ozone_atm_cm(tco3_atm_cm):
+    return (
+        (TCO3_MINIMUM_ATM_CM < tco3_atm_cm) & (tco3_atm_cm <= TCO3_LOW_ATM_CM)
+    ).any()
+
+
+def has_invalid_maximum_ozone_atm_cm(tco3_atm_cm):
+    return (tco3_atm_cm > TCO3_MAXIMUM_ATM_CM).any()
 
 
 def convert_ozone_atm_cm(tco3_kgm2):
     """
     Convert ERA5 kg/m2 to ATM-CM (atmosphere centimetres).
 
-    MODTRAN requires ATM-CM as its ozone unit.
+    MODTRAN requires ATM-CM for its ozone inputs unit.
     """
-    # See https://codes.ecmwf.int/grib/param-db/206
+    # See https://codes.ecmwf.int/grib/param-db/206 for the `tco3` parameter
+    # database entry & details of total column ozone
 
-    # TODO: handle NODATA?
-    #  NCI's converted ERA5 uses -32767 (int16) for NODATA
-    #  ERA5 direct GRIB uses GRIB_missingValue: 3.4028234663852886e+38
-    #  ERA5 direct NetCDF uses GRIB_missingValue: 3.4028234663852886e+38 (keeps GRIB attr name)
-    #  2023/02 ERA5 data does not appear to contain any NODATA
+    # The DE Ant prototype does not attempt to detect or handle NODATA. Initial
+    # data analysis indicates that `tco3` doesn't contain NODATA, see:
+    #  https://github.com/OpenDataCubePipelines/ard-pipeline/issues/111).
+    #
+    # NCI's converted ERA5 use -32767 (int16) for NODATA, whereas ERA5 GRIB
+    # files have an attr of `GRIB_missingValue: 3.4028234663852886e+38`. It's
+    # possible a NODATA value is included for completeness.
+
     return (tco3_kgm2 / 2.1415) * 100
 
 
