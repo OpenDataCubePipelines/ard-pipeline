@@ -48,16 +48,19 @@ TCO3_LOW_ATM_CM = 100.0 / 1000
 # TODO: annotate as dataclass to provide Py style sorting?
 class ERA5FileMeta(typing.NamedTuple):
     """
-    Metadata from ERA5 pressure level reanalysis files.
+    Metadata from ERA5 surface & pressure level reanalysis files.
 
     ERA5 files have metadata within their file names. This class handles parsing
     file naming data to reduce complexity in ERA5 workflows.
     """
 
+    # NB: cannot seem to find an ERA5 data naming standard, but hints are here:
+    # https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation and
+    # https://docs.dkrz.de/doc/dataservices/finding_and_accessing_data/era_data/index.html
     variable: str
     dataset: str
-    stream: str  # TODO: e.g. 'oper' what is this?
-    unknown: str  # TODO: rename
+    stream: str  # TODO: e.g. 'oper' what is this? (operational stream?)
+    level_type: str  # either "pl" pressure levels or "sfc" surface for NCI data
 
     # ERA5 filenames provide start & end dates without a time component.
     start_time: datetime.datetime  # datetime to specify start hour of 1st timestep
@@ -67,7 +70,7 @@ class ERA5FileMeta(typing.NamedTuple):
     @classmethod
     def from_basename(cls, path_basename):
         """
-        Return a new ERA5FileMeta instance.
+        Return new ERA5FileMeta instance.
 
         :param path_basename: the *base* filename with no directory component.
         """
