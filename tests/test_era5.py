@@ -619,7 +619,9 @@ def test_ozone_workflow(
     # ensure generator workflow accepts multiple coordinates
     for ozone in era5.ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
         assert ozone is not None
-        assert float(ozone)  # rough, ugly test it's a float
+        assert float(
+            ozone
+        )  # rough, ugly test (implicit valid range tested in workflow)
 
 
 def test_convert_ozone_atm_cm():
@@ -632,6 +634,23 @@ def test_convert_ozone_atm_cm():
     # rough test, ensure results within a reasonable ATM-CM range
     assert (0.2 < tco3_atm_cm).all()
     assert (tco3_atm_cm < 0.7).all()
+
+
+def test_has_invalid_minimum_ozone_atm_cm():
+    invalid = -1.0
+    assert era5.has_invalid_minimum_ozone_atm_cm(np.array([invalid]))
+
+
+def test_has_invalid_maximum_ozone_atm_cm():
+    invalid = 0.750  # in ATM_CM
+    assert era5.has_invalid_maximum_ozone_atm_cm(np.array([invalid]))
+
+
+def test_has_low_minimum_ozone_atm_cm():
+    for value in [0.1, 0.01, 0.05, 0.001]:
+        low = np.array([value])
+        res = era5.has_low_minimum_ozone_atm_cm(low)
+        assert res, f"failed on {low}, {res}"
 
 
 # NB: comment this until it's known if the override is needed
