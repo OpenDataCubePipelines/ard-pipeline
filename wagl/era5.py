@@ -38,6 +38,10 @@ MIDNIGHT_1900 = datetime.datetime(1900, 1, 1)  # "0" time for Jan 1900
 # See https://en.wikipedia.org/wiki/Standard_gravity
 STANDARD_GRAVITY = 9.80665
 
+# Estimates of sane min/max surface pressure, based on advice & data analysis.
+# The Antarctic region of -60 to -90 degrees was sampled for min/mean & max
+# surface pressure for the 2020 to early 2025 period, with results plotted here:
+# https://github.com/OpenDataCubePipelines/ard-pipeline/issues/113#issuecomment-3021722692
 SP_MINIMUM_PA = 45000.0
 SP_MAXIMUM_PA = 110000.0
 
@@ -429,8 +433,13 @@ def profile_data_frame_workflow(
 
 
 def validate_surface_pressure(sp_pa, lat_lon):
-    # sp_pa is assumed to be a single value in pascals
-    # it might require area sampling in the future...
+    # `sp_pa` is assumed to be a single value given workflow point sampling.
+    # ERA5 reanalysis data has 0.25 * 0.25 cells, indicating multi-pixel area
+    # sampling is not required.
+    #
+    # NB: skip NODATA & NaN checks as these values were not detected during
+    #  exploratory data analysis to understand ERA5's data characteristics. See
+    #  https://github.com/OpenDataCubePipelines/ard-pipeline/issues/113 for info
 
     if sp_pa <= SP_MINIMUM_PA:
         msg = (
