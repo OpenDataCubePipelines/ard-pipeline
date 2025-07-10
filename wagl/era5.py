@@ -211,6 +211,8 @@ def profile_data_extraction(
         get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
     ]
 
+    # TODO: check / handle NODATA / fail fast
+
     # bundle the extracted atmos profile layers
     multi_level_vars = MultiLevelVars(*raw_multi_level)
 
@@ -224,6 +226,8 @@ def profile_data_extraction(
     raw_single_level = [
         get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
     ]
+
+    # TODO: check / handle NODATA / fail fast
 
     # bundle the extracted atmos profile surface layer vars
     single_level_vars = SingleLevelVars(*raw_single_level)
@@ -450,23 +454,25 @@ def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
         #  unwanted is detected. Use those results to guide NODATA analysis
         if has_invalid_minimum_ozone_atm_cm(ozone_atm_cm):
             msg = (
-                f"{ozone_path} contains invalid zero &/or negative values. "
-                f"The DE Antarctica prototype has not determined handling"
-                f"requirements for this outcome yet."
+                f"{ozone_path} contains invalid zero &/or negative values at "
+                f"{lat_lon}. The DE Antarctica prototype has not determined "
+                f"handling  requirements for this case yet."
             )
             raise NotImplementedError(msg)
 
         if has_invalid_maximum_ozone_atm_cm(ozone_atm_cm):
             msg = (
-                f"{ozone_path} contains invalid positive tco3 values. The "
-                f"DE Antarctica prototype has not determined handling"
-                f"requirements for this outcome yet."
+                f"{ozone_path} contains invalid positive tco3 values at {lat_lon}. "
+                f"The DE Antarctica prototype has not determined handling"
+                f"requirements for this case yet."
             )
             raise NotImplementedError(msg)
 
         if has_low_minimum_ozone_atm_cm(ozone_atm_cm):
             msg = (
-                f"Low/sub 0.1 ATM CM Ozone found at {lat_lon} on {acquisition_datetime}"
+                f"Ozone below 0.1 ATM CM found in {ozone_path} at {lat_lon} on "
+                f"{acquisition_datetime}. Check the source data given the very "
+                f"low ozone reading."
             )
             warnings.warn(msg)
 
