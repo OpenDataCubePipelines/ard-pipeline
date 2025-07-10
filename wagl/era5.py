@@ -450,8 +450,25 @@ def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
         ozone_kgm2 = read_ozone_data(dataset, acquisition_datetime, lat_lon)
         ozone_atm_cm = convert_ozone_atm_cm(ozone_kgm2)
 
-        # NB: initial approach is to assume data is valid, fail fast if anything
-        #  unwanted is detected. Use those results to guide NODATA analysis
+        # NB: assume the tco3 data is (mostly) valid initially.
+        #
+        # In the absence of expert recommendations, exploratory data analysis
+        # work provided a high level data summary. Sampling 2020 to 2025 from
+        # -60 to -90 degrees provided the following:
+        # * NODATA values were *not* found
+        # * NaN was not present
+        # * ERA5 reanalysis data did not contain any invalid data.
+        # * Minimum ozone was ~100 Dobsons or 0.1 ATM-CM in late winter/spring,
+        #   typically hovering around 250 Dobsons for much of the year.
+        # * Maximum ozone was ~525 Dobsons, but was typically ~350-400 Dobsons
+        # * This range is consistent with the 0-700 Dobson range on NASA's
+        #   Ozone Watch site https://ozonewatch.gsfc.nasa.gov/.
+        # * Seasonal changes are apparent with ozone.
+        # * See https://github.com/OpenDataCubePipelines/ard-pipeline/issues/111#issuecomment-3031092106
+        #   for an ozone data plot.
+        #
+        # Update if expert recommendations are provided for ozone ranges.
+
         if has_invalid_minimum_ozone_atm_cm(ozone_atm_cm):
             msg = (
                 f"{ozone_path} contains invalid zero &/or negative values at "
