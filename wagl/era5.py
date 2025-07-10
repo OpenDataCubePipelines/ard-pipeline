@@ -38,6 +38,9 @@ MIDNIGHT_1900 = datetime.datetime(1900, 1, 1)  # "0" time for Jan 1900
 # See https://en.wikipedia.org/wiki/Standard_gravity
 STANDARD_GRAVITY = 9.80665
 
+SP_MINIMUM_PA = 45000.0
+SP_MAXIMUM_PA = 110000.0
+
 
 # TODO: annotate as dataclass to provide Py style sorting?
 class ERA5FileMeta(typing.NamedTuple):
@@ -313,6 +316,7 @@ def build_profile_data_frame(
     profile_frame = pd.DataFrame(var_name_mapping)
 
     # apply data scaling & corrections
+    # `sp` / surface_pressure is in Pascals, needs conversion hPa/hectopascals
     surface_pressure = single_level_vars.surface_pressure / 100.0
     geopotential_height = scale_z_to_geopotential_height(single_level_vars.geopotential)
     temperature = atmos.kelvin_2_celcius(single_level_vars.temperature)
@@ -416,8 +420,33 @@ def profile_data_frame_workflow(
             xf_multi, xf_single, acquisition_datetime, lat_lon
         )
 
+        # TODO: rejig sanity check to reference the relevant file path to help
+        #  with debugging, should a data file contain strange values
+        validate_surface_pressure(xf_single.surface_pressure, lat_lon)
+
         frame = build_profile_data_frame(multi_vars, single_vars, ecwmf_levels)
         yield frame
+
+
+def validate_surface_pressure(sp_pa, lat_lon):
+    # sp_pa is assumed to be a single value in pascals
+    # it might require area sampling in the future...
+
+    if sp_pa <= SP_MINIMUM_PA:
+        msg = (
+            f"Surface pressure data contains abnormal low pressure values at "
+            f"{lat_lon}. The DE Antarctica prototype has not determined handling "
+            f"requirements for this case yet."
+        )
+        raise NotImplementedError(msg)
+
+    if sp_pa > SP_MAXIMUM_PA:
+        msg = (
+            f"Surface pressure data contains abnormal high pressure values at "
+            f"{lat_lon}. The DE Antarctica prototype has not determined handling "
+            f"requirements for this case yet."
+        )
+        raise NotImplementedError(msg)
 
 
 # TODO: is a user ozone override required?

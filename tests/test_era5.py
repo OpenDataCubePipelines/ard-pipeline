@@ -630,3 +630,22 @@ def test_ozone_workflow(
 #     }  # use instead of OzoneDict which requires more imports
 #     tco3, _ = era5.get_ozone_data_user_override(ozone)
 #     assert tco3 == user_override
+
+
+# surface pressure testing
+def test_has_invalid_minimum_surface_pressure():
+    # Test in pascals, the raw unit read from NCI NetCDF files
+    fake_lat_lon = ("fake lat", "fake lon")
+
+    for invalid in (-1.0, 0, 200.0, 5000.0, 40000.0):
+        with pytest.raises(NotImplementedError):
+            era5.validate_surface_pressure(invalid, fake_lat_lon)
+
+
+def test_has_invalid_maximum_surface_pressure():
+    # Test in pascals, the raw unit read from NCI NetCDF files
+    fake_lat_lon = ("fake lat", "fake lon")
+
+    for invalid in (110500.0, 111000.0):
+        with pytest.raises(NotImplementedError):
+            era5.validate_surface_pressure(invalid, fake_lat_lon)
