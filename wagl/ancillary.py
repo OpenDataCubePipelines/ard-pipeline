@@ -38,6 +38,7 @@ from wagl.dsm import copernicus_dem_image_for_latlon
 from wagl.hdf5 import (
     VLEN_STRING,
     H5CompressionFilter,
+    attach_image_attributes,
     attach_table_attributes,
     read_h5_table,
     write_dataframe,
@@ -667,6 +668,14 @@ def collect_nbar_ancillary(
         for acq in container.get_acquisitions(group=group):
             if acq.band_type is not BandType.REFLECTIVE:
                 continue
+
+            geobox = acq.gridded_geo_box()
+            attrs = {
+                "crs_wkt": geobox.crs.ExportToWkt(),
+                "geotransform": geobox.transform.to_gdal(),
+                "description": f"BRDF shape parameters for {acq.band_name}",
+            }
+
             data = get_brdf_data(acq, brdf_dict, offshore=offshore)
 
             # output
@@ -674,8 +683,14 @@ def collect_nbar_ancillary(
                 dname = dname_format.format(
                     parameter=param.value, band_name=acq.band_name
                 )
-                brdf_value = data[param].pop("value")
-                write_scalar(brdf_value, dname, fid, data[param])
+                dset = fid.create_dataset(
+                    dname, data=data[param]["value"], chunks=acq.tile_size
+                )
+                dset_attrs = attrs.copy()
+                for key in data[param]:
+                    if key != "value":
+                        dset_attrs[key] = data[param][key]
+                attach_image_attributes(dset, dset_attrs)
 
 
 def get_aerosol_data(

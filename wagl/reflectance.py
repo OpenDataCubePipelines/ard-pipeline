@@ -256,12 +256,12 @@ def calculate_reflectance(
     dname = dname_fmt.format(
         band_name=bn, parameter=BrdfDirectionalParameters.ALPHA_1.value
     )
-    brdf_alpha1 = ancillary_group[dname][()]
+    brdf_alpha1_dataset = ancillary_group[dname]
 
     dname = dname_fmt.format(
         band_name=bn, parameter=BrdfDirectionalParameters.ALPHA_2.value
     )
-    brdf_alpha2 = ancillary_group[dname][()]
+    brdf_alpha2_dataset = ancillary_group[dname]
 
     assert out_group is not None
     fid = out_group
@@ -350,6 +350,8 @@ def calculate_reflectance(
         ts = as_array(ts_dataset[idx], **f32_args)
         direct = as_array(dir_dataset[idx], **f32_args)
         diffuse = as_array(dif_dataset[idx], **f32_args)
+        brdf_alpha1 = as_array(brdf_alpha1_dataset[idx], **f32_args)
+        brdf_alpha2 = as_array(brdf_alpha2_dataset[idx], **f32_args)
 
         # Allocate the output arrays
         xsize, ysize = band_data.shape  # band_data has been transposed

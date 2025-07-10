@@ -59,6 +59,8 @@ SUBROUTINE reflectance( &
     real*4 ts(nrow, ncol) ! modtran output (ts)
     real*4 edir_h(nrow, ncol) ! modtran output (direct irradiance)
     real*4 edif_h(nrow, ncol) ! modtran output (diffuse irradiance)
+    real*4 norm_1(nrow, ncol) ! brdf alpha_1
+    real*4 norm_2(nrow, ncol) ! brdf alpha_2
     integer*2 iref_lm(nrow, ncol) ! atmospheric corrected lambertial reflectance
     integer*2 iref_brdf(nrow, ncol) ! atmospheric and brdf corrected reflectance
     integer*2 iref_terrain(nrow, ncol) ! atmospheric and brdf and terrain corrected reflectance
@@ -71,6 +73,7 @@ SUBROUTINE reflectance( &
 
 !f2py depend(nrow), ref_lm, ref_brdf, ref_terrain
 !f2py depend(nrow, ncol), radiance, shadow_mask
+!f2py depend(nrow, ncol), norm_1, norm_2
 !f2py depend(nrow, ncol), solar_angle, sazi_angle, view_angle, rela_angle
 !f2py depend(nrow, ncol), slope_angle,, aspect_angle, it_angle, et_angle
 !f2py depend(nrow, ncol), rela_slope, a_mod, b_mod, s_mod, fv, fs, ts
@@ -88,7 +91,7 @@ SUBROUTINE reflectance( &
     real pi, pib
     real ann_f, aa_viewf, aa_solarf, aa_white
     real ann_s, aa_views, aa_solars
-    real lt, norm_1, norm_2
+    real lt
     real solar, sazi, view, slope, aspect, ra_lm, ra_sl, it, et
 
     double precision a_eqf, b_eqf, c_eqf, ref_barf, aa_flat
@@ -112,11 +115,6 @@ SUBROUTINE reflectance( &
 !   integer version of the no_data value
     i_no_data = int(no_data)
 
-!   calculate white sky albedo
-    aa_white = white_sky(1.0, norm_1, norm_2)
-!   calcualte BRDF at 45 solar angle and 0 view angle
-    fnn = RL_brdf(norm_solar_zenith * pib, 0.0, 0.0, hb, br, 1.0, norm_1, norm_2, pi)
-!    print*,fnn
 
 !   Now loop over the cols of the images
     do j=1,ncol
@@ -126,6 +124,11 @@ SUBROUTINE reflectance( &
         do i=1,nrow
 !           radiance value for the pixel
             lt = radiance(i, j)
+        !   calculate white sky albedo
+            aa_white = white_sky(1.0, norm_1(i, j), norm_2(i, j))
+        !   calcualte BRDF at 45 solar angle and 0 view angle
+            fnn = RL_brdf(norm_solar_zenith * pib, 0.0, 0.0, hb, br, 1.0, norm_1(i, j), norm_2(i, j), pi)
+        !    print*,fnn
 
 !           TODO: check radiance against a better null than 0
 !           TODO: some at sensor radiance values are < 0
@@ -187,11 +190,11 @@ SUBROUTINE reflectance( &
                 iref_brdf(i, j) = 1
             else
 !               calculate normalized BRDF shape function
-                ann_f = RL_brdf(solar, view, ra_lm, hb, br, 1.0, norm_1, norm_2, pi)
+                ann_f = RL_brdf(solar, view, ra_lm, hb, br, 1.0, norm_1(i, j), norm_2(i, j), pi)
 !               calculate black sky albedo for sloar angle
-                aa_solarf = black_sky(1.0, norm_1, norm_2, solar)
+                aa_solarf = black_sky(1.0, norm_1(i, j), norm_2(i, j), solar)
 !               calculate black sky albedo for view angle
-                aa_viewf = black_sky(1.0, norm_1, norm_2, view)
+                aa_viewf = black_sky(1.0, norm_1(i, j), norm_2(i, j), view)
 !
                 aa_flat = (fv(i, j) * (fs(i, j) * ann_f + (1.0 - fs(i, j)) * &
                           aa_viewf) + (1.0 - fv(i, j)) * (fs(i, j) * &
@@ -276,13 +279,13 @@ SUBROUTINE reflectance( &
 
 !----------------------------------------------------------------
 !               calculate normalized BRDF shape function for sloping surface
-                ann_s = RL_brdf(it_brdf,et_brdf,ra_sl,hb,br,1.0,norm_1,norm_2, pi)
+                ann_s = RL_brdf(it_brdf,et_brdf,ra_sl,hb,br,1.0,norm_1(i, j),norm_2(i, j), pi)
 !----------------------------------------------------------------
 !               calculate black sky albedo for sloar angle
-                aa_solars = black_sky(1.0,norm_1,norm_2,it_bk)
+                aa_solars = black_sky(1.0,norm_1(i, j),norm_2(i, j),it_bk)
 !--------------------------------------------------------------
 !               calculate black sky albedo for view angle
-                aa_views = black_sky(1.0,norm_1,norm_2,et_bk)
+                aa_views = black_sky(1.0,norm_1(i, j),norm_2(i, j),et_bk)
 !-------------------------------------------------------------
                 aa_slope = &
                     (rdir * (fv(i, j) * ann_s    + (1.0-fv(i, j)) * &

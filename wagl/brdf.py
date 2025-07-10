@@ -820,6 +820,90 @@ def get_tally(
     return tally
 
 
+def climatology_brdf_filename(month, band_name):
+    return f"CMSsolarbrdf_V1.0_0.1deg_2007{month:02d}_mask_{band_name}.tif"
+
+
+BRDF_CLIMATOLOGY_BAND_MAP = {
+    "BAND-1": 7,
+    "BAND-2": 7,
+    "BAND-3": 6,
+    "BAND-4": 5,
+    "BAND-5": 4,
+    "BAND-6": 2,
+    "BAND-7": 1,
+    "BAND-8": 6,  # TODO ask Fuqin about this
+}
+
+
+def read_brdf_climatology_band(brdf_band, brdf_config, acq, buffer=0.0):
+    climatology_band = BRDF_CLIMATOLOGY_BAND_MAP[acq.band_name]
+    acq_month = acq.acquisition_datetime.month
+    climatology_full_path = pjoin(
+        brdf_config["brdf_climatology_path"],
+        climatology_brdf_filename(acq_month, brdf_band),
+    )
+    with rasterio.open(climatology_full_path) as ds:
+        src_geobox = GriddedGeoBox.from_dataset(ds)
+        dst_geobox = acq.gridded_geo_box()
+        dst_extent = list(dst_geobox.project_extents(src_geobox.crs))
+        dst_envelope = box(
+            dst_extent[0] - buffer,
+            dst_extent[1] - buffer,
+            dst_extent[2] + buffer,
+            dst_extent[3] + buffer,
+        )
+        bound_poly_coords = list(dst_envelope.exterior.coords)[:4]
+        return read_subset(ds, *bound_poly_coords, bands=climatology_band)
+
+
+def get_brdf_climatology_data(acq, brdf_config):
+    data = {}
+    geobox = {}
+
+    for brdf_band in ["fiso", "fvol", "fgeo"]:
+        data[brdf_band], geobox[brdf_band] = read_brdf_climatology_band(
+            brdf_band, brdf_config, acq, buffer=0.2
+        )
+
+    images = {}
+    images[BrdfDirectionalParameters.ALPHA_1] = data["fvol"] / data["fiso"]
+    images[BrdfDirectionalParameters.ALPHA_2] = data["fgeo"] / data["fiso"]
+
+    dst_geobox = acq.gridded_geo_box()
+    dst_crs = dst_geobox.crs.ExportToProj4()
+
+    src_geobox = geobox["fiso"]
+    src_crs = src_geobox.crs.ExportToProj4()
+
+    result = {}
+
+    for param in BrdfDirectionalParameters:
+        reprojected_image = np.full(dst_geobox.shape, np.nan, dtype=np.float32)
+
+        reproject(
+            source=images[param],
+            src_crs=src_crs,
+            src_transform=src_geobox.transform,
+            destination=reprojected_image,
+            dst_crs=dst_crs,
+            dst_transform=dst_geobox.transform,
+            dst_nodata=np.nan,
+            resampling=Resampling.bilinear,
+        )
+
+        reprojected_image[~np.isfinite(reprojected_image)] = 0.0
+
+        result[param] = {
+            "data_source": "BRDF",
+            "id": ["dummy"],
+            "tier": BrdfTier.USER.name,
+            "value": reprojected_image,
+        }
+
+    return result
+
+
 class NoBrdfRootError(ValueError):
     """
     The configured BRDF folder doesn't exist, or has no data.
@@ -893,6 +977,9 @@ def get_brdf_data(
             }
             for param in BrdfDirectionalParameters
         }
+
+    if "brdf_climatology_path" in brdf_config:
+        return get_brdf_climatology_data(acquisition, brdf_config)
 
     src_poly, src_crs = valid_region(acquisition)
     src_crs = rasterio.crs.CRS(**src_crs)

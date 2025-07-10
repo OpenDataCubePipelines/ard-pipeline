@@ -254,7 +254,7 @@ def create_ard_yaml(
                 tier.append(BrdfTier[dset.attrs["tier"]].value)
                 alpha_key = param.value.lower().replace("-", "_")
                 bn_key = bn.lower().replace("-", "_")
-                alphas[alpha_key][bn_key] = dset[()]
+                alphas[alpha_key][bn_key] = np.nanmean(dset[()])
 
         # unique listing of brdf ids
         ids = np.unique(np.array(ids)).tolist()
