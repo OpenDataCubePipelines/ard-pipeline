@@ -825,19 +825,21 @@ def climatology_brdf_filename(month, band_name):
 
 
 BRDF_CLIMATOLOGY_BAND_MAP = {
-    "BAND-1": 7,
-    "BAND-2": 7,
-    "BAND-3": 6,
-    "BAND-4": 5,
-    "BAND-5": 4,
-    "BAND-6": 2,
-    "BAND-7": 1,
-    "BAND-8": 6,  # TODO ask Fuqin about this
+    "BAND-1": [7],
+    "BAND-2": [7],
+    "BAND-3": [6],
+    "BAND-4": [5],
+    "BAND-5": [4],
+    "BAND-6": [2],
+    "BAND-7": [1],
+    "BAND-8": [6, 5],
 }
 
 
 def read_brdf_climatology_band(brdf_band, brdf_config, acq, buffer=0.0):
-    climatology_band = BRDF_CLIMATOLOGY_BAND_MAP[acq.band_name]
+    result = []
+    geobox = None
+
     acq_month = acq.acquisition_datetime.month
     climatology_full_path = pjoin(
         brdf_config["brdf_climatology_path"],
@@ -854,7 +856,13 @@ def read_brdf_climatology_band(brdf_band, brdf_config, acq, buffer=0.0):
             dst_extent[3] + buffer,
         )
         bound_poly_coords = list(dst_envelope.exterior.coords)[:4]
-        return read_subset(ds, *bound_poly_coords, bands=climatology_band)
+
+        for climatology_band in BRDF_CLIMATOLOGY_BAND_MAP[acq.band_name]:
+            data, geobox = read_subset(ds, *bound_poly_coords, bands=climatology_band)
+            result.append(data)
+
+    result = np.nanmean(np.array(result), axis=0)
+    return result, geobox
 
 
 def get_brdf_climatology_data(acq, brdf_config):
@@ -867,8 +875,10 @@ def get_brdf_climatology_data(acq, brdf_config):
         )
 
     images = {}
-    images[BrdfDirectionalParameters.ALPHA_1] = data["fvol"] / data["fiso"]
-    images[BrdfDirectionalParameters.ALPHA_2] = data["fgeo"] / data["fiso"]
+
+    with np.errstate(divide="warn", invalid="warn"):
+        images[BrdfDirectionalParameters.ALPHA_1] = data["fvol"] / data["fiso"]
+        images[BrdfDirectionalParameters.ALPHA_2] = data["fgeo"] / data["fiso"]
 
     dst_geobox = acq.gridded_geo_box()
     dst_crs = dst_geobox.crs.ExportToProj4()
