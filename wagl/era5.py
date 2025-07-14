@@ -517,6 +517,17 @@ def read_ozone_data(
         lat_long,
     )
 
+    if pd.isna(tco3):
+        ozone_path = ozone_dataset.encoding["source"]
+        msg = (
+            f"{ozone_path} contains invalid NaN values at {lat_long}. This is "
+            f"potentially a problem with NCI's rt52 data, which contains NaNs in "
+            f"some files. Please check the source data's validity as ERA5 data "
+            f"should not have NODATA values. Also note that DE Antarctica has "
+            f"not determined NaN handling requirements yet."
+        )
+        raise NotImplementedError(msg)
+
     return tco3
 
 
