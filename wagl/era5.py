@@ -496,40 +496,6 @@ def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
         yield ozone_atm_cm
 
 
-def has_invalid_minimum_ozone_atm_cm(tco3_atm_cm):
-    return (tco3_atm_cm <= TCO3_MINIMUM_ATM_CM).any()
-
-
-def has_low_minimum_ozone_atm_cm(tco3_atm_cm):
-    return (
-        (TCO3_MINIMUM_ATM_CM < tco3_atm_cm) & (tco3_atm_cm <= TCO3_LOW_ATM_CM)
-    ).any()
-
-
-def has_invalid_maximum_ozone_atm_cm(tco3_atm_cm):
-    return (tco3_atm_cm > TCO3_MAXIMUM_ATM_CM).any()
-
-
-def convert_ozone_atm_cm(tco3_kgm2):
-    """
-    Convert ERA5 kg/m2 to ATM-CM (atmosphere centimetres).
-
-    MODTRAN requires ATM-CM for its ozone inputs unit.
-    """
-    # See https://codes.ecmwf.int/grib/param-db/206 for the `tco3` parameter
-    # database entry & details of total column ozone
-
-    # The DE Ant prototype does not attempt to detect or handle NODATA. Initial
-    # data analysis indicates that `tco3` doesn't contain NODATA, see:
-    #  https://github.com/OpenDataCubePipelines/ard-pipeline/issues/111).
-    #
-    # NCI's converted ERA5 use -32767 (int16) for NODATA, whereas ERA5 GRIB
-    # files have an attr of `GRIB_missingValue: 3.4028234663852886e+38`. It's
-    # possible a NODATA value is included for completeness.
-
-    return (tco3_kgm2 / 2.1415) * 100
-
-
 def read_ozone_data(
     ozone_dataset: xarray.Dataset,
     acquisition_datetime,
@@ -552,3 +518,37 @@ def read_ozone_data(
     )
 
     return tco3
+
+
+def convert_ozone_atm_cm(tco3_kgm2):
+    """
+    Convert ERA5 kg/m2 to ATM-CM (atmosphere centimetres).
+
+    MODTRAN requires ATM-CM for its ozone inputs unit.
+    """
+    # See https://codes.ecmwf.int/grib/param-db/206 for the `tco3` parameter
+    # database entry & details of total column ozone
+
+    # The DE Ant prototype does not attempt to detect or handle NODATA. Initial
+    # data analysis indicates that `tco3` doesn't contain NODATA, see:
+    #  https://github.com/OpenDataCubePipelines/ard-pipeline/issues/111).
+    #
+    # NCI's converted ERA5 use -32767 (int16) for NODATA, whereas ERA5 GRIB
+    # files have an attr of `GRIB_missingValue: 3.4028234663852886e+38`. It's
+    # possible a NODATA value is included for completeness.
+
+    return (tco3_kgm2 / 2.1415) * 100
+
+
+def has_invalid_minimum_ozone_atm_cm(tco3_atm_cm):
+    return (tco3_atm_cm <= TCO3_MINIMUM_ATM_CM).any()
+
+
+def has_low_minimum_ozone_atm_cm(tco3_atm_cm):
+    return (
+        (TCO3_MINIMUM_ATM_CM < tco3_atm_cm) & (tco3_atm_cm <= TCO3_LOW_ATM_CM)
+    ).any()
+
+
+def has_invalid_maximum_ozone_atm_cm(tco3_atm_cm):
+    return (tco3_atm_cm > TCO3_MAXIMUM_ATM_CM).any()
