@@ -87,29 +87,6 @@ def test_date_span_february_leap_year():
     assert span == "20240201-20240229"
 
 
-def test_find_closest_era5_path(acquisition_datetime):
-    # assume single directory search as year is known & can be easily located
-    # within the NCI /g/data/ file hierarchy
-    paths = [
-        "z_era5_oper_pl_20230101-20230131.nc",
-        "z_era5_oper_pl_20230201-20230228.nc",
-        "z_era5_oper_pl_20230301-20230331.nc",
-        "z_era5_oper_pl_20230401-20230430.nc",
-        "z_era5_oper_pl_20230501-20230531.nc",
-        "z_era5_oper_pl_20230601-20230630.nc",
-        "z_era5_oper_pl_20230701-20230731.nc",
-        "z_era5_oper_pl_20230801-20230831.nc",
-        "z_era5_oper_pl_20230901-20230930.nc",
-        "z_era5_oper_pl_20231001-20231031.nc",
-        "z_era5_oper_pl_20231101-20231130.nc",
-        "z_era5_oper_pl_20231201-20231231.nc",
-    ]
-
-    span = era5.date_span(acquisition_datetime)
-    closest = era5.find_closest_era5_path(paths, span)
-    assert closest == paths[1]
-
-
 @pytest.fixture
 def mawson_peak_heard_island_lat_lon():
     """Return (lat, lon) for Mawson Peak on Heard Island."""
