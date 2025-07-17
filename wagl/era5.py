@@ -44,6 +44,14 @@ TCO3_MINIMUM_ATM_CM = 0.0
 TCO3_MAXIMUM_ATM_CM = 700.0 / 1000  # convert Dobson units to ATM-CM
 TCO3_LOW_ATM_CM = 100.0 / 1000
 
+ERA5_MULTI_LEVEL_VARIABLES = ("r", "t", "z")
+
+# ERA5 single levels have a variable in the file name & sometimes a different
+# variable within the NetCDF file.
+ERA5_SINGLE_LEVEL_VARIABLES = ("2t", "z", "sp", "2d")
+ERA5_SINGLE_LEVEL_NC_VARIABLES = ("t2m", "z", "sp", "d2m")
+ERA5_TOTAL_COLUMN_OZONE = "tco3"
+
 
 # TODO: annotate as dataclass to provide Py style sorting?
 class ERA5FileMeta(typing.NamedTuple):
@@ -89,72 +97,7 @@ class ERA5Error(Exception):
     pass
 
 
-def date_span(date_obj):
-    # Return "YYYYMMDD-YYYYMMDD" string given the year & month
-    year = date_obj.year
-    month = date_obj.month
-    _, last_day = calendar.monthrange(year, month)
-    span = f"{year}{month:02}01-{year}{month:02}{last_day:02}"
-    return span
-
-
-def find_closest_era5_path(paths, span):
-    # use span to pattern match against sequence of file paths
-    result = [p for p in paths if span in p]
-
-    if not result:
-        msg = f"No matching path found for {span}"
-        raise ValueError(msg)  # TODO: is this the most appropriate error?
-
-    # guard against multiple path matches
-    if len(result) == 1:
-        return result[0]
-
-    msg = f"Multiple path matches found for {span}"
-    raise ValueError(msg)
-
-
-# TODO: Which method for closest record in ERA5?
-#   Nearest timestep or closest previous timestep?
-def get_closest_value(
-    xa: xarray.Dataset, variable: str, date_time: datetime.datetime, latlong: tuple
-):
-    """
-    Returns closest *previous* value for the variable at the time & location.
-
-    `xarray` automatically handles data unpacking (scale factor & offsets) when
-    extracting variables. Calling code can use the data as is. See:
-    https://help.marine.copernicus.eu/en/articles/5470092-how-to-use-add_offset-and-scale_factor-to-calculate-real-values-of-a-variable
-
-    :param xa: an *open* xarray Dataset of ERA5 NetCDF data
-    :param variable: name of the ERA5 variable to extract
-    :param date_time: acquisition datetime
-    :param latlong: (lat, long) tuple of the pixel to extract data for
-    """
-
-    # xarray.sel() raises KeyError if date_time & latitude are not within the
-    # variable's min-max range. Specifying *longitudes* outside +/-180 does not
-    # cause exceptions, however it returns an empty data array.
-    # TODO: catch KeyError or break & fail fast to indicate likely bad code?
-    #  Mismatching time/location vars are unlikely to occur if using the funcs
-    #  to build the ERA5 data paths, this should select the correct NetCDF
-    var = xa[variable]
-    latitude, longitude = latlong
-    subset = var.sel(  # NB: sel() retrieves data for single & multiple levels
-        time=date_time, method="ffill", latitude=latitude, longitude=longitude
-    )
-    return subset.data
-
-
-ERA5_MULTI_LEVEL_VARIABLES = ("r", "t", "z")
-
-# ERA5 single levels have a variable in the file name & sometimes a different
-# variable within the NetCDF file.
-ERA5_SINGLE_LEVEL_VARIABLES = ("2t", "z", "sp", "2d")
-ERA5_SINGLE_LEVEL_NC_VARIABLES = ("t2m", "z", "sp", "d2m")
-ERA5_TOTAL_COLUMN_OZONE = "tco3"
-
-
+# TODO: rename to VariablesPressureLevels or PressureLevelsVariables
 class MultiLevelVars(typing.NamedTuple):
     """
     Container for ERA5 atmospheric values for all above surface layers.
@@ -168,6 +111,7 @@ class MultiLevelVars(typing.NamedTuple):
     geopotential: typing.Sequence
 
 
+# TODO: rename to VariablesSurface or SurfaceVariables
 class SingleLevelVars(typing.NamedTuple):
     """
     Container for ERA5 atmospheric values for surface level readings.
@@ -180,6 +124,107 @@ class SingleLevelVars(typing.NamedTuple):
     geopotential: numbers.Number
     surface_pressure: numbers.Number
     dewpoint_temperature: numbers.Number
+
+
+def profile_data_frame_workflow(
+    era5_data_dir, acquisition_datetime, lat_longs, ecwmf_levels
+):
+    """
+    Top level workflow generator function for per coordinate MODTRAN data frames.
+
+    This generator produces a MODTRAN suitable atmospheric profile data frame for
+    each coordinate in `lat_longs`. ERA5 data is assumed to be accessible via a
+    filesystem path.
+
+    :param era5_data_dir: path to the root ERA5 data directory.
+    :param acquisition_datetime: time of acquisition.
+    :param lat_longs: Sequence of (lat, long) coordinate tuples.
+    :param ecwmf_levels: see wagl.ancillary.ECWMF_LEVELS.
+    """
+
+    # NB: ecwmf_levels is an arg to avoid wagl.ancillary circular import
+
+    multi_paths, single_paths = build_era5_profile_paths(
+        era5_data_dir,
+        ERA5_MULTI_LEVEL_VARIABLES,
+        ERA5_SINGLE_LEVEL_VARIABLES,
+        acquisition_datetime,
+    )
+
+    # ERA5 data has a ~4 month production lag & may not exist for the acquisition
+    # fail fast in this DE Antarctica prototype
+    for p in multi_paths + single_paths:
+        if not os.path.exists(p):
+            msg = (
+                f"ERA5 data not found {p}\nIs the ERA5 data missing due to"
+                f" production lag?"
+            )
+            raise FileNotFoundError(msg)
+
+    xf_multi, xf_single = open_profile_data_files(multi_paths, single_paths)
+
+    # use generator to keep files open for multiple data point reads
+    # NB: it's possible some reads are repeated for coarse data
+    for lat_lon in lat_longs:
+        multi_vars, single_vars = profile_data_extraction(
+            xf_multi, xf_single, acquisition_datetime, lat_lon
+        )
+
+        frame = build_profile_data_frame(multi_vars, single_vars, ecwmf_levels)
+        yield frame
+
+
+def build_era5_profile_paths(
+    base_dir, multi_level_vars, single_level_vars, date_time: datetime.datetime
+):
+    """
+    TODO: build all paths for all ERA5 files required to build MODTRAN profiles.
+    """
+    multi_paths = [
+        build_era5_path(base_dir, v, date_time, False) for v in multi_level_vars
+    ]
+    single_paths = [build_era5_path(base_dir, v, date_time) for v in single_level_vars]
+    return multi_paths, single_paths
+
+
+def build_era5_path(base_dir, var, date_time: datetime.datetime, single=True):
+    """
+    Build & return expected path to an ERA5 NetCDF data file.
+
+    Given acquisition metadata, create the expected ERA5 path containing the
+    ancillary data at the acquisition time.
+
+    :param base_dir: Root dir path for ERA5 data (e.g. "/g/data/rt53/era5")
+    :param var: name of variable of interest
+    :param date_time: acquisition datatime
+    :param single: True for "single-levels" data, False for "pressure-levels".
+    """
+    type_dir = "single-levels" if single else "pressure-levels"
+    _type = "sfc" if single else "pl"
+    span = date_span(date_time)
+    base = f"{var}_era5_oper_{_type}_{span}.nc"
+    path = f"{base_dir}/{type_dir}/reanalysis/{var}/{date_time.year}/{base}"
+    return path
+
+
+def date_span(date_obj):
+    # Return "YYYYMMDD-YYYYMMDD" string given the year & month
+    year = date_obj.year
+    month = date_obj.month
+    _, last_day = calendar.monthrange(year, month)
+    span = f"{year}{month:02}01-{year}{month:02}{last_day:02}"
+    return span
+
+
+def open_profile_data_files(multi_paths, single_paths):
+    """
+    Opens single & multi level ERA5 NetCDF files & returns xarray datasets.
+
+    NB: this keeps I/O ops outside data processing functions.
+    """
+    xf_multi_level_datasets = [xarray.open_dataset(p) for p in multi_paths]
+    xf_single_level_datasets = [xarray.open_dataset(p) for p in single_paths]
+    return xf_multi_level_datasets, xf_single_level_datasets
 
 
 # TODO: make args more explicit for any non prototype code
@@ -234,48 +279,36 @@ def profile_data_extraction(
     return multi_level_vars, single_level_vars
 
 
-def open_profile_data_files(multi_paths, single_paths):
-    """
-    Opens single & multi level ERA5 NetCDF files & returns xarray datasets.
-
-    NB: this keeps I/O ops outside data processing functions.
-    """
-    xf_multi_level_datasets = [xarray.open_dataset(p) for p in multi_paths]
-    xf_single_level_datasets = [xarray.open_dataset(p) for p in single_paths]
-    return xf_multi_level_datasets, xf_single_level_datasets
-
-
-def build_era5_path(base_dir, var, date_time: datetime.datetime, single=True):
-    """
-    Build & return expected path to an ERA5 NetCDF data file.
-
-    Given acquisition metadata, create the expected ERA5 path containing the
-    ancillary data at the acquisition time.
-
-    :param base_dir: Root dir path for ERA5 data (e.g. "/g/data/rt53/era5")
-    :param var: name of variable of interest
-    :param date_time: acquisition datatime
-    :param single: True for "single-levels" data, False for "pressure-levels".
-    """
-    type_dir = "single-levels" if single else "pressure-levels"
-    _type = "sfc" if single else "pl"
-    span = date_span(date_time)
-    base = f"{var}_era5_oper_{_type}_{span}.nc"
-    path = f"{base_dir}/{type_dir}/reanalysis/{var}/{date_time.year}/{base}"
-    return path
-
-
-def build_era5_profile_paths(
-    base_dir, multi_level_vars, single_level_vars, date_time: datetime.datetime
+# TODO: Which method for closest record in ERA5?
+#   Nearest timestep or closest previous timestep?
+def get_closest_value(
+    xa: xarray.Dataset, variable: str, date_time: datetime.datetime, latlong: tuple
 ):
     """
-    TODO: build all paths for all ERA5 files required to build MODTRAN profiles.
+    Returns closest *previous* value for the variable at the time & location.
+
+    `xarray` automatically handles data unpacking (scale factor & offsets) when
+    extracting variables. Calling code can use the data as is. See:
+    https://help.marine.copernicus.eu/en/articles/5470092-how-to-use-add_offset-and-scale_factor-to-calculate-real-values-of-a-variable
+
+    :param xa: an *open* xarray Dataset of ERA5 NetCDF data
+    :param variable: name of the ERA5 variable to extract
+    :param date_time: acquisition datetime
+    :param latlong: (lat, long) tuple of the pixel to extract data for
     """
-    multi_paths = [
-        build_era5_path(base_dir, v, date_time, False) for v in multi_level_vars
-    ]
-    single_paths = [build_era5_path(base_dir, v, date_time) for v in single_level_vars]
-    return multi_paths, single_paths
+
+    # xarray.sel() raises KeyError if date_time & latitude are not within the
+    # variable's min-max range. Specifying *longitudes* outside +/-180 does not
+    # cause exceptions, however it returns an empty data array.
+    # TODO: catch KeyError or break & fail fast to indicate likely bad code?
+    #  Mismatching time/location vars are unlikely to occur if using the funcs
+    #  to build the ERA5 data paths, this should select the correct NetCDF
+    var = xa[variable]
+    latitude, longitude = latlong
+    subset = var.sel(  # NB: sel() retrieves data for single & multiple levels
+        time=date_time, method="ffill", latitude=latitude, longitude=longitude
+    )
+    return subset.data
 
 
 # TODO: keep I/O out of this function
@@ -296,6 +329,7 @@ def build_profile_data_frame(
                          be in **increasing** order.
     :return: a profile data frame (table) suitable for MODTRAN.
     """
+    # NB: surface level operations, calculate surface RH
     rh = atmos.relative_humidity(
         single_level_vars.temperature,
         single_level_vars.dewpoint_temperature,
@@ -385,54 +419,6 @@ def remove_inversions(profile_frame):
     return profile_frame[inversions]
 
 
-def profile_data_frame_workflow(
-    era5_data_dir, acquisition_datetime, lat_longs, ecwmf_levels
-):
-    """
-    Top level workflow generator function for per coordinate MODTRAN data frames.
-
-    This generator produces a MODTRAN suitable atmospheric profile data frame for
-    each coordinate in `lat_longs`. ERA5 data is assumed to be accessible via a
-    filesystem path.
-
-    :param era5_data_dir: path to the root ERA5 data directory.
-    :param acquisition_datetime: time of acquisition.
-    :param lat_longs: Sequence of (lat, long) coordinate tuples.
-    :param ecwmf_levels: see wagl.ancillary.ECWMF_LEVELS.
-    """
-
-    # NB: ecwmf_levels is an arg to avoid wagl.ancillary circular import
-
-    multi_paths, single_paths = build_era5_profile_paths(
-        era5_data_dir,
-        ERA5_MULTI_LEVEL_VARIABLES,
-        ERA5_SINGLE_LEVEL_VARIABLES,
-        acquisition_datetime,
-    )
-
-    # ERA5 data has a ~4 month production lag & may not exist for the acquisition
-    # fail fast in this DE Antarctica prototype
-    for p in multi_paths + single_paths:
-        if not os.path.exists(p):
-            msg = (
-                f"ERA5 data not found {p}\nIs the ERA5 data missing due to"
-                f" production lag?"
-            )
-            raise FileNotFoundError(msg)
-
-    xf_multi, xf_single = open_profile_data_files(multi_paths, single_paths)
-
-    # use generator to keep files open for multiple data point reads
-    # NB: it's possible some reads are repeated for coarse data
-    for lat_lon in lat_longs:
-        multi_vars, single_vars = profile_data_extraction(
-            xf_multi, xf_single, acquisition_datetime, lat_lon
-        )
-
-        frame = build_profile_data_frame(multi_vars, single_vars, ecwmf_levels)
-        yield frame
-
-
 # TODO: is a user ozone override required?
 def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
     """
@@ -473,7 +459,7 @@ def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
             msg = (
                 f"{ozone_path} contains invalid zero &/or negative values at "
                 f"{lat_lon}. The DE Antarctica prototype has not determined "
-                f"handling  requirements for this case yet."
+                f"handling requirements for this case yet."
             )
             raise NotImplementedError(msg)
 
