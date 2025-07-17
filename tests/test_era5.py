@@ -286,22 +286,22 @@ def test_build_era5_path_multi_level(acquisition_datetime):
 
 
 @pytest.fixture
-def default_profile_paths(era5_data_dir, acquisition_datetime):
+def default_era5_paths(era5_data_dir, acquisition_datetime):
     """TODO"""
-    multi_paths, single_paths = era5.build_era5_profile_paths(
+    pressure_paths, single_paths = era5.build_all_era5_paths(
         era5_data_dir,
-        era5.ERA5_MULTI_LEVEL_VARIABLES,
+        era5.ERA5_PRESSURE_LEVELS_VARIABLES,
         era5.ERA5_SINGLE_LEVEL_VARIABLES,
         acquisition_datetime,
     )
 
-    for path in multi_paths:
+    for path in pressure_paths:
         assert os.path.exists(path), f"{path} does not exist"
 
     for path in single_paths:
         assert os.path.exists(path), f"{path} does not exist"
 
-    return multi_paths, single_paths
+    return pressure_paths, single_paths
 
 
 @pytest.mark.skipif(SYS_MISSING_ERA5_DATA, reason=platform_err)
@@ -309,12 +309,12 @@ def test_era5_profile_data_extraction(
     era5_data_dir,
     acquisition_datetime,
     mawson_peak_heard_island_lat_lon,
-    default_profile_paths,
+    default_era5_paths,
 ):
-    multi_paths, single_paths = default_profile_paths
-    xf_multi, xf_single = era5.open_profile_data_files(multi_paths, single_paths)
+    pressure_paths, single_paths = default_era5_paths
+    xf_multi, xf_single = era5.open_data_files(pressure_paths, single_paths)
 
-    rtz, single = era5.profile_data_extraction(
+    rtz, single = era5.read_data(
         xf_multi, xf_single, acquisition_datetime, mawson_peak_heard_island_lat_lon
     )
 
@@ -339,7 +339,7 @@ def simulated_era5_vars():
     for var in (relative_humidity_ml, temperature_ml, geopotential_ml):
         assert len(var) == RAW_NUM_LEVELS
 
-    multi_level_data = era5.MultiLevelVars(
+    multi_level_data = era5.PressureLevelsValues(
         relative_humidity_ml, temperature_ml, geopotential_ml
     )
 
@@ -349,7 +349,7 @@ def simulated_era5_vars():
     surface_pressure_sl = 1100.0 * 100  # NB: mimic the units in NetCDF
     dewpoint_temperature_sl = 2270.0  # NB: start with degrees kelvin
 
-    single_level_data = era5.SingleLevelVars(
+    single_level_data = era5.SingleLevelValues(
         temperature_sl, geopotential_sl, surface_pressure_sl, dewpoint_temperature_sl
     )
     return multi_level_data, single_level_data
@@ -403,12 +403,12 @@ def test_build_profile_data_frame_real_data(
     era5_data_dir,
     acquisition_datetime,
     mawson_peak_heard_island_lat_lon,
-    default_profile_paths,
+    default_era5_paths,
 ):
-    multi_paths, single_paths = default_profile_paths
-    xf_multi, xf_single = era5.open_profile_data_files(multi_paths, single_paths)
+    multi_paths, single_paths = default_era5_paths
+    xf_multi, xf_single = era5.open_data_files(multi_paths, single_paths)
 
-    multi_vars, single_vars = era5.profile_data_extraction(
+    multi_vars, single_vars = era5.read_data(
         xf_multi, xf_single, acquisition_datetime, mawson_peak_heard_island_lat_lon
     )
 

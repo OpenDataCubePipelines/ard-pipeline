@@ -1,8 +1,10 @@
 """
-This prototype module uses ERA5 reanalysis data for ard-pipeline ancillaries.
+This prototype module extracts ERA5 reanalysis data for ard-pipeline ancillaries.
 
 ERA5 is an alternate ancillary data source to that utilised in the standard NBAR
-workflow over Australia, and is used in the DE Antarctica project.
+workflow over Australia, and is used in the DE Antarctica project. This module is
+responsible for extracting data from ERA5 files & producing a data table for
+creating a custom MODTRAN profile. This is the "atmospheric data profile frame".
 
 See NCI's `rt52` project for the ERA5 data mirror (in NetCDF).
 
@@ -17,7 +19,8 @@ the ERA5 file structure & data access. Typically, only the workflow functions
 should be used unless specific use cases require fine-grained control.
 """
 
-# NB: avoid importing wagl.acquisition as it needs Fortran dependencies
+# NB: avoid importing wagl.acquisition as it requires Fortran dependencies which
+#  makes testing more difficult
 
 import calendar
 import datetime
@@ -44,7 +47,7 @@ TCO3_MINIMUM_ATM_CM = 0.0
 TCO3_MAXIMUM_ATM_CM = 700.0 / 1000  # convert Dobson units to ATM-CM
 TCO3_LOW_ATM_CM = 100.0 / 1000
 
-ERA5_MULTI_LEVEL_VARIABLES = ("r", "t", "z")
+ERA5_PRESSURE_LEVELS_VARIABLES = ("r", "t", "z")
 
 # ERA5 single levels have a variable in the file name & sometimes a different
 # variable within the NetCDF file.
@@ -53,16 +56,19 @@ ERA5_SINGLE_LEVEL_NC_VARIABLES = ("t2m", "z", "sp", "d2m")
 ERA5_TOTAL_COLUMN_OZONE = "tco3"
 
 
-# TODO: annotate as dataclass to provide Py style sorting?
+# The following are convenience classes, essentially data structures for
+# grouping like data during the data extraction & profile creation workflow
+
+
 class ERA5FileMeta(typing.NamedTuple):
     """
-    Metadata from ERA5 surface & pressure level reanalysis files.
+    Metadata container for ERA5 surface & pressure level reanalysis files.
 
     ERA5 files have metadata within their file names. This class handles parsing
     file naming data to reduce complexity in ERA5 workflows.
     """
 
-    # NB: cannot seem to find an ERA5 data naming standard, but hints are here:
+    # NB: cannot find an ERA5 data naming standard, but hints are here:
     # https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation and
     # https://docs.dkrz.de/doc/dataservices/finding_and_accessing_data/era_data/index.html
     variable: str
@@ -93,17 +99,12 @@ class ERA5FileMeta(typing.NamedTuple):
         return meta
 
 
-class ERA5Error(Exception):
-    pass
-
-
-# TODO: rename to VariablesPressureLevels or PressureLevelsVariables
-class MultiLevelVars(typing.NamedTuple):
+class PressureLevelsValues(typing.NamedTuple):
     """
     Container for ERA5 atmospheric values for all above surface layers.
 
-    This convenience class collects ECWMF/ERA5 layered atmospheric data into a
-    single location for processing into custom MODTRAN profiles.
+    This class collects ECWMF/ERA5 layered atmospheric data into a single location
+    for processing into custom MODTRAN profiles.
     """
 
     relative_humidity: typing.Sequence
@@ -111,19 +112,25 @@ class MultiLevelVars(typing.NamedTuple):
     geopotential: typing.Sequence
 
 
-# TODO: rename to VariablesSurface or SurfaceVariables
-class SingleLevelVars(typing.NamedTuple):
+class SingleLevelValues(typing.NamedTuple):
     """
     Container for ERA5 atmospheric values for surface level readings.
 
-    This convenience class collects ECWMF/ERA5 surface level atmospheric data
-    into a single location for processing into custom MODTRAN profiles.
+    This class collects ECWMF/ERA5 surface level atmospheric data into a single
+    location for processing into custom MODTRAN profiles.
     """
 
     temperature: numbers.Number
     geopotential: numbers.Number
     surface_pressure: numbers.Number
     dewpoint_temperature: numbers.Number
+
+
+class ERA5Error(Exception):
+    pass
+
+
+# ERA5 workflow processing functions
 
 
 def profile_data_frame_workflow(
@@ -144,16 +151,16 @@ def profile_data_frame_workflow(
 
     # NB: ecwmf_levels is an arg to avoid wagl.ancillary circular import
 
-    multi_paths, single_paths = build_era5_profile_paths(
+    pressure_level_paths, single_level_paths = build_all_era5_paths(
         era5_data_dir,
-        ERA5_MULTI_LEVEL_VARIABLES,
+        ERA5_PRESSURE_LEVELS_VARIABLES,
         ERA5_SINGLE_LEVEL_VARIABLES,
         acquisition_datetime,
     )
 
     # ERA5 data has a ~4 month production lag & may not exist for the acquisition
     # fail fast in this DE Antarctica prototype
-    for p in multi_paths + single_paths:
+    for p in pressure_level_paths + single_level_paths:
         if not os.path.exists(p):
             msg = (
                 f"ERA5 data not found {p}\nIs the ERA5 data missing due to"
@@ -161,24 +168,29 @@ def profile_data_frame_workflow(
             )
             raise FileNotFoundError(msg)
 
-    xf_multi, xf_single = open_profile_data_files(multi_paths, single_paths)
+    ds_pressure_levels, ds_single_level = open_data_files(
+        pressure_level_paths, single_level_paths
+    )
 
     # use generator to keep files open for multiple data point reads
     # NB: it's possible some reads are repeated for coarse data
     for lat_lon in lat_longs:
-        multi_vars, single_vars = profile_data_extraction(
-            xf_multi, xf_single, acquisition_datetime, lat_lon
+        pressure_levels_values, single_level_values = read_data(
+            ds_pressure_levels, ds_single_level, acquisition_datetime, lat_lon
         )
 
-        frame = build_profile_data_frame(multi_vars, single_vars, ecwmf_levels)
+        frame = build_profile_data_frame(
+            pressure_levels_values, single_level_values, ecwmf_levels
+        )
         yield frame
 
 
-def build_era5_profile_paths(
+# TODO: could refactor into workflow function
+def build_all_era5_paths(
     base_dir, multi_level_vars, single_level_vars, date_time: datetime.datetime
 ):
     """
-    TODO: build all paths for all ERA5 files required to build MODTRAN profiles.
+    Builds paths for all ERA5 files required to build MODTRAN profiles.
     """
     multi_paths = [
         build_era5_path(base_dir, v, date_time, False) for v in multi_level_vars
@@ -216,20 +228,22 @@ def date_span(date_obj):
     return span
 
 
-def open_profile_data_files(multi_paths, single_paths):
+def open_data_files(pressure_level_paths, single_level_paths):
     """
     Opens single & multi level ERA5 NetCDF files & returns xarray datasets.
 
-    NB: this keeps I/O ops outside data processing functions.
+    NB: this keeps I/O ops outside data processing functions. Separating file
+     opening from the datasets allows functions to operate on Dataset objects
+     which can be constructed for tests.
     """
-    xf_multi_level_datasets = [xarray.open_dataset(p) for p in multi_paths]
-    xf_single_level_datasets = [xarray.open_dataset(p) for p in single_paths]
-    return xf_multi_level_datasets, xf_single_level_datasets
+    pressure_levels_datasets = [xarray.open_dataset(p) for p in pressure_level_paths]
+    single_level_datasets = [xarray.open_dataset(p) for p in single_level_paths]
+    return pressure_levels_datasets, single_level_datasets
 
 
 # TODO: make args more explicit for any non prototype code
-def profile_data_extraction(
-    multi_level_datasets,
+def read_data(
+    pressure_levels_datasets,
     single_level_datasets,
     date_time: datetime.datetime,
     latlong: tuple,
@@ -240,28 +254,28 @@ def profile_data_extraction(
     Note the dataset args must provide open files in a specific order. Files are
     not opened in this function to avoid I/O & facilitate unit testing.
 
-    :param multi_level_datasets: *open* xarray.Datasets in order: 'r', 't' & 'z'
+    :param pressure_levels_datasets: *open* xarray.Datasets in order: 'r', 't' & 'z'
     :param single_level_datasets:  *open* xarray.Datasets in order '2t', 'z', 'sp' & '2d'
     :param date_time: Acquisition date/time
     :param latlong: tuple of floats for (lat, long) location.
     """
 
-    # Extract & package these multi level vars:
+    # Extract & package these multi level values:
     # r -> relative humidity
     # t -> temperature
     # z -> geopotential
-    var_datasets = zip(ERA5_MULTI_LEVEL_VARIABLES, multi_level_datasets)
+    var_datasets = zip(ERA5_PRESSURE_LEVELS_VARIABLES, pressure_levels_datasets)
 
-    raw_multi_level = [  # read 37 levels from multi level vars
-        get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
+    raw_pressure_levels = [  # read 37 levels from multi level vars
+        get_closest_value(ds, var, date_time, latlong) for var, ds in var_datasets
     ]
 
     # TODO: check / handle NODATA / fail fast
 
-    # bundle the extracted atmos profile layers
-    multi_level_vars = MultiLevelVars(*raw_multi_level)
+    # bundle extracted data for the atmospheric profile
+    pressure_levels_values = PressureLevelsValues(*raw_pressure_levels)
 
-    # Extract single level/surface vars:
+    # Extract single level/surface values:
     # 2t -> temperature at 2m
     # z -> geopotential
     # sp -> surface pressure
@@ -269,20 +283,20 @@ def profile_data_extraction(
     var_datasets = zip(ERA5_SINGLE_LEVEL_NC_VARIABLES, single_level_datasets)
 
     raw_single_level = [
-        get_closest_value(xf, var, date_time, latlong) for var, xf in var_datasets
+        get_closest_value(ds, var, date_time, latlong) for var, ds in var_datasets
     ]
 
     # TODO: check / handle NODATA / fail fast
 
     # bundle the extracted atmos profile surface layer vars
-    single_level_vars = SingleLevelVars(*raw_single_level)
-    return multi_level_vars, single_level_vars
+    single_level_values = SingleLevelValues(*raw_single_level)
+    return pressure_levels_values, single_level_values
 
 
 # TODO: Which method for closest record in ERA5?
 #   Nearest timestep or closest previous timestep?
 def get_closest_value(
-    xa: xarray.Dataset, variable: str, date_time: datetime.datetime, latlong: tuple
+    ds: xarray.Dataset, variable: str, date_time: datetime.datetime, latlong: tuple
 ):
     """
     Returns closest *previous* value for the variable at the time & location.
@@ -291,7 +305,7 @@ def get_closest_value(
     extracting variables. Calling code can use the data as is. See:
     https://help.marine.copernicus.eu/en/articles/5470092-how-to-use-add_offset-and-scale_factor-to-calculate-real-values-of-a-variable
 
-    :param xa: an *open* xarray Dataset of ERA5 NetCDF data
+    :param ds: an *open* xarray Dataset of ERA5 NetCDF data
     :param variable: name of the ERA5 variable to extract
     :param date_time: acquisition datetime
     :param latlong: (lat, long) tuple of the pixel to extract data for
@@ -303,7 +317,7 @@ def get_closest_value(
     # TODO: catch KeyError or break & fail fast to indicate likely bad code?
     #  Mismatching time/location vars are unlikely to occur if using the funcs
     #  to build the ERA5 data paths, this should select the correct NetCDF
-    var = xa[variable]
+    var = ds[variable]
     latitude, longitude = latlong
     subset = var.sel(  # NB: sel() retrieves data for single & multiple levels
         time=date_time, method="ffill", latitude=latitude, longitude=longitude
@@ -313,41 +327,43 @@ def get_closest_value(
 
 # TODO: keep I/O out of this function
 def build_profile_data_frame(
-    multi_level_vars: MultiLevelVars, single_level_vars: SingleLevelVars, ecwmf_levels
+    pressure_levels_values: PressureLevelsValues,
+    single_level_values: SingleLevelValues,
+    ecwmf_levels,
 ):
     """
     Builds MODTRAN atmospheric profile data frames.
 
-    Merges single/surface & multiple level atmospheric data into a 2D table as
-    a MODTRAN input. Scaling & re-ordering is performed to ensure the data is
-    suitable for MODTRAN requirements (e.g. decreasing pressure with height).
+    Merges single & pressure levels atmospheric data into a 2D table for MODTRAN
+    input. Scaling & re-ordering is performed to ensure the data is suitable for
+    MODTRAN's requirements (e.g. decreasing pressure with height).
 
-    :param multi_level_vars: a MultiLevelVars instance of the non-surface ERA5
-                             atmospheric data layers.
-    :param single_level_vars: SingleLevelVars instance of the surface level data.
+    :param pressure_levels_values: a MultiLevelVars instance of the non-surface
+           ERA5 atmospheric data layers.
+    :param single_level_values: SingleLevelVars instance of the surface level data.
     :param ecwmf_levels: Sequence of ECWMF pressure levels. This is assumed to
                          be in **increasing** order.
     :return: a profile data frame (table) suitable for MODTRAN.
     """
-    # NB: surface level operations, calculate surface RH
-    rh = atmos.relative_humidity(
-        single_level_vars.temperature,
-        single_level_vars.dewpoint_temperature,
+
+    surface_rh = atmos.relative_humidity(
+        single_level_values.temperature,
+        single_level_values.dewpoint_temperature,
         kelvin=True,
     )
 
     # transform column order & scale for MODTRAN
     geopotential_height = reversed(
-        scale_z_to_geopotential_height(multi_level_vars.geopotential)
+        scale_z_to_geopotential_height(pressure_levels_values.geopotential)
     )
 
     # Sanitise relative humidity range for MODTRAN
-    relative_humidity = multi_level_vars.relative_humidity[::-1]
+    relative_humidity = pressure_levels_values.relative_humidity[::-1]
     relative_humidity = relative_humidity.clip(
         atmos.MIN_RELATIVE_HUMIDITY, atmos.MAX_RELATIVE_HUMIDITY
     )
 
-    temperature = atmos.kelvin_2_celcius(multi_level_vars.temperature)
+    temperature = atmos.kelvin_2_celcius(pressure_levels_values.temperature)
 
     # MODTRAN requires monotonically decreasing pressure (ecwmf_levels)
     var_name_mapping = {
@@ -360,9 +376,11 @@ def build_profile_data_frame(
     profile_frame = pd.DataFrame(var_name_mapping)
 
     # apply data scaling & corrections
-    surface_pressure = single_level_vars.surface_pressure / 100.0
-    geopotential_height = scale_z_to_geopotential_height(single_level_vars.geopotential)
-    temperature = atmos.kelvin_2_celcius(single_level_vars.temperature)
+    surface_pressure = single_level_values.surface_pressure / 100.0
+    geopotential_height = scale_z_to_geopotential_height(
+        single_level_values.geopotential
+    )
+    temperature = atmos.kelvin_2_celcius(single_level_values.temperature)
 
     # construct data frame with single level vars as the surface data & multi
     # level data as the rest of the atmospheric values as elevation increases
@@ -371,7 +389,7 @@ def build_profile_data_frame(
         geopotential_height,
         surface_pressure,
         temperature,
-        rh,
+        surface_rh,
     ]
 
     profile_frame.index = profile_frame.index + 1  # shift index
