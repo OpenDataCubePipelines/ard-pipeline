@@ -178,7 +178,7 @@ def format_json(
     if workflow in (Workflow.STANDARD, Workflow.NBAR):
         acqs = [a for a in acquisitions if a.band_type == BandType.REFLECTIVE]
 
-        for p in range(npoints):  # TODO: only using 1 point for init proto
+        for p in range(npoints):
             for alb in Workflow.NBAR.albedos:
                 # configure common NBAR & ERA5 input data
                 input_data = {
@@ -750,44 +750,41 @@ def read_spectral_response(fname, spectral_range=None):
 
 
 def _get_solar_angles(tp6_fname):
-    """Read a MODTRAN output '*.tp6' ascii file to extract
-    solar zenith angles.
+    """
+    Read a MODTRAN output '*.tp6' ascii file & extract solar zenith angles.
 
     :param tp6_fname:
-        A 'str' containing the full file pathname of the tp6
-        data file
+        'str' containing the full path to a tp6 data file
 
     :return:
-        A 'list' with solar zenith angles at all atmospheric layers
+        'list' of solar zenith angles at all atmospheric layers
     """
-    cnt = 0
-    solar_zenith_raw = []
+
+    lines = []
+    title = "*SINGLE SCATTER SOLAR PATH GEOMETRY TABLE FOR MULTIPLE SCATTERING*"
 
     with open(tp6_fname) as f:
-        lines = f.readlines()
-
-        for line in lines:
-            cnt = cnt + 1
-            if fnmatch.fnmatch(
-                line,
-                "*SINGLE SCATTER SOLAR PATH GEOMETRY " "TABLE FOR MULTIPLE SCATTERING*",
-            ):
+        # find solar zenith table header
+        for line in f:
+            if fnmatch.fnmatch(line, title):
                 break
         else:
-            raise ValueError(
-                f"Cannot locate solar zenith angles in tp6 file: {tp6_fname}"
-            )
+            msg = f"Cannot locate solar zenith angles in tp6 file: {tp6_fname}"
+            raise ValueError(msg)
 
-        # TODO dynamically configure the number of atmospheric layers
-        # this constant is (40-4 = num of atmospheric layer)
-        solar_zenith_raw = lines[cnt + 4 : cnt + 40]
+        # dynamically find the number of atmospheric layers
+        for line in f:
+            if line.startswith("\n"):  # scan to table end
+                break
 
-    # Reader will throw an error if zenith is not found
+            lines.append(line)  # is there a more pythonic way to subset results?
+
+        solar_zenith_raw = lines[4:]  # drop header
+
+    # Reader throws an error if zenith is not found
     data = np.vstack([ln.rstrip().split() for ln in solar_zenith_raw]).T
-
-    solar_zenith = data[3]  # solar zenith angle at all atmosphere layers
-
-    return solar_zenith
+    solar_zenith = data[3]  # solar zenith angle column for all atmosphere layers
+    return solar_zenith  # NB: data is strings, not floats
 
 
 def read_modtran_channel(chn_fname, tp6_fname, acquisition, albedo):
