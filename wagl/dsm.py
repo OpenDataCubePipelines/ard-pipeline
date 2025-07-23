@@ -111,17 +111,15 @@ def copernicus_folder_for_latlon(lat, lon) -> str:
     return f"Copernicus_DSM_COG_10_{lat_str}_00_{lon_str}_00_DEM"
 
 
-def copernicus_dem_images_for_latlon(
-    prefix: str, latlon: list[tuple[int, int]]
-) -> list[str]:
-    if prefix != "" and not prefix.endswith("/"):
-        prefix = prefix + "/"
+def copernicus_dem_image_for_latlon(lat, lon) -> str:
+    key_id = copernicus_folder_for_latlon(lat, lon)
+    return f"{key_id}/{key_id}.tif"
 
-    result = []
-    for lat, lon in latlon:
-        key_id = copernicus_folder_for_latlon(lat, lon)
-        result.append(f"{prefix}{key_id}/{key_id}.tif")
-    return result
+
+def copernicus_wbm_image_for_latlon(lat, lon) -> str:
+    key_id = copernicus_folder_for_latlon(lat, lon)
+    wbm_id = key_id.replace("_DEM", "_WBM")
+    return f"{key_id}/AUXFILES/{wbm_id}.tif"
 
 
 def split_s3_path_into_bucket_and_prefix(s3_path: str) -> tuple[str, str]:
@@ -142,7 +140,7 @@ def read_s3_object_into_memory(bucket, key):
         s3.download_fileobj(bucket, key, buffer)
         return buffer
     except s3.exceptions.NoSuchKey:
-        raise Exception(f"Failed to get cop30 DEM tile for s3://{bucket}/{key}")
+        raise FileNotFoundError(f"Failed to get cop30 DEM tile for s3://{bucket}/{key}")
 
 
 def covering_geobox_subset(dst_geobox, src_geobox):
@@ -163,6 +161,9 @@ def covering_geobox_subset(dst_geobox, src_geobox):
     maxx = min(ceil(max(p1[0], p2[0])), shape[1])
     maxy = min(ceil(max(p1[1], p2[1])), shape[0])
 
+    if (minx >= maxx) or (miny >= maxy):
+        return None, None
+
     subset_geobox = GriddedGeoBox(
         (maxy - miny, maxx - minx),
         origin=dst_geobox.transform * (minx, miny),
@@ -172,7 +173,11 @@ def covering_geobox_subset(dst_geobox, src_geobox):
     return (slice(miny, maxy), slice(minx, maxx)), subset_geobox
 
 
-def read_copernicus_dem(cop_pathname, dst_geobox):
+def list_copernicus_bands_for_geobox(cop_pathname, key_to_path, dst_geobox):
+    """
+    `key_to_path` is a function that takes a folder name and translates
+    it to a band path.
+    """
     if not os.path.isdir(cop_pathname) and not cop_pathname.startswith("s3://"):
         raise ValueError("Not a valid tiled Copernicus DEM")
 
@@ -184,13 +189,14 @@ def read_copernicus_dem(cop_pathname, dst_geobox):
     else:
         bucket, prefix = split_s3_path_into_bucket_and_prefix(cop_pathname)
 
+    if prefix != "" and not prefix.endswith("/"):
+        prefix = prefix + "/"
+
     latlon = copernicus_tiles_latlon_covering_geobox(dst_geobox)
-    sources = copernicus_dem_images_for_latlon(prefix, latlon)
 
-    result = np.full(dst_geobox.shape, np.nan, dtype=np.float32)
-    dst_crs = dst_geobox.crs.ExportToProj4()
+    for lat, lon in latlon:
+        location = prefix + key_to_path(lat, lon)
 
-    for location in sources:
         if cached:
             if not os.path.isfile(location):
                 # ocean tiles are not present
@@ -198,12 +204,28 @@ def read_copernicus_dem(cop_pathname, dst_geobox):
 
             dataset_reader = rasterio.open(location)
         else:
-            dataset_reader = read_s3_object_into_memory(bucket, location).open()
+            try:
+                dataset_reader = read_s3_object_into_memory(bucket, location).open()
+            except FileNotFoundError:
+                continue
 
+        yield dataset_reader
+
+
+def read_copernicus_dem(cop_pathname, dst_geobox):
+    result = np.full(dst_geobox.shape, np.nan, dtype=np.float32)
+    dst_crs = dst_geobox.crs.ExportToProj4()
+
+    for dataset_reader in list_copernicus_bands_for_geobox(
+        cop_pathname, copernicus_dem_image_for_latlon, dst_geobox
+    ):
         with dataset_reader as ds:
             subset, subset_geobox = covering_geobox_subset(
                 dst_geobox, GriddedGeoBox.from_dataset(ds)
             )
+
+            if subset is None:
+                continue
 
             try:
                 reprojected = np.full(subset_geobox.shape, np.nan, dtype=np.float32)
