@@ -52,6 +52,316 @@ _LOG = logging.getLogger(__name__)
 write_yaml = partial(yaml.safe_dump, default_flow_style=False, indent=4)  # pylint: disable=invalid-name
 
 
+def run_gverify(
+    reference,
+    source,
+    outdir,
+    executable,
+    ld_library_path,
+    gdal_data,
+    pyramid_levels,
+    geotiff_csv,
+    thread_count,
+    null_value,
+    chip_size,
+    timeout,
+    correlation_coefficient,
+    extra_gverify_args=None,
+    resampling=Resampling.bilinear,
+):
+    resampling_method = {
+        Resampling.nearest: "NN",
+        Resampling.bilinear: "BI",
+        Resampling.cubic: "CI",
+    }
+    extra_gverify_args = extra_gverify_args or []  # Default to empty list
+
+    bash_env_setup = [
+        f"export LD_LIBRARY_PATH={ld_library_path}:$LD_LIBRARY_PATH; ",
+        f"export GDAL_DATA={gdal_data}; ",
+        f"export GEOTIFF_CSV={geotiff_csv}; ",
+    ]
+
+    gverify_cmd = [
+        executable,
+        "-b",
+        reference,
+        "-m",
+        source,
+        "-w",
+        outdir,
+        "-l",
+        outdir,
+        "-o",
+        outdir,
+        "-p",
+        str(pyramid_levels),
+        "-n",
+        str(thread_count),
+        "-nv",
+        str(null_value),
+        "-c",
+        str(correlation_coefficient),
+        "-r",
+        resampling_method[resampling],
+        "-cs",
+        str(chip_size),
+    ]
+
+    cmd = " ".join(
+        [
+            *bash_env_setup,
+            *[shlex.quote(s) for s in chain(gverify_cmd, extra_gverify_args)],
+        ]
+    )
+    TASK_LOGGER.info("gverify call", cmd=cmd)
+    run_command(cmd, outdir, timeout=timeout, command_name="gverify", use_shell=True)
+
+
+def run_gverify_task(
+    level1,
+    granule,
+    acq_parser_hint,
+    workdir,
+    h5_path,
+    output_yaml,
+    output_res,
+    executable,
+    ld_library_path,
+    gdal_data,
+    pyramid_levels,
+    geotiff_csv,
+    thread_count,
+    null_value,
+    chip_size,
+    grid_size,
+    root_fix_qa_location,
+    landsat_scenes_shapefile,
+    ocean_tile_list,
+    reference_directory,
+    backup_reference_directory,
+    timeout,
+    correlation_coefficient,
+    luigi_task=None,
+):
+    # Subdirectory in the task workdir
+    gverify_workdir = pjoin(workdir, "gverify")
+
+    if not exists(gverify_workdir):
+        os.makedirs(gverify_workdir)
+
+    for loc in [
+        executable,
+        root_fix_qa_location,
+        landsat_scenes_shapefile,
+        reference_directory,
+    ]:
+        if not exists(loc):
+            raise FileNotFoundError(loc)
+
+    # Get acquisition metadata, limit it to executing granule
+    container = acquisitions(level1, acq_parser_hint).get_granule(
+        granule, container=True
+    )
+
+    acq_info = acquisition_info(container, granule)
+
+    # Initialise output variables for error case
+    error_msg = ""
+    ref_date = ""
+    ref_source_path = ""
+    reference_resolution = ""
+
+    try:
+        # retrieve a set of matching landsat scenes
+        # lookup is based on polygon for Sentinel-2
+        landsat_scenes = acq_info.intersecting_landsat_scenes(landsat_scenes_shapefile)
+
+        def fixed_extra_parameters() -> List[str]:
+            points_txt = pjoin(gverify_workdir, "points.txt")
+            collect_gcp(root_fix_qa_location, landsat_scenes, points_txt)
+            return ["-t", "FIXED_LOCATION", "-t_file", points_txt]
+
+        if acq_info.is_land_tile(ocean_tile_list):
+            location = acq_info.land_band()
+            # for sentinel-2 land tiles we prefer grid points
+            # rather than GCPs
+            if acq_info.preferred_gverify_method == "grid":
+                extra_gverify_args = ["-g", grid_size]
+            else:
+                extra_gverify_args = fixed_extra_parameters()
+        else:
+            # for sea tiles we always pick GCPs
+            location = acq_info.ocean_band()
+            extra_gverify_args = fixed_extra_parameters()
+
+        # Extract the source band from the results archive
+        with h5py.File(h5_path, "r") as h5:
+            band_id = h5[location].attrs["band_id"]
+            source_band = pjoin(gverify_workdir, f"source-BAND-{band_id}.tif")
+            source_image = h5[location][:]
+            source_image[source_image == -999] = 0
+            write_img(
+                source_image,
+                source_band,
+                geobox=GriddedGeoBox.from_dataset(h5[location]),
+                nodata=0,
+                options={"compression": "deflate", "zlevel": 1},
+            )
+
+        # returns a reference image from one of ls5/7/8
+        #  the gqa band id will differ depending on if the source image is 5/7/8
+        reference_imagery: List[CSR] = get_reference_imagery(
+            landsat_scenes,
+            acq_info.timestamp,
+            band_id,
+            acq_info.tag,
+            [reference_directory, backup_reference_directory],
+        )
+
+        ref_date = get_reference_date(
+            basename(reference_imagery[0].filename), band_id, acq_info.tag
+        )
+        ref_source_path = reference_imagery[0].filename
+
+        # reference resolution is required for the gqa calculation
+        reference_resolution = [
+            abs(x) for x in most_common(reference_imagery).resolution
+        ]
+
+        vrt_file = pjoin(gverify_workdir, "reference.vrt")
+        build_vrt(reference_imagery, vrt_file, gverify_workdir)
+
+        run_gverify(
+            reference=vrt_file,
+            source=source_band,
+            outdir=gverify_workdir,
+            executable=executable,
+            ld_library_path=ld_library_path,
+            gdal_data=gdal_data,
+            pyramid_levels=pyramid_levels,
+            geotiff_csv=geotiff_csv,
+            thread_count=thread_count,
+            null_value=null_value,
+            chip_size=chip_size,
+            timeout=timeout,
+            correlation_coefficient=correlation_coefficient,
+            extra_gverify_args=extra_gverify_args,
+            resampling=acq_info.preferred_resampling_method,
+        )
+    except (ValueError, FileNotFoundError, CommandError) as ve:
+        error_msg = str(ve)
+        if luigi_task:
+            TASK_LOGGER.error(
+                event="gverify",
+                task=luigi_task.get_task_family(),
+                params=luigi_task.to_str_params(),
+                level1=level1,
+                exception=f"gverify was not executed because:\n {error_msg}",
+            )
+    finally:
+        # Write out runtime data to be processed by the gqa task
+        run_args = {
+            "executable": executable,
+            "ref_resolution": reference_resolution,
+            "ref_date": (ref_date.isoformat() if ref_date else ""),
+            "ref_source_path": str(ref_source_path),
+            "granule": str(granule),
+            "error_msg": str(error_msg),
+        }
+        with open(output_yaml, "w") as fd:
+            write_yaml(run_args, fd)
+        # if gverify failed to product the .res file writ out a blank one
+        if not exists(output_res):
+            with open(output_res, "w") as fd:
+                pass
+
+
+def run_gqa_task(
+    granule,
+    workdir,
+    gverify_yaml,
+    gverify_res,
+    standard_deviations,
+    iterations,
+    correlation_coefficient,
+    output_yaml,
+    skip_gqa,
+):
+    res = {}
+
+    if skip_gqa != "false":
+        gverify_args = {
+            "executable": "N/A",
+            "ref_resolution": "N/A",
+            "ref_date": "N/A",
+            "ref_source_path": "N/A",
+            "granule": str(granule),
+            "error_msg": "skipped",
+        }
+
+        # Subdirectory in the task workdir
+        workdir = pjoin(workdir, "gverify")
+
+        if not exists(workdir):
+            os.makedirs(workdir)
+    else:
+        # Read gverify arguments from yaml
+        with open(gverify_yaml) as _md:
+            gverify_args = yaml.load(_md, Loader=yaml.SafeLoader)
+
+    try:
+        if (
+            "error_msg" not in gverify_args or gverify_args["error_msg"] == ""
+        ):  # Gverify successfully ran
+            rh, tr, df = parse_gverify(gverify_res)
+            res = calculate_gqa(
+                df,
+                tr,
+                gverify_args["ref_resolution"],
+                standard_deviations,
+                iterations,
+                correlation_coefficient,
+            )
+
+            # Add color residual values to the results
+            res["colors"] = {
+                _clean_name(i): _rounded(rh[rh.Color == i].Residual.values[0])
+                for i in rh.Color.values
+            }
+        else:
+            _LOG.debug("Writing NaNs for residuals; gverify failed to run or skipped")
+            res = {
+                "final_qa_count": 0,
+                "residual": _populate_nan_residuals(),
+                "error_message": gverify_args["error_msg"],
+            }
+
+    except (StopIteration, FileNotFoundError) as _:
+        TASK_LOGGER.error(
+            f"Gverify results file contains no tabulated data; {gverify_res}"
+        )
+
+        _LOG.debug("Defaulting to NaN for the residual values.")
+        res = {
+            "final_qa_count": 0,
+            "residual": _populate_nan_residuals(),
+            "error_message": "No GCP's were found",
+        }
+
+    finally:
+        metadata = get_gqa_metadata(gverify_args["executable"])
+        metadata["ref_source_path"] = gverify_args["ref_source_path"]
+        metadata["ref_source"] = (
+            _gls_version(metadata["ref_source_path"])
+            if metadata["ref_source_path"]
+            else ""
+        )  # if ref_source_path is non-empty calculate version
+        metadata["ref_date"] = gverify_args["ref_date"]
+        metadata["granule"] = gverify_args["granule"]
+        _write_gqa_yaml(output_yaml, {**metadata, **res})
+
+
 class GverifyTask(luigi.Task):
     # Imagery arguments
     level1 = luigi.Parameter()
@@ -105,185 +415,35 @@ class GverifyTask(luigi.Task):
         return all(os.path.isfile(_f) for _f in self.output().values())
 
     def run(self):
-        # Subdirectory in the task workdir
-        workdir = pjoin(self.workdir, "gverify")
+        h5_path = self.input()[0].path
+        output_yaml = self.output()["runtime_args"]
+        output_res = self.output()["results"].path
 
-        if not exists(workdir):
-            os.makedirs(workdir)
-
-        for loc in [
-            self.executable,
-            self.root_fix_qa_location,
-            self.landsat_scenes_shapefile,
-            self.reference_directory,
-        ]:
-            if not exists(loc):
-                raise FileNotFoundError(loc)
-
-        # Get acquisition metadata, limit it to executing granule
-        container = acquisitions(self.level1, self.acq_parser_hint).get_granule(
-            self.granule, container=True
-        )
-
-        acq_info = acquisition_info(container, self.granule)
-
-        # Initialise output variables for error case
-        error_msg = ""
-        ref_date = ""
-        ref_source_path = ""
-        reference_resolution = ""
-
-        try:
-            # retrieve a set of matching landsat scenes
-            # lookup is based on polygon for Sentinel-2
-            landsat_scenes = acq_info.intersecting_landsat_scenes(
-                self.landsat_scenes_shapefile
-            )
-
-            def fixed_extra_parameters() -> List[str]:
-                points_txt = pjoin(workdir, "points.txt")
-                collect_gcp(self.root_fix_qa_location, landsat_scenes, points_txt)
-                return ["-t", "FIXED_LOCATION", "-t_file", points_txt]
-
-            if acq_info.is_land_tile(self.ocean_tile_list):
-                location = acq_info.land_band()
-                # for sentinel-2 land tiles we prefer grid points
-                # rather than GCPs
-                if acq_info.preferred_gverify_method == "grid":
-                    extra_gverify_args = ["-g", self.grid_size]
-                else:
-                    extra_gverify_args = fixed_extra_parameters()
-            else:
-                # for sea tiles we always pick GCPs
-                location = acq_info.ocean_band()
-                extra_gverify_args = fixed_extra_parameters()
-
-            # Extract the source band from the results archive
-            with h5py.File(self.input()[0].path, "r") as h5:
-                band_id = h5[location].attrs["band_id"]
-                source_band = pjoin(workdir, f"source-BAND-{band_id}.tif")
-                source_image = h5[location][:]
-                source_image[source_image == -999] = 0
-                write_img(
-                    source_image,
-                    source_band,
-                    geobox=GriddedGeoBox.from_dataset(h5[location]),
-                    nodata=0,
-                    options={"compression": "deflate", "zlevel": 1},
-                )
-
-            # returns a reference image from one of ls5/7/8
-            #  the gqa band id will differ depending on if the source image is 5/7/8
-            reference_imagery: List[CSR] = get_reference_imagery(
-                landsat_scenes,
-                acq_info.timestamp,
-                band_id,
-                acq_info.tag,
-                [self.reference_directory, self.backup_reference_directory],
-            )
-
-            ref_date = get_reference_date(
-                basename(reference_imagery[0].filename), band_id, acq_info.tag
-            )
-            ref_source_path = reference_imagery[0].filename
-
-            # reference resolution is required for the gqa calculation
-            reference_resolution = [
-                abs(x) for x in most_common(reference_imagery).resolution
-            ]
-
-            vrt_file = pjoin(workdir, "reference.vrt")
-            build_vrt(reference_imagery, vrt_file, workdir)
-
-            self._run_gverify(
-                vrt_file,
-                source_band,
-                outdir=workdir,
-                extra_gverify_args=extra_gverify_args,
-                resampling=acq_info.preferred_resampling_method,
-            )
-        except (ValueError, FileNotFoundError, CommandError) as ve:
-            error_msg = str(ve)
-            TASK_LOGGER.error(
-                event="gverify",
-                task=self.get_task_family(),
-                params=self.to_str_params(),
-                level1=self.level1,
-                exception=f"gverify was not executed because:\n {error_msg}",
-            )
-        finally:
-            # Write out runtime data to be processed by the gqa task
-            run_args = {
-                "executable": self.executable,
-                "ref_resolution": reference_resolution,
-                "ref_date": (ref_date.isoformat() if ref_date else ""),
-                "ref_source_path": str(ref_source_path),
-                "granule": str(self.granule),
-                "error_msg": str(error_msg),
-            }
-            with self.output()["runtime_args"].open("w") as fd:
-                write_yaml(run_args, fd)
-            # if gverify failed to product the .res file writ out a blank one
-            if not exists(self.output()["results"].path):
-                with self.output()["results"].open("w") as fd:
-                    pass
-
-    def _run_gverify(
-        self,
-        reference,
-        source,
-        outdir,
-        extra_gverify_args=None,
-        resampling=Resampling.bilinear,
-    ):
-        resampling_method = {
-            Resampling.nearest: "NN",
-            Resampling.bilinear: "BI",
-            Resampling.cubic: "CI",
-        }
-        extra_gverify_args = extra_gverify_args or []  # Default to empty list
-
-        bash_env_setup = [
-            f"export LD_LIBRARY_PATH={self.ld_library_path}:$LD_LIBRARY_PATH; ",
-            f"export GDAL_DATA={self.gdal_data}; ",
-            f"export GEOTIFF_CSV={self.geotiff_csv}; ",
-        ]
-
-        gverify_cmd = [
-            self.executable,
-            "-b",
-            reference,
-            "-m",
-            source,
-            "-w",
-            outdir,
-            "-l",
-            outdir,
-            "-o",
-            outdir,
-            "-p",
-            str(self.pyramid_levels),
-            "-n",
-            str(self.thread_count),
-            "-nv",
-            str(self.null_value),
-            "-c",
-            str(self.correlation_coefficient),
-            "-r",
-            resampling_method[resampling],
-            "-cs",
-            str(self.chip_size),
-        ]
-
-        cmd = " ".join(
-            [
-                *bash_env_setup,
-                *[shlex.quote(s) for s in chain(gverify_cmd, extra_gverify_args)],
-            ]
-        )
-        TASK_LOGGER.info("gverify call", cmd=cmd)
-        run_command(
-            cmd, outdir, timeout=self.timeout, command_name="gverify", use_shell=True
+        run_gverify_task(
+            level1=self.level1,
+            granule=self.granule,
+            acq_parser_hint=self.acq_parser_hint,
+            workdir=self.workdir,
+            h5_path=h5_path,
+            output_yaml=output_yaml,
+            output_res=output_res,
+            executable=self.executable,
+            ld_library_path=self.ld_library_path,
+            gdal_data=self.gdal_data,
+            pyramid_levels=self.pyramid_levels,
+            geotiff_csv=self.geotiff_csv,
+            thread_count=self.thread_count,
+            null_value=self.null_value,
+            chip_size=self.chip_size,
+            grid_size=self.grid_size,
+            root_fix_qa_location=self.root_fix_qa_location,
+            landsat_scenes_shapefile=self.landsat_scenes_shapefile,
+            ocean_tile_list=self.ocean_tile_list,
+            reference_directory=self.reference_directory,
+            backup_reference_directory=self.backup_reference_directory,
+            timeout=self.timeout,
+            correlation_coefficient=self.correlation_coefficient,
+            luigi_task=self,
         )
 
 
@@ -326,82 +486,20 @@ class GQATask(luigi.Task):
             self.workdir, "gverify", str(self.output_yaml).format(granule=self.granule)
         )
 
-        res = {}
+        gverify_yaml = self.input()["runtime_args"]
+        gverify_res = self.input()["results"].path
 
-        if self.skip_gqa != "false":
-            gverify_args = {
-                "executable": "N/A",
-                "ref_resolution": "N/A",
-                "ref_date": "N/A",
-                "ref_source_path": "N/A",
-                "granule": str(self.granule),
-                "error_msg": "skipped",
-            }
-
-            # Subdirectory in the task workdir
-            workdir = pjoin(self.workdir, "gverify")
-
-            if not exists(workdir):
-                os.makedirs(workdir)
-        else:
-            # Read gverify arguments from yaml
-            with self.input()["runtime_args"].open("r") as _md:
-                gverify_args = yaml.load(_md, Loader=yaml.SafeLoader)
-
-        try:
-            if (
-                "error_msg" not in gverify_args or gverify_args["error_msg"] == ""
-            ):  # Gverify successfully ran
-                rh, tr, df = parse_gverify(self.input()["results"].path)
-                res = calculate_gqa(
-                    df,
-                    tr,
-                    gverify_args["ref_resolution"],
-                    self.standard_deviations,
-                    self.iterations,
-                    self.correlation_coefficient,
-                )
-
-                # Add color residual values to the results
-                res["colors"] = {
-                    _clean_name(i): _rounded(rh[rh.Color == i].Residual.values[0])
-                    for i in rh.Color.values
-                }
-            else:
-                _LOG.debug(
-                    "Writing NaNs for residuals; gverify failed to run or skipped"
-                )
-                res = {
-                    "final_qa_count": 0,
-                    "residual": _populate_nan_residuals(),
-                    "error_message": gverify_args["error_msg"],
-                }
-
-        except (StopIteration, FileNotFoundError) as _:
-            TASK_LOGGER.error(
-                "Gverify results file contains no tabulated data; {}".format(
-                    self.input()["results"].path
-                )
-            )
-
-            _LOG.debug("Defaulting to NaN for the residual values.")
-            res = {
-                "final_qa_count": 0,
-                "residual": _populate_nan_residuals(),
-                "error_message": "No GCP's were found",
-            }
-
-        finally:
-            metadata = get_gqa_metadata(gverify_args["executable"])
-            metadata["ref_source_path"] = gverify_args["ref_source_path"]
-            metadata["ref_source"] = (
-                _gls_version(metadata["ref_source_path"])
-                if metadata["ref_source_path"]
-                else ""
-            )  # if ref_source_path is non-empty calculate version
-            metadata["ref_date"] = gverify_args["ref_date"]
-            metadata["granule"] = gverify_args["granule"]
-            _write_gqa_yaml(temp_yaml, {**metadata, **res})
+        run_gqa_task(
+            granule=self.granule,
+            workdir=self.workdir,
+            gverify_yaml=gverify_yaml,
+            gverify_res=gverify_res,
+            standard_deviations=self.standard_deviations,
+            iterations=self.iterations,
+            correlation_coefficient=self.correlation_coefficient,
+            output_yaml=temp_yaml,
+            skip_gqa=self.skip_gqa,
+        )
 
         self.output().makedirs()
         # copy temp to output final location
