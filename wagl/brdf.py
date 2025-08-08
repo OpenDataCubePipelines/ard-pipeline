@@ -907,7 +907,7 @@ def get_brdf_climatology_data(acq, brdf_config):
         result[param] = {
             "data_source": "BRDF",
             "id": ["dummy"],
-            "tier": BrdfTier.USER.name,
+            "tier": BrdfTier.FALLBACK_DATASET.name,
             "value": reprojected_image,
         }
 
