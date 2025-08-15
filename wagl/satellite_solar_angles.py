@@ -188,7 +188,7 @@ def track_bisection(acquisition, npoints, first_row, last_row):
 
     The other case that is not currently considered (but may in
     future releases), is where the track intersects the image, but not
-    at the top or bottom rows. Instead the intersection occurs
+    at the top or bottom rows. Instead, the intersection occurs
     obliquely in relation to the image rectangle. This is most likely
     to occur at latitudes +- 80 degrees.
 
@@ -211,7 +211,7 @@ def track_bisection(acquisition, npoints, first_row, last_row):
     :return:
         A tuple (intersection, row_bisection, column_bisection).
         Where intersection is an instance of TrackIntersection
-        detailing the type of intersection occuring with the
+        detailing the type of intersection occurring with the
         acquisition. The row_bisection and column_bisection are
         the indices at which the bi-section should occur.
     """
@@ -278,7 +278,7 @@ def create_boxline(
     # (for filtering out pixels of the ortho' array where no observations
     # are expected because the sensor look-angle would be too peripheral.)
     # TODO: similar filtering for pixels where the line acquisition time would
-    # be outside of the scene aquisition window.
+    # be outside of the scene acquisition window.
     istart, iend = swathe_edges(max_angle, view_angle_dataset)
 
     row_index = np.arange(rows)
@@ -472,7 +472,7 @@ def calculate_julian_century(datetime):
     # http://en.wikipedia.org/wiki/Equinox_(celestial_coordinates)
     # which use:
     # 2000 + (jdate - epoch) / 365.25
-    century = (jdate - j2_epoch) / 36525
+    century = (jdate - j2_epoch) / 36525  # scale `century` so 1.0 = 100 years
 
     return century
 
@@ -535,7 +535,7 @@ def setup_spheroid(proj_wkt):
 
 def setup_orbital_elements(acquisition, tle_path):
     """Given an ephemeral object and a datetime object, calculate the
-    satellite orbital paramaters used for calculating the angle grids.
+    satellite orbital parameters used for calculating the angle grids.
 
     :param acquisition:
         An `Acquisition` object.
@@ -545,10 +545,10 @@ def setup_orbital_elements(acquisition, tle_path):
 
     :return:
         A floating point np array of 3 elements containing the
-        satellite ephemeral bodies orbital paramaters.
+        satellite ephemeral bodies orbital parameters.
 
-            * Index 0 contains the obrital inclination in degrees.
-            * Index 1 contains the semi major raidus in metres.
+            * Index 0 contains the orbital inclination in degrees.
+            * Index 1 contains the semi major radius in metres.
             * Index 2 contains the angular velocity in radians/sec^1.
 
         Also a np dataset of the following datatype:
@@ -580,7 +580,7 @@ def setup_orbital_elements(acquisition, tle_path):
     else:
         ephemeral.compute(acquisition.acquisition_datetime)
         pi = np.pi
-        n = ephemeral._n  # number or orbits per day
+        n = ephemeral._n  # number of orbits per day
         s = 24 * 60 * 60  # Seconds in a day
         mu = 398600441800000.0  # Earth Gravitational parameter m^3s^-2
 
@@ -606,11 +606,11 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
         The longitude of the scene centre.
 
     :param centre_lat:
-        The lattitude of the scene centre.
+        The latitude of the scene centre.
 
     :param spheroid:
         A 4 element floating point array containing the Earth
-        spheroidal paramaters.
+        spheroidal parameters.
 
             * Index 0 contains the spheroid Major Axis.
             * Index 1 contains the spheroid Inverse Flattening.
@@ -622,13 +622,13 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
         A 3 element floating point array containing the satellite
         orbital elements.
 
-            * Index 0 contains the obrital inclination in degrees.
-            * Index 1 contains the semi major raidus in metres.
+            * Index 0 contains the orbital inclination in degrees.
+            * Index 1 contains the semi major radius in metres.
             * Index 2 contains the angular velocity in radians/sec^1.
 
     :return:
         A floating point np array of 12 elements containing the
-        satellite model paramaters.
+        satellite model parameters.
 
             * Index 0 contains phi0.
             * Index 1 contains phi0_p.
@@ -678,14 +678,14 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
     ``F2Py``.
 
     :param ymin:
-        The minimum lattitude in the array extent.
+        The minimum latitude in the array extent.
 
     :param ymax:
-        The maximum lattitude in the array extent.
+        The maximum latitude in the array extent.
 
     :param spheroid:
         A 4 element floating point array containing the Earth
-        spheroidal paramaters.
+        spheroidal parameters.
 
             * Index 0 contains the spheroid Major Axis.
             * Index 1 contains the spheroid Inverse Flattening.
@@ -697,13 +697,13 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
         A 3 element floating point array containing the satellite
         orbital elements.
 
-            * Index 0 contains the obrital inclination in degrees.
-            * Index 1 contains the semi major raidus in metres.
+            * Index 0 contains the orbital inclination in degrees.
+            * Index 1 contains the semi major radius in metres.
             * Index 2 contains the angular velocity in radians/sec^1.
 
     :param smodel:
         A floating point np array of 12 elements containing the
-        satellite model paramaters:
+        satellite model parameters:
 
             * Index 0 contains phi0.
             * Index 1 contains phi0_p.
@@ -863,7 +863,7 @@ def calculate_angles(
     trackpoints=12,
 ):
     """Calculate the satellite view, satellite azimuth, solar zenith,
-    solar azimuth, and relative aziumth angle grids, as well as the
+    solar azimuth, and relative azimuth angle grids, as well as the
     time grid.
 
     :param acquisition:
@@ -895,10 +895,6 @@ def calculate_angles(
         * DatasetName.SATELLITE_MODEL
         * DatasetName.SATELLITE_TRACK
 
-    :param trackpoints:
-        Number of trackpoints to use when calculating solar angles
-        Default is 12
-
     :param compression:
         The compression filter to use.
         Default is H5CompressionFilter.LZF
@@ -915,7 +911,8 @@ def calculate_angles(
         A `str` to the directory containing the Two Line Element data.
 
     :param trackpoints:
-        TODO.
+        Number of trackpoints to use when calculating solar angles
+        Default is 12
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -957,13 +954,13 @@ def calculate_angles(
     else:
         centre_xy = geobox.centre_lonlat
 
-    # Get the earth spheroidal paramaters
+    # Get the earth spheroidal parameters
     spheroid = setup_spheroid(geobox.crs.ExportToWkt())
 
     # Get the satellite orbital elements
     orbital_elements = setup_orbital_elements(acquisition, tle_path)
 
-    # Get the satellite model paramaters
+    # Get the satellite model parameters
 
     smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid[0], orbital_elements[0])
 
