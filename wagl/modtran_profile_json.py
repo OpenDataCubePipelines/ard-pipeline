@@ -561,7 +561,7 @@ def custom_optical_profile(
     prof_alt,
     prof_pres,
     prof_temp,
-    prof_water,
+    prof_water,  # NB: this is relative humidity
     visibility,
     doy,
     lat,
@@ -600,7 +600,7 @@ def custom_optical_profile(
         -82.650001526,
     ]
 
-    prof_h2o = [
+    prof_h2o = [  # expanded relative humidity profile
         *prof_water,
         7.1269998443e-05,
         5.9909998527e-05,
@@ -688,7 +688,7 @@ def custom_optical_profile(
                         "ICSTL": 6,
                         "ICLD": "CLOUD_NONE",
                         "IVSA": False,
-                        "VIS": visibility,
+                        "VIS": visibility,  # the aerosol component
                         "WSS": 0.0,
                         "WHH": 0.0,
                         "RAINRT": 0.0,
