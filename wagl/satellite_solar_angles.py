@@ -776,7 +776,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, psx, psy, ntpoin
 
 
 def _store_parameter_settings(
-    fid, spheriod, orbital_elements, satellite_model, satellite_track, params
+    fid, spheroid, orbital_elements, satellite_model, satellite_track, params
 ):
     """An internal function for storing the parameter settings for the
     calculate_angles workflow.
@@ -787,11 +787,11 @@ def _store_parameter_settings(
     dname = DatasetName.GENERIC.value
     write_scalar("GENERIC PARAMETERS", dname, group, params)
 
-    # sheroid
+    # spheroid
     desc = "The spheroid used in the satellite and solar angles calculation."
     attrs = {"description": desc}
     dname = DatasetName.SPHEROID.value
-    sph_dset = group.create_dataset(dname, data=spheriod)
+    sph_dset = group.create_dataset(dname, data=spheroid)
     attach_table_attributes(sph_dset, title="Spheroid", attrs=attrs)
 
     # orbital elements
@@ -1098,8 +1098,8 @@ def calculate_angles(
     attach_attributes(time_ds, attrs)
 
     # Initialise centre line variables
-    x_cent = np.zeros((acquisition.lines), dtype=out_dtype)
-    n_cent = np.zeros((acquisition.lines), dtype=out_dtype)
+    x_cent = np.zeros(acquisition.lines, dtype=out_dtype)
+    n_cent = np.zeros(acquisition.lines, dtype=out_dtype)
 
     for tile in acquisition.tiles():
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
