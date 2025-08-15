@@ -568,7 +568,7 @@ def setup_orbital_elements(acquisition, tle_path):
     )
     dset = np.zeros(1, dtype=dtype)
 
-    ephemeral = load_tle(acquisition, tle_path)
+    ephemeral = load_tle(acquisition, tle_path) if tle_path else None
 
     # If we have None, then no suitable TLE was found, so use values gathered
     # by the acquisition object
