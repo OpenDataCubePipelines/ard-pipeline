@@ -65,7 +65,7 @@ def read_subset_to_geobox(dsm_dataset, dem_geobox):
         dsm_dataset, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=1
     )
 
-    # Retrive the DSM data
+    # Retrieve the DSM data
     dsm_data = reproject_array_to_array(
         subs, subs_geobox, dem_geobox, resampling=Resampling.bilinear
     )
@@ -259,11 +259,11 @@ def get_dsm(
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
 ):
-    """Given an acquisition and a national Digitial Surface Model,
+    """Given an acquisition and a national Digital Surface Model,
     extract a subset from the DSM based on the acquisition extents
     plus an x & y margins. The subset is then smoothed with a 3x3
     gaussian filter.
-    A square margins is applied to the extents.
+    A square margin is applied to the extents.
 
     :param acquisition:
         An instance of an acquisition object.
@@ -306,7 +306,7 @@ def get_dsm(
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    # Use the 1st acquisition to setup the geobox
+    # Use the 1st acquisition to set up the geobox
     geobox = acquisition.gridded_geo_box()
     shape = geobox.get_shape_yx()
 
@@ -381,7 +381,7 @@ def get_dsm(
     dsm_data = filter_dsm(dsm_data)
     dname = DatasetName.DSM_SMOOTHED.value
     out_sm_dset = group.create_dataset(dname, data=dsm_data, **kwargs)
-    desc = "A subset of a Digital Surface Model smoothed with a gaussian " "kernel."
+    desc = "A subset of a Digital Surface Model smoothed with a gaussian kernel."
     attrs["description"] = desc
     attrs["id"] = np.array([metadata["id"]], VLEN_STRING)
     attach_image_attributes(out_sm_dset, attrs)
