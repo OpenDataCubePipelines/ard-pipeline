@@ -29,10 +29,10 @@ Usage examples:
 ---------------
 
 Create environment in a custom directory:
-$ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh
+$ module_dir=/g/data/<project-code>/users/<username>/modules ./deployment/nci/create-module.sh
 
-Create environment in a custom dir, with custom version:
-$ module_dir=/g/data/users/person/modules ./deployment/nci/create-module.sh v1.0
+Create environment in a custom dir, with custom version descriptor:
+$ module_dir=/g/data/<project-code>/users/<username>/modules ./deployment/nci/create-module.sh v1.0
 "
 
 # users can provide the version number as the first argument, otherwise make a date-based one
