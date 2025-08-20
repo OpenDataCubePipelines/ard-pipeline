@@ -58,6 +58,14 @@ class TestGetTile3(unittest.TestCase):
     # exception_input2 = [(4001, 4003, 0, 100), (4003, 4001, 100, 0),
     #                     (4000, 4000, -1, 100), (4000, 4000, 100, -1)]
 
+    tol_input = [
+        (7, 4, 3, 3, 0, 0),
+        (7, 4, 3, 3, 1, 0),
+        (7, 4, 3, 3, 0, 1),
+        (7, 4, 3, 3, 1, 1),
+    ]
+    tol_expected_size = [6, 4, 3, 2]
+
     def test_normal(self):
         """Test typical input:"""
         self.do_test(self.normal_input)
@@ -83,6 +91,16 @@ class TestGetTile3(unittest.TestCase):
                 ZeroDivisionError, generate_tiles, samples, lines, xtile, ytile
             )
 
+    def test_tolerance(self):
+        """Test absence of thin slivers when tolerance is specified"""
+        for (samples, lines, xtile, ytile, xtol, ytol), expected_size in zip(
+            self.tol_input, self.tol_expected_size
+        ):
+            tiles_list = list(generate_tiles(samples, lines, xtile, ytile, xtol, ytol))
+            assert len(tiles_list) == expected_size
+            self.check_sizes(xtile, ytile, tiles_list, xtol=xtol, ytol=ytol)
+            self.check_tiling(samples, lines, tiles_list)
+
     def do_test(self, test_input):
         """Check sizes and coverage for a list of test input."""
         for samples, lines, xtile, ytile in test_input:
@@ -91,7 +109,7 @@ class TestGetTile3(unittest.TestCase):
             self.check_sizes(xtile, ytile, tiles_list)
             self.check_tiling(samples, lines, tiles_list)
 
-    def check_sizes(self, xtile, ytile, tiles_list):
+    def check_sizes(self, xtile, ytile, tiles_list, xtol=0, ytol=0):
         """Check that the tiles in tiles_list have appropriate extents."""
         for tile in tiles_list:
             yse, xse = tile
@@ -99,8 +117,12 @@ class TestGetTile3(unittest.TestCase):
             xstart, xend = xse
             assert 0 <= xstart < xend, "Tile empty - xcoord: " + repr(tile)
             assert 0 <= ystart < yend, "Tile empty - y coord: " + repr(tile)
-            assert xend - xstart <= xtile, "Tile too big - x coord: " + repr(tile)
-            assert yend - ystart <= ytile, "Tile too big - y coord: " + repr(tile)
+            assert xend - xstart <= xtile + xtol, ("Tile too big - x coord: " + repr(
+                tile
+            ))
+            assert yend - ystart <= ytile + ytol, ("Tile too big - y coord: " + repr(
+                tile
+            ))
 
     def check_tiling(self, samples, lines, tiles_list):
         """Check the tiles in tiles_list for covarge and overlap."""
