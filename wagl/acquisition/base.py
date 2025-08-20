@@ -467,7 +467,7 @@ class Acquisition:
         Override as needed.
         """
 
-    def tiles(self):
+    def tiles(self, xtol=0, ytol=0):
         """Generate the tiling regime for this acquisition."""
         ysize, xsize = self.tile_size
-        return generate_tiles(self.samples, self.lines, xsize, ysize)
+        return generate_tiles(self.samples, self.lines, xsize, ysize, xtol, ytol)

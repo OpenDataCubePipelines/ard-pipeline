@@ -18,7 +18,7 @@ import numpy as np
 from osgeo import gdal
 
 
-def generate_tiles(samples, lines, xtile=None, ytile=None):
+def generate_tiles(samples, lines, xtile=None, ytile=None, xtol=0, ytol=0):
     """Generates a list of tile indices for a 2D array.
 
     :param samples:
@@ -34,6 +34,14 @@ def generate_tiles(samples, lines, xtile=None, ytile=None):
     :param ytile:
         (Optional) The desired size of the tile in the y-direction.
         Default is min(100, lines) lines.
+
+    :param xtol:
+        Avoid tiles with width smaller or equal to this value by
+        merging them, if possible, to the tiles next to them.
+
+    :param ytol:
+        Avoid tiles with height smaller or equal to this value by
+        merging them, if possible, to the tiles next to them.
 
     :return:
         Each tuple in the generator contains
@@ -61,16 +69,22 @@ def generate_tiles(samples, lines, xtile=None, ytile=None):
         >>>     subset = array[:,ystart:yend,xstart:xend] # 3D
     """
 
-    def create_tiles(samples, lines, xstart, ystart):
+    def create_tiles(samples, lines, xstart, ystart, xtol, ytol):
         """Creates a generator object for the tiles."""
         for ystep in ystart:
-            if ystep + ytile < lines:
+            if ystep + ytile + ytol < lines:
                 yend = ystep + ytile
+            elif ystep + ytol >= lines:
+                # skip this
+                continue
             else:
                 yend = lines
             for xstep in xstart:
-                if xstep + xtile < samples:
+                if xstep + xtile + xtol < samples:
                     xend = xstep + xtile
+                elif xstep + xtol >= samples:
+                    # skip this
+                    continue
                 else:
                     xend = samples
                 yield ((ystep, yend), (xstep, xend))
@@ -84,7 +98,7 @@ def generate_tiles(samples, lines, xtile=None, ytile=None):
     xstart = np.arange(0, samples, xtile)
     ystart = np.arange(0, lines, ytile)
 
-    tiles = create_tiles(samples, lines, xstart, ystart)
+    tiles = create_tiles(samples, lines, xstart, ystart, xtol, ytol)
 
     return tiles
 
