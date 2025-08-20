@@ -314,7 +314,7 @@ def calculate_reflectance(
     attach_image_attributes(nbart_dset, attrs)
 
     # process by tile
-    for tile in acquisition.tiles():
+    for tile in acquisition.tiles(xtol=1, ytol=1):
         # tile indices
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
