@@ -1101,7 +1101,7 @@ def calculate_angles(
     x_cent = np.zeros(acquisition.lines, dtype=out_dtype)
     n_cent = np.zeros(acquisition.lines, dtype=out_dtype)
 
-    for tile in acquisition.tiles():
+    for tile in acquisition.tiles(xtol=1, ytol=1):
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
         # read the lon and lat tile
