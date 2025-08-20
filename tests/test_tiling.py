@@ -117,12 +117,12 @@ class TestGetTile3(unittest.TestCase):
             xstart, xend = xse
             assert 0 <= xstart < xend, "Tile empty - xcoord: " + repr(tile)
             assert 0 <= ystart < yend, "Tile empty - y coord: " + repr(tile)
-            assert xend - xstart <= xtile + xtol, ("Tile too big - x coord: " + repr(
+            assert xend - xstart <= xtile + xtol, "Tile too big - x coord: " + repr(
                 tile
-            ))
-            assert yend - ystart <= ytile + ytol, ("Tile too big - y coord: " + repr(
+            )
+            assert yend - ystart <= ytile + ytol, "Tile too big - y coord: " + repr(
                 tile
-            ))
+            )
 
     def check_tiling(self, samples, lines, tiles_list):
         """Check the tiles in tiles_list for covarge and overlap."""
