@@ -80,20 +80,11 @@ def copernicus_tiles_latlon_covering_geobox(geobox) -> list[tuple[int, int]]:
     cop30m_crs = osr.SpatialReference()
     cop30m_crs.ImportFromEPSG(4326)  # WGS84
 
-    origin = geobox.convert_coordinates((0, 0))
-    origin_lonlat = geobox.transform_coordinates(origin, cop30m_crs)
-    corner = geobox.convert_coordinates(geobox.get_shape_xy())
-    corner_lonlat = geobox.transform_coordinates(corner, cop30m_crs)
-
-    from_lat = floor(corner_lonlat[1])
-    to_lat = floor(origin_lonlat[1])
-    from_lon = floor(origin_lonlat[0])
-    to_lon = floor(corner_lonlat[0])
+    lat_lon_extents = geobox.project_extents(cop30m_crs)
+    from_lon, from_lat, to_lon, to_lat = (floor(n) for n in lat_lon_extents)
 
     def order(a, b):
-        if a <= b:
-            return a, b
-        return b, a
+        return (a, b) if a <= b else (b, a)
 
     from_lat, to_lat = order(from_lat, to_lat)
     from_lon, to_lon = order(from_lon, to_lon)
@@ -318,6 +309,7 @@ def get_dsm(
     dem_rows = shape[0] + margins.top + margins.bottom
     dem_shape = (dem_rows, dem_cols)
     dem_origin = geobox.convert_coordinates((0 - margins.left, 0 - margins.top))
+
     dem_geobox = GriddedGeoBox(
         dem_shape,
         origin=dem_origin,
