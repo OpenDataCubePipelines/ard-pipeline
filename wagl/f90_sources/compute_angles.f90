@@ -131,7 +131,7 @@ SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
     adiff = lam_p-lamcal
 
 !   if on the track easy - done and go back
-    if (abs(adiff) .lt. tol_lam) then
+    if (abs(adiff) .lt. abs(tol_lam)) then
         timet = t_p-t0
         theta_p = 0.0d0
         azimuth = 0.0d0

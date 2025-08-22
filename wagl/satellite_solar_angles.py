@@ -942,11 +942,9 @@ def calculate_angles(
     longitude = lon_lat_group[DatasetName.LON.value]
     latitude = lon_lat_group[DatasetName.LAT.value]
 
-    # Determine approximate pixel size
-    lat_data = latitude[0:2, 0]
-    psy = abs(lat_data[1] - lat_data[0])
-    lon_data = longitude[0, 0:2]
-    psx = abs(lon_data[1] - lon_data[0])
+    # an arc second
+    psy = 1.0 / 3600
+    psx = 1.0 / 3600
 
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
