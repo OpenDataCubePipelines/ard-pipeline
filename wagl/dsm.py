@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Digital Surface Model Data extraction and smoothing."""
 
+import itertools
 import os.path
 from math import ceil, floor
 
@@ -76,11 +77,8 @@ def read_subset_to_geobox(dsm_dataset, dem_geobox):
     return dsm_data
 
 
-def copernicus_tiles_latlon_covering_geobox(geobox) -> list[tuple[int, int]]:
-    cop30m_crs = osr.SpatialReference()
-    cop30m_crs.ImportFromEPSG(4326)  # WGS84
-
-    lat_lon_extents = geobox.project_extents(cop30m_crs)
+def copernicus_tiles_latlon_covering_geobox(lat_lon_extents):
+    # NB: lat_lon_extents order is  (min_x, min_y, max_x, max_y)
     from_lon, from_lat, to_lon, to_lat = (floor(n) for n in lat_lon_extents)
 
     def order(a, b):
@@ -89,11 +87,9 @@ def copernicus_tiles_latlon_covering_geobox(geobox) -> list[tuple[int, int]]:
     from_lat, to_lat = order(from_lat, to_lat)
     from_lon, to_lon = order(from_lon, to_lon)
 
-    return [
-        (lat, lon)
-        for lat in range(from_lat, to_lat + 1)
-        for lon in range(from_lon, to_lon + 1)
-    ]
+    yield from itertools.product(
+        range(from_lat, to_lat + 1), range(from_lon, to_lon + 1)
+    )
 
 
 def copernicus_folder_for_latlon(lat, lon) -> str:
@@ -183,9 +179,11 @@ def list_copernicus_bands_for_geobox(cop_pathname, key_to_path, dst_geobox):
     if prefix != "" and not prefix.endswith("/"):
         prefix = prefix + "/"
 
-    latlon = copernicus_tiles_latlon_covering_geobox(dst_geobox)
+    cop30m_crs = osr.SpatialReference()
+    cop30m_crs.ImportFromEPSG(4326)  # WGS84
+    lat_lon_extents = dst_geobox.project_extents(cop30m_crs)
 
-    for lat, lon in latlon:
+    for lat, lon in copernicus_tiles_latlon_covering_geobox(lat_lon_extents):
         location = prefix + key_to_path(lat, lon)
 
         if cached:
