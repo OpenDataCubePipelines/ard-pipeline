@@ -416,7 +416,7 @@ class GverifyTask(luigi.Task):
 
     def run(self):
         h5_path = self.input()[0].path
-        output_yaml = self.output()["runtime_args"]
+        output_yaml = self.output()["runtime_args"].path
         output_res = self.output()["results"].path
 
         run_gverify_task(
@@ -486,7 +486,7 @@ class GQATask(luigi.Task):
             self.workdir, "gverify", str(self.output_yaml).format(granule=self.granule)
         )
 
-        gverify_yaml = self.input()["runtime_args"]
+        gverify_yaml = self.input()["runtime_args"].path
         gverify_res = self.input()["results"].path
 
         run_gqa_task(
