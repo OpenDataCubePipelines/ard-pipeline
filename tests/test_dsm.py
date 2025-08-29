@@ -83,3 +83,23 @@ def test_lat_long_extents_southern_and_eastern_hemispheres(l5_wagga_extents):
     # these lat/long extents confirmed by loading CopDEM tiles in QGIS
     assert latitudes == {-36, -35, -34}
     assert longitudes == {145, 146, 147, 148}
+
+
+# Section: more detailed lat/long tests
+# confirm the exact (lat, long) extents pairs for covering tiles
+
+
+def test_eastern_hemisphere_lat_long_pairs(l5_wagga_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_geobox(l5_wagga_extents)
+
+    for lat in (-36, -35, -34):
+        for long in (145, 146, 147, 148):
+            assert (lat, long) == gen.__next__()
+
+
+def test_western_hemisphere_lat_long_pairs(l9_antarctic_volcano_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_antarctic_volcano_extents)
+
+    for lat in (-78, -77, -76, -75):
+        for long in range(-120, -108):
+            assert (lat, long) == gen.__next__()
