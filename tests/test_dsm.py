@@ -34,7 +34,7 @@ def l9_italy_extents():
 # Section: helper functions
 
 
-def get_lat_longs_from_coord_pairs(tuple_sequence):
+def get_unique_lat_longs_from_coord_pairs(tuple_sequence):
     """
     Split (lat, long) tuple sequence into separate latitude/longitude sequences.
     """
@@ -48,7 +48,7 @@ def get_lat_longs_from_coord_pairs(tuple_sequence):
 def test_calculate_latitude_extent_southern_hemisphere(l9_antarctic_volcano_extents):
     # Ensure CopDEM tile search provides correct coverage for Landsat scene extents
     gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_antarctic_volcano_extents)
-    latitudes, longitudes = get_lat_longs_from_coord_pairs(gen)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
     assert latitudes == {-78, -77, -76, -75}
     assert longitudes == set(range(-120, -108))
@@ -56,7 +56,7 @@ def test_calculate_latitude_extent_southern_hemisphere(l9_antarctic_volcano_exte
 
 def test_calculate_latitude_extent_southern_hemisphere2(l9_buenos_aires_extents):
     gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_buenos_aires_extents)
-    latitudes, longitudes = get_lat_longs_from_coord_pairs(gen)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
     assert latitudes == {-34, -35, -36}
     assert longitudes == {-61, -60, -59, -58}
@@ -64,7 +64,7 @@ def test_calculate_latitude_extent_southern_hemisphere2(l9_buenos_aires_extents)
 
 def test_calculate_latitude_extent_northern_hemisphere(l9_italy_extents):
     gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_italy_extents)
-    latitudes, longitudes = get_lat_longs_from_coord_pairs(gen)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
     assert latitudes == {37, 38, 39}
     assert longitudes == {14, 15, 16, 17}
