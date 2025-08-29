@@ -321,7 +321,7 @@ def stash_oa_bands(
 
         if workflow in (Workflow.STANDARD, Workflow.NBAR):
             # DEM
-            log.info("DEM-retriveal")
+            log.info("DEM-retrieval")
             get_dsm(
                 acqs[0],
                 srtm_pathname,
