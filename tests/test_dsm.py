@@ -31,6 +31,12 @@ def l9_italy_extents():
     return 14.491808, 37.828106, 17.192353, 39.956304
 
 
+@pytest.fixture
+def l5_wagga_extents():
+    # From LT05_L1TP_092084_20080925_20161029_01_T1.tar
+    return 145.434996, -35.581614, 148.077655, -33.653483
+
+
 # Section: helper functions
 
 
@@ -68,3 +74,12 @@ def test_lat_long_extents_northern_and_western_hemispheres(l9_italy_extents):
 
     assert latitudes == {37, 38, 39}
     assert longitudes == {14, 15, 16, 17}
+
+
+def test_lat_long_extents_southern_and_eastern_hemispheres(l5_wagga_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_geobox(l5_wagga_extents)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
+
+    # these lat/long extents confirmed by loading CopDEM tiles in QGIS
+    assert latitudes == {-36, -35, -34}
+    assert longitudes == {145, 146, 147, 148}
