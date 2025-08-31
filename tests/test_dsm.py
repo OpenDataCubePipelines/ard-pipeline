@@ -18,6 +18,12 @@ def l9_antarctic_volcano_extents():
 
 
 @pytest.fixture
+def l5_wagga_extents():
+    # From LT05_L1TP_092084_20080925_20161029_01_T1.tar
+    return 145.434996, -35.581614, 148.077655, -33.653483
+
+
+@pytest.fixture
 def l9_buenos_aires_extents():
     # Extents converted from LC09_L1TP_225084_20241222_20241222_02_T1.tar
 
@@ -29,12 +35,6 @@ def l9_buenos_aires_extents():
 def l9_italy_extents():
     # from LC09_L1TP_188033_20231030_20231030_02_T1.tar
     return 14.491808, 37.828106, 17.192353, 39.956304
-
-
-@pytest.fixture
-def l5_wagga_extents():
-    # From LT05_L1TP_092084_20080925_20161029_01_T1.tar
-    return 145.434996, -35.581614, 148.077655, -33.653483
 
 
 @pytest.fixture
@@ -66,6 +66,15 @@ def test_lat_long_extents_southern_hemisphere_polar(l9_antarctic_volcano_extents
     assert longitudes == set(range(-120, -108))
 
 
+def test_lat_long_extents_southern_and_eastern_hemispheres(l5_wagga_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_geobox(l5_wagga_extents)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
+
+    # these lat/long extents confirmed by loading CopDEM tiles in QGIS
+    assert latitudes == {-36, -35, -34}
+    assert longitudes == {145, 146, 147, 148}
+
+
 def test_lat_long_extents_southern_and_western_hemispheres(l9_buenos_aires_extents):
     gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_buenos_aires_extents)
     latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
@@ -88,15 +97,6 @@ def test_lat_long_extents_northern_and_western_hemispheres(l9_arizona_extents):
 
     assert latitudes == {33, 34, 35}
     assert longitudes == {-114, -113, -112, -111}
-
-
-def test_lat_long_extents_southern_and_eastern_hemispheres(l5_wagga_extents):
-    gen = dsm.copernicus_tiles_latlon_covering_geobox(l5_wagga_extents)
-    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
-
-    # these lat/long extents confirmed by loading CopDEM tiles in QGIS
-    assert latitudes == {-36, -35, -34}
-    assert longitudes == {145, 146, 147, 148}
 
 
 # Section: more detailed lat/long tests
