@@ -68,7 +68,7 @@ def test_lat_long_extents_southern_and_western_hemispheres(l9_buenos_aires_exten
     assert longitudes == {-61, -60, -59, -58}
 
 
-def test_lat_long_extents_northern_and_western_hemispheres(l9_italy_extents):
+def test_lat_long_extents_northern_and_eastern_hemispheres(l9_italy_extents):
     gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_italy_extents)
     latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
