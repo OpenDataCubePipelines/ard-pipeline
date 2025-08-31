@@ -37,6 +37,12 @@ def l5_wagga_extents():
     return 145.434996, -35.581614, 148.077655, -33.653483
 
 
+@pytest.fixture
+def l9_arizona_extents():
+    # from LC09_L1TP_037036_20241030_20241030_02_T1.tar
+    return -113.457772, 33.523343, -110.889247, 35.675949
+
+
 # Section: helper functions
 
 
@@ -74,6 +80,14 @@ def test_lat_long_extents_northern_and_eastern_hemispheres(l9_italy_extents):
 
     assert latitudes == {37, 38, 39}
     assert longitudes == {14, 15, 16, 17}
+
+
+def test_lat_long_extents_northern_and_western_hemispheres(l9_arizona_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_arizona_extents)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
+
+    assert latitudes == {33, 34, 35}
+    assert longitudes == {-114, -113, -112, -111}
 
 
 def test_lat_long_extents_southern_and_eastern_hemispheres(l5_wagga_extents):
