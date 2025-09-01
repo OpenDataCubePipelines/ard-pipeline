@@ -1,5 +1,5 @@
 ! subroutine set_satmod
-SUBROUTINE set_satmod(lon0,lat0,spheroid,orb_elements,psx,psy,smodel,istat)
+SUBROUTINE set_satmod(lon0,lat0,spheroid,orb_elements,smodel,istat)
 
 !   lon0,lat0 are the (geo) coordinates of a point on the track
 !   orb_elements 1,2,3 are orb_i,orb_R,nodal_p
@@ -32,10 +32,6 @@ SUBROUTINE set_satmod(lon0,lat0,spheroid,orb_elements,psx,psy,smodel,istat)
 !           10. N0
 !           11. H0
 !           12. th_ratio0
-!       psx
-!           Approximate pixel size (in degrees longitude)
-!       psy
-!           Approximate pixel size (in degrees latitude)
 !
 !   Outputs:
 !       smodel
@@ -48,7 +44,7 @@ SUBROUTINE set_satmod(lon0,lat0,spheroid,orb_elements,psx,psy,smodel,istat)
     double precision, dimension(4), intent(in) :: spheroid
     double precision, dimension(3), intent(in) :: orb_elements
     double precision, intent(in) :: lon0,lat0
-    double precision, intent(in) :: psx,psy
+    double precision psx,psy
     double precision oi,orad,ws
     double precision asph,finv,e2,we
 
@@ -98,6 +94,9 @@ SUBROUTINE set_satmod(lon0,lat0,spheroid,orb_elements,psx,psy,smodel,istat)
     th_ratio0 = N0/H0
     lonin = lon0
     latin = lat0
+!   one arc second
+    psx = 1.0 / 3600
+    psy = 1.0 / 3600
     call geo2metres_pixel_size(latin,psx,psy,spheroid,psx_out,&
                                psy_out,istat)
     hxy0 = psx_out/psy_out

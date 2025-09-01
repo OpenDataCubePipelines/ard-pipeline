@@ -599,8 +599,8 @@ def setup_orbital_elements(acquisition, tle_path):
     return np.array(dset.tolist()).squeeze(), dset
 
 
-def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements, psx, psy):
-    """Set up the satellite model.
+def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
+    """Setup the satellite model.
     A wrapper routine for the `set_satmod` Fortran module built via
     ``F2Py``.
 
@@ -628,12 +628,6 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements, psx, psy):
             * Index 1 contains the semi major radius in metres.
             * Index 2 contains the angular velocity in radians/sec^1.
 
-    :param psx:
-        Approximate pixel size (in degrees longitude)
-
-    :param psy:
-        Approximate pixel size (in degrees latitude)
-
     :return:
         A floating point np array of 12 elements containing the
         satellite model parameters.
@@ -658,7 +652,7 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements, psx, psy):
                        ('beta0', 'f8'), ('rotn0', 'f8'), ('hxy0', 'f8'),
                        ('N0', 'f8'), ('H0', 'f8'), ('th_ratio0', 'f8')]
     """
-    smodel, _ = set_satmod(centre_lon, centre_lat, spheroid, orbital_elements, psx, psy)
+    smodel, _ = set_satmod(centre_lon, centre_lat, spheroid, orbital_elements)
 
     columns = [
         "phi0",
@@ -681,8 +675,8 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements, psx, psy):
     return smodel, smodel_dset
 
 
-def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, psx, psy, ntpoints=12):
-    """Set up the satellite track times.
+def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
+    """Setup the satellite track times.
     A wrapper routine for the ``set_times`` Fortran module built via
     ``F2Py``.
 
@@ -727,12 +721,6 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, psx, psy, ntpoin
             * Index 10 contains H0.
             * Index 11 contains th_ratio0.
 
-    :param psx:
-        Approximate pixel size (in degrees longitude)
-
-    :param psy:
-        Approximate pixel size (in degrees latitude)
-
     :param ntpoints:
         The number of time sample points to be calculated along the
         satellite track. Default is 12.
@@ -756,9 +744,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, psx, psy, ntpoin
                        ('lam', 'f8'), ('beta', 'f8'), ('hxy', 'f8'),
                        ('mj', 'f8'), ('skew', 'f8')]
     """
-    track = set_times(
-        ymin, ymax, ntpoints, spheroid, orbital_elements, smodel, psx, psy
-    )
+    track = set_times(ymin, ymax, ntpoints, spheroid, orbital_elements, smodel)
 
     columns = ["t", "rho", "phi_p", "lam", "beta", "hxy", "mj", "skew"]
     dtype = np.dtype([(col, "float64") for col in columns])
@@ -912,6 +898,10 @@ def calculate_angles(
         * DatasetName.SATELLITE_MODEL
         * DatasetName.SATELLITE_TRACK
 
+    :param trackpoints:
+        Number of trackpoints to use when calculating solar angles
+        Default is 12
+
     :param compression:
         The compression filter to use.
         Default is H5CompressionFilter.LZF
@@ -941,10 +931,6 @@ def calculate_angles(
     # longitude and latitude datasets
     longitude = lon_lat_group[DatasetName.LON.value]
     latitude = lon_lat_group[DatasetName.LAT.value]
-
-    # an arc second
-    psy = 1.0 / 3600
-    psx = 1.0 / 3600
 
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
@@ -983,9 +969,7 @@ def calculate_angles(
 
     # Get the satellite model parameters
 
-    smodel = setup_smodel(
-        centre_xy[0], centre_xy[1], spheroid[0], orbital_elements[0], psx, psy
-    )
+    smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid[0], orbital_elements[0])
 
     # Get the times and satellite track information
     track = setup_times(
@@ -994,8 +978,6 @@ def calculate_angles(
         spheroid[0],
         orbital_elements[0],
         smodel[0],
-        psx,
-        psy,
         trackpoints,
     )
 
