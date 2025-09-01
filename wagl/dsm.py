@@ -78,7 +78,36 @@ def read_subset_to_geobox(dsm_dataset, dem_geobox):
 
 
 def copernicus_tiles_latlon_covering_extents(lat_lon_extents):
-    # NB: lat_lon_extents order is  (min_x, min_y, max_x, max_y)
+    """
+    Yields (lat, long) tuples of CopDEM tile coordinates.
+
+    These coordinates correspond to the CopDEM tile numbering scheme & extents
+    for each tile. Tile extents vary by hemisphere.
+
+    e.g. partial `gdalinfo` output for Copernicus_DSM_COG_10_S34_00_E148_00_DEM.tif:
+    ...
+    Upper Left  ( 147.9998611, -32.9998611) --> (148, -33)
+    Lower Left  ( 147.9998611, -33.9998611) --> (148, -34)
+    Upper Right ( 148.9998611, -32.9998611) --> (149, -33)
+    Lower Right ( 148.9998611, -33.9998611) --> (149, -34)
+    ...
+    In the southern hemisphere, S34 tile latitude extents are -33 to -34 degrees.
+    The S34 tile includes the extent to 34 degrees.
+
+    For a northern hemisphere tile Copernicus_DSM_COG_10_N34_00_E125_00_DEM.tif:
+    ...
+    Upper Left  ( 124.9998611,  35.0001389) --> (125, 35)
+    Lower Left  ( 124.9998611,  34.0001389) --> (125, 34)
+    Upper Right ( 125.9998611,  35.0001389) --> (126, 35)
+    Lower Right ( 125.9998611,  34.0001389) --> (126, 34)
+    ...
+    The N34 tile latitude extents are 34 to 35 degrees. It's slightly different
+    to the southern hemisphere with the N34 tile extents >= 34 degrees.
+
+    :param lat_lon_extents: (min_x, min_y, max_x, max_y) tuple
+    """
+    # Convert floating point extents to integer coords for CopDEM tile numbering
+    # TODO: describe subtle floor() logic for lat/longs
     from_lon, from_lat, to_lon, to_lat = (floor(n) for n in lat_lon_extents)
 
     def order(a, b):
