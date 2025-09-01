@@ -57,17 +57,19 @@ def get_unique_lat_longs_from_coord_pairs(tuple_sequence):
 # Section: basic extents testing
 
 
-def test_lat_long_extents_southern_hemisphere_polar(l9_antarctic_volcano_extents):
+def test_copdem_lat_long_extents_southern_hemisphere_polar(
+    l9_antarctic_volcano_extents,
+):
     # Ensure CopDEM tile search provides correct coverage for Landsat scene extents
-    gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_antarctic_volcano_extents)
+    gen = dsm.copernicus_tiles_latlon_covering_extents(l9_antarctic_volcano_extents)
     latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
     assert latitudes == {-78, -77, -76, -75}
     assert longitudes == set(range(-120, -108))
 
 
-def test_lat_long_extents_southern_and_eastern_hemispheres(l5_wagga_extents):
-    gen = dsm.copernicus_tiles_latlon_covering_geobox(l5_wagga_extents)
+def test_copdem_lat_long_extents_southern_and_eastern_hemispheres(l5_wagga_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_extents(l5_wagga_extents)
     latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
     # these lat/long extents confirmed by loading CopDEM tiles in QGIS
@@ -75,24 +77,26 @@ def test_lat_long_extents_southern_and_eastern_hemispheres(l5_wagga_extents):
     assert longitudes == {145, 146, 147, 148}
 
 
-def test_lat_long_extents_southern_and_western_hemispheres(l9_buenos_aires_extents):
-    gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_buenos_aires_extents)
+def test_copdem_lat_long_extents_southern_and_western_hemispheres(
+    l9_buenos_aires_extents,
+):
+    gen = dsm.copernicus_tiles_latlon_covering_extents(l9_buenos_aires_extents)
     latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
     assert latitudes == {-34, -35, -36}
     assert longitudes == {-61, -60, -59, -58}
 
 
-def test_lat_long_extents_northern_and_eastern_hemispheres(l9_italy_extents):
-    gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_italy_extents)
+def test_copdem_lat_long_extents_northern_and_eastern_hemispheres(l9_italy_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_extents(l9_italy_extents)
     latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
     assert latitudes == {37, 38, 39}
     assert longitudes == {14, 15, 16, 17}
 
 
-def test_lat_long_extents_northern_and_western_hemispheres(l9_arizona_extents):
-    gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_arizona_extents)
+def test_copdem_lat_long_extents_northern_and_western_hemispheres(l9_arizona_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_extents(l9_arizona_extents)
     latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
 
     assert latitudes == {33, 34, 35}
@@ -104,7 +108,7 @@ def test_lat_long_extents_northern_and_western_hemispheres(l9_arizona_extents):
 
 
 def test_eastern_hemisphere_lat_long_pairs(l5_wagga_extents):
-    gen = dsm.copernicus_tiles_latlon_covering_geobox(l5_wagga_extents)
+    gen = dsm.copernicus_tiles_latlon_covering_extents(l5_wagga_extents)
 
     for lat in (-36, -35, -34):
         for long in (145, 146, 147, 148):
@@ -112,7 +116,7 @@ def test_eastern_hemisphere_lat_long_pairs(l5_wagga_extents):
 
 
 def test_western_hemisphere_lat_long_pairs(l9_antarctic_volcano_extents):
-    gen = dsm.copernicus_tiles_latlon_covering_geobox(l9_antarctic_volcano_extents)
+    gen = dsm.copernicus_tiles_latlon_covering_extents(l9_antarctic_volcano_extents)
 
     for lat in (-78, -77, -76, -75):
         for long in range(-120, -108):
