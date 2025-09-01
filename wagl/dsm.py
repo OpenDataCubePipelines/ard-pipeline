@@ -107,7 +107,13 @@ def copernicus_tiles_latlon_covering_extents(lat_lon_extents):
     :param lat_lon_extents: (min_x, min_y, max_x, max_y) tuple
     """
     # Convert floating point extents to integer coords for CopDEM tile numbering
-    # TODO: describe subtle floor() logic for lat/longs
+    #
+    # Tile naming depends on the latitude/longitude floor operation. A latitude
+    # coordinate extent of N34.5 has floor(34.5) --> 34, mapping to the N34 tile
+    # with its extent covering 34 to 35 degrees.
+    #
+    # "Negative" coordinates are more subtle. A latitude coord extent of S33.5
+    # has floor(-33.5) --> -34, mapping to tile S34 (-33 to -34 degrees).
     from_lon, from_lat, to_lon, to_lat = (floor(n) for n in lat_lon_extents)
 
     def order(a, b):
