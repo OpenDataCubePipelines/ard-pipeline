@@ -77,7 +77,7 @@ def read_subset_to_geobox(dsm_dataset, dem_geobox):
     return dsm_data
 
 
-def copernicus_tiles_latlon_covering_geobox(lat_lon_extents):
+def copernicus_tiles_latlon_covering_extents(lat_lon_extents):
     # NB: lat_lon_extents order is  (min_x, min_y, max_x, max_y)
     from_lon, from_lat, to_lon, to_lat = (floor(n) for n in lat_lon_extents)
 
@@ -183,7 +183,7 @@ def list_copernicus_bands_for_geobox(cop_pathname, key_to_path, dst_geobox):
     cop30m_crs.ImportFromEPSG(4326)  # WGS84
     lat_lon_extents = dst_geobox.project_extents(cop30m_crs)
 
-    for lat, lon in copernicus_tiles_latlon_covering_geobox(lat_lon_extents):
+    for lat, lon in copernicus_tiles_latlon_covering_extents(lat_lon_extents):
         location = prefix + key_to_path(lat, lon)
 
         if cached:
