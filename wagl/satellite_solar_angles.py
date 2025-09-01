@@ -897,6 +897,10 @@ def calculate_angles(
         * DatasetName.SATELLITE_MODEL
         * DatasetName.SATELLITE_TRACK
 
+    :param trackpoints:
+        Number of trackpoints to use when calculating solar angles
+        Default is 12
+
     :param compression:
         The compression filter to use.
         Default is H5CompressionFilter.LZF
