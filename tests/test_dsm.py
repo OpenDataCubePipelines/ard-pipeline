@@ -121,3 +121,46 @@ def test_western_hemisphere_lat_long_pairs(l9_antarctic_volcano_extents):
     for lat in (-78, -77, -76, -75):
         for long in range(-120, -108):
             assert (lat, long) == gen.__next__()
+
+
+# Section: equatorial crossing tests - ensure extents work over the equator
+
+
+def test_eastern_hemisphere_extents_crossing_equator():
+    # copy & shift Wagga scene extent latitudes north to mimic eastern hemisphere
+    # scene over the equator
+    min_long = 145.434996
+    min_lat = -35.581614 + 34.0
+    max_long = 148.077655
+    max_lat = -33.653483 + 35.0  # artificially extend by an extra degree
+
+    # ensure latitude range crosses equator
+    assert min_lat < 0
+    assert max_lat > 0
+
+    extents = (min_long, min_lat, max_long, max_lat)
+    gen = dsm.copernicus_tiles_latlon_covering_extents(extents)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
+
+    assert latitudes == {-2, -1, 0, 1}
+    assert longitudes == {145, 146, 147, 148}
+
+
+def test_western_hemisphere_extents_crossing_equator():
+    # copy & shift Buenos Aires scene extent latitudes north to mimic western
+    # hemisphere scene over the equator
+    min_long = -60.05997761
+    min_lat = -35.66956971 + 34.0
+    max_long = -57.50299335
+    max_lat = -33.54584702 + 35.0
+
+    # ensure latitude range crosses equator
+    assert min_lat < 0
+    assert max_lat > 0
+
+    extents = (min_long, min_lat, max_long, max_lat)
+    gen = dsm.copernicus_tiles_latlon_covering_extents(extents)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
+
+    assert latitudes == {-2, -1, 0, 1}
+    assert longitudes == {-61, -60, -59, -58}
