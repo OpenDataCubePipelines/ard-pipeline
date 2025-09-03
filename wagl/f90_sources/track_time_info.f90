@@ -45,7 +45,7 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
 !   Outputs:
 !       track
 
-    use sys_variables, only : pi, d2r, r2d
+    use sys_variables, only : pi, d2r, r2d, arcsecond
 
     implicit none
 
@@ -102,9 +102,8 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
 !    print*,'Number of track points=',ntpoints
 !    print*,'Track time step(sec)=',delta_t
 
-!   one arc second
-    psx = 1.0 / 3600
-    psy = 1.0 / 3600
+    psx = arcsecond
+    psy = arcsecond
     call cal_track(ntpoints,tin,orb_elements,spheroid,smodel, &
            psx,psy,track,istat)
 
