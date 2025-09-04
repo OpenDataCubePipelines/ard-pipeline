@@ -43,6 +43,25 @@ def l9_arizona_extents():
     return -113.457772, 33.523343, -110.889247, 35.675949
 
 
+@pytest.fixture
+def l9_fiji_extents():
+    # From Fiji scene LC90730712024364LGN00:
+    # Corner Upper Left Latitude 	-14.84924
+    # Corner Upper Left Longitude 	179.68416  # west of antimeridian
+    #
+    # Corner Upper Right Latitude 	-14.87003
+    # Corner Upper Right Longitude 	-178.20377
+    #
+    # Corner Lower Left Latitude 	-16.93133
+    # Corner Lower Left Longitude 	179.64985  # east of antimeridian
+    #
+    # Corner Lower Right Latitude 	-16.95520
+    # Corner Lower Right Longitude 	-178.21625
+    #
+    # use same min/max lat/long order
+    return -178.20377, -16.95520, 179.64985, -14.84924
+
+
 # Section: helper functions
 
 
@@ -164,3 +183,55 @@ def test_western_hemisphere_extents_crossing_equator():
 
     assert latitudes == {-2, -1, 0, 1}
     assert longitudes == {-61, -60, -59, -58}
+
+
+# Section: antimeridian +/- 180 detection tests
+
+
+def test_intersects_antimeridian(l9_fiji_extents):
+    assert dsm.intersects_antimeridian(l9_fiji_extents)
+    assert not dsm.disjoint_antimeridian(l9_fiji_extents)
+
+
+def test_intersects_prime_meridian():
+    # ensure false positives are avoided, e.g. at the prime meridian (0 degrees)
+    extents = (-1.0, 10.0, 1.0, 12.0)
+    assert not dsm.intersects_antimeridian(extents)
+    assert dsm.disjoint_antimeridian(extents)
+
+
+def test_disjoint_antimeridian(l5_wagga_extents, l9_arizona_extents, l9_italy_extents):
+    # avoid false positives
+    assert dsm.disjoint_antimeridian(l5_wagga_extents)
+    assert dsm.disjoint_antimeridian(l9_arizona_extents)
+    assert dsm.disjoint_antimeridian(l9_italy_extents)
+
+
+# Section: test coordinate ranges at the antimeridian
+
+
+def test_fiji_extents_crossing_antimeridian(l9_fiji_extents):
+    gen = dsm.copernicus_tiles_latlon_covering_extents(l9_fiji_extents)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
+
+    assert latitudes == {-17, -16, -15}
+    assert longitudes == {-180, -179, 179}
+
+
+def test_southern_hemisphere_extents_crossing_antimeridian():
+    # copy & shift Wagga scene extent longitudes to cross antimeridian
+    min_long = -177.922345  # -180 + width of ~2.07 degrees
+    min_lat = -35.581614
+    max_long = 179.434996  # from 145.434996 + 34.0
+    max_lat = -33.653483
+
+    # partially ensure longitude range crosses antimeridian
+    assert min_long < 0
+    assert max_long > 0
+
+    extents = (min_long, min_lat, max_long, max_lat)
+    gen = dsm.copernicus_tiles_latlon_covering_extents(extents)
+    latitudes, longitudes = get_unique_lat_longs_from_coord_pairs(gen)
+
+    assert latitudes == {-36, -35, -34}
+    assert longitudes == {-180, -179, -178, 179}
