@@ -3,7 +3,7 @@
 
 import itertools
 import os.path
-from math import ceil, floor
+from math import ceil, degrees, floor, radians
 
 import boto3
 import h5py
@@ -15,6 +15,7 @@ from osgeo import osr
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 from scipy import ndimage
+from sklearn.metrics.pairwise import haversine_distances
 
 from wagl.constants import DatasetName, GroupName
 from wagl.data import read_subset, reproject_array_to_array
@@ -122,9 +123,56 @@ def copernicus_tiles_latlon_covering_extents(lat_lon_extents):
     from_lat, to_lat = order(from_lat, to_lat)
     from_lon, to_lon = order(from_lon, to_lon)
 
-    yield from itertools.product(
-        range(from_lat, to_lat + 1), range(from_lon, to_lon + 1)
-    )
+    if disjoint_antimeridian(lat_lon_extents):
+        yield from itertools.product(
+            range(from_lat, to_lat + 1), range(from_lon, to_lon + 1)
+        )
+    else:
+        # Antimeridian handling
+        # For longitudes, emit coordinates starting at antimeridian, traversing
+        # west to east across *western* hemisphere coordinates. Emit smallest
+        # longitudes 1st, equivalent to sliding right across the scene
+        yield from itertools.product(
+            range(from_lat, to_lat + 1), range(-180, from_lon + 1)
+        )
+
+        # Continue emitting longitudes from the scene's westernmost extent, which
+        # occupies eastern hemisphere coordinate space (also slide right)
+        yield from itertools.product(range(from_lat, to_lat + 1), range(to_lon, 180))
+
+
+def disjoint_antimeridian(lat_lon_extents):
+    """
+    Return True if the extents do not cross the antimeridian.
+    """
+    # Inverted intersects_antimeridian() for simpler logic in calling functions
+    return not intersects_antimeridian(lat_lon_extents)
+
+
+def intersects_antimeridian(lat_lon_extents):
+    """
+    Return True if the longitude extents cross the +/- 180 antimeridian
+    """
+    from_lon, _, to_lon, to_lat = lat_lon_extents
+    to_lat_r = radians(to_lat)  # NB: use 1 lat to focus on longitude diff only
+    from_lon_r, to_lon_r = tuple(radians(n) for n in sorted((from_lon, to_lon)))
+
+    p0 = (to_lat_r, from_lon_r)  # NB: using 1 latitude for horizontal distance
+    p1 = (to_lat_r, to_lon_r)
+
+    # Use haversine distance of scene longitude extent points to calculate the
+    # scene width (the delta). Use delta distance to determine if this arc
+    # between points crosses the antimeridian.
+    #
+    # haversine_distances() returns 2x2 arrays in radians:
+    # array([[0.        , 0.04654447],
+    #        [0.04654447, 0.        ]])
+    delta_radians = haversine_distances((p0, p1))
+    lon_delta_radians = np.unique(delta_radians[delta_radians > 0.0])
+    lon_delta_degrees = degrees(lon_delta_radians)
+
+    # 'extend' a line from min longitude for antimeridian check
+    return abs(from_lon) + lon_delta_degrees > 180.0
 
 
 def copernicus_folder_for_latlon(lat, lon) -> str:
