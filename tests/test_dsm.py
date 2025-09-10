@@ -226,8 +226,8 @@ def test_southern_hemisphere_extents_crossing_antimeridian():
     max_lat = -33.653483
 
     # partially ensure longitude range crosses antimeridian
-    assert min_long < 0
-    assert max_long > 0
+    assert min_long < 179
+    assert max_long > 179
 
     extents = (min_long, min_lat, max_long, max_lat)
     gen = dsm.copernicus_tiles_latlon_covering_extents(extents)
