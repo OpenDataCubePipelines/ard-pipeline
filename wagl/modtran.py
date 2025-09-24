@@ -101,6 +101,10 @@ def format_json(
     """
     assert out_group is not None
 
+    if workflow == Workflow.SBT:
+        msg = "SBT has been removed from DE Antarctic development work."
+        raise NotImplementedError(msg)
+
     # angles data
     sat_view = satellite_solar_group[DatasetName.SATELLITE_VIEW.value]
     sat_azi = satellite_solar_group[DatasetName.SATELLITE_AZIMUTH.value]
@@ -258,49 +262,6 @@ def format_json(
                 )
 
                 write_scalar(data, dname, group, input_data)
-
-    # create json for sbt if it has been collected
-    if ancillary_group.attrs.get("sbt-ancillary"):
-        dname = ppjoin(POINT_FMT, DatasetName.ATMOSPHERIC_PROFILE.value)
-        acqs = [a for a in acquisitions if a.band_type == BandType.THERMAL]
-
-        for p in range(npoints):
-            atmos_profile = read_h5_table(ancillary_group, dname.format(p=p))
-
-            n_layers = atmos_profile.shape[0] + 6
-            elevation = atmos_profile.iloc[0][GEOPOTENTIAL_HEIGHT]
-
-            input_data = {
-                "name": POINT_ALBEDO_FMT.format(p=p, a="TH"),
-                "ozone": ozone,
-                "n": n_layers,
-                "prof_alt": list(atmos_profile[GEOPOTENTIAL_HEIGHT]),
-                "prof_pres": list(atmos_profile[PRESSURE]),
-                "prof_temp": list(atmos_profile[TEMPERATURE]),
-                "prof_water": list(atmos_profile[RELATIVE_HUMIDITY]),
-                "visibility": -aerosol,
-                "sat_height": acquisitions[0].altitude / 1000.0,
-                "gpheight": elevation,
-                "sat_view": view_corrected[p],
-                "filter_function": acqs[0].spectral_filter_name,
-                "binary": False,
-            }
-
-            data = mpjson.thermal_transmittance(**input_data)
-
-            input_data["description"] = "Input File for MODTRAN"
-            input_data["file_format"] = "json"
-            input_data.pop("binary")
-
-            json_data[(p, Albedos.ALBEDO_TH)] = data
-
-            data = json.dumps(data, cls=JsonEncoder, indent=4)
-            out_dname = ppjoin(
-                POINT_FMT.format(p=p),
-                ALBEDO_FMT.format(a=Albedos.ALBEDO_TH.value),
-                DatasetName.MODTRAN_INPUT.value,
-            )
-            write_scalar(data, out_dname, group, input_data)
 
     # attach location info to each point Group
     for p in range(npoints):
