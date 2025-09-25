@@ -121,17 +121,6 @@ def output_filename_landsat(scene_landsat_path):
     return out
 
 
-# config copied from luigi cfg template & singlefile_workflow.py
-_default_cfg_paths = {
-    "aerosol": {"user": 0.05},
-    "dem_path": "/g/data/v10/eoancillarydata-2/elevation/world_1deg/DEM_one_deg_20June2019.h5:/SRTM/GA-DSM",
-    "brdf_dict": {
-        "brdf_path": "/g/data/v10/eoancillarydata-2/BRDF/MCD43A1.061",
-        "ocean_mask_path": "/g/data/v10/eoancillarydata-2/ocean_mask/base_oz_tile_set_water_mask_geotif.tif",
-    },
-}
-
-
 def init_tmp_dir():
     tmp_dir = os.path.abspath(os.environ[TMP_DIR])
     tmp_dir = os.path.join(tmp_dir, "ard-era5-testing")
@@ -155,13 +144,12 @@ def test_collect_era5_ancillary_landsat(
     with h5py.File(dest_path, "w") as fid:
         root_group = fid.create_group(scene_landsat_base_path)
         out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
-        centroid = [(146.75891632807912, -34.62198174915786)]
+        centroid = [(-34.62198174915786, 146.75891632807912)]
 
         ancillary.collect_era5_ancillary(
-            scene_landsat_container,
+            scene_landsat_container.get_highest_resolution()[0][0],
             centroid,
             nci_era5_dir_path,
-            _default_cfg_paths,
             out_group,
         )
 
@@ -174,15 +162,7 @@ def test_collect_era5_ancillary_landsat(
     df = h5py.File(dest_path)
     base = scene_landsat_base_path
 
-    expected_aerosol = 0.05
-    assert df[f"{base}/ANCILLARY/AEROSOL"][()] == expected_aerosol
-
-    # NB: expected_ozone = "TODO"
-    ozone = df[f"{base}/ANCILLARY/OZONE"][()]
-    assert ozone is not None
-    assert ozone != 0.0  # FIXME: copy ozone from source data?
-
-    # check atmos profile
+    # check atmospheric profile
     profile = df[f"{base}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
     assert profile is not None
     assert len(profile) == 38  # number of rows
@@ -208,23 +188,23 @@ def test_collect_era5_ancillary_landsat_multi_points(
     nci_era5_dir_path,
     output_filename_landsat,
 ):
+    # direct to alt file to prevent I/O clash
     tmp_dir = init_tmp_dir()
-    dest_path = os.path.join(tmp_dir, output_filename_landsat)
+    dest_path = os.path.join(tmp_dir, "multi_point_" + output_filename_landsat)
 
     with h5py.File(dest_path, "w") as fid:
         root_group = fid.create_group(scene_landsat_base_path)
         out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
-        points = [
-            (146.75891632807912, -34.62198174915786),  # centroid
-            (147.34547961918634, -35.11559202501883),
-        ]  # Wagga T intersection
+        lat_longs = [
+            (-34.62198174915786, 146.75891632807912),  # centroid
+            (-35.11559202501883, 147.34547961918634),  # Wagga T intersection
+        ]
 
         ancillary.collect_era5_ancillary(
-            scene_landsat_container,
-            points,
+            scene_landsat_container.get_highest_resolution()[0][0],
+            lat_longs,
             nci_era5_dir_path,
-            _default_cfg_paths,
             out_group,
         )
 
@@ -263,7 +243,7 @@ def test_collect_era5_ancillary_sentinel(
 
     acq = wagga_scene_sentinel2_container.get_highest_resolution()[0][0]
     geobox = acq.gridded_geo_box()
-    lonlats = (geobox.centre_lonlat, (147.34547961918634, -35.11559202501883))
+    latlongs = (geobox.centre_lonlat[::-1], (-35.11559202501883, 147.34547961918634))
 
     # root group name copies naming from workflow H5 output files
     rootname = wagga_scene_sentinel2_container.granules[0]
@@ -273,20 +253,16 @@ def test_collect_era5_ancillary_sentinel(
         out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
         ancillary.collect_era5_ancillary(
-            wagga_scene_sentinel2_container,
-            lonlats,
+            wagga_scene_sentinel2_container.get_highest_resolution()[0][0],
+            latlongs,
             nci_era5_dir_path,
-            _default_cfg_paths,
             out_group,
         )
 
     assert os.path.exists(dest_path)
 
-    # very basic test to ensure readable HDF5 output...
+    # very basic test to ensure readable HDF5 output with new ancillaries...
     df = h5py.File(dest_path)
-
-    expected_aerosol = 0.05
-    assert df[f"{rootname}/ANCILLARY/AEROSOL"][()] == expected_aerosol
 
     profile = df[f"{rootname}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
     assert profile is not None  # same as profile 1 in the single location test
