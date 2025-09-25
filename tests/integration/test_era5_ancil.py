@@ -106,6 +106,11 @@ def scene_landsat_container(scene_landsat_path):
 
 
 @pytest.fixture
+def scene_landsat_acquisition(scene_landsat_container):
+    return scene_landsat_container.get_highest_resolution()[0][0]
+
+
+@pytest.fixture
 def output_filename_sentinel(wagga_scene_sentinel2_path):
     bn = os.path.basename(wagga_scene_sentinel2_path)
     no_ext = os.path.splitext(bn)[0]
@@ -133,7 +138,7 @@ def init_tmp_dir():
 
 @pytest.mark.skipif(not on_gadi, reason=_REASON)
 def test_collect_era5_ancillary_landsat(
-    scene_landsat_container,
+    scene_landsat_acquisition,
     scene_landsat_base_path,
     nci_era5_dir_path,
     output_filename_landsat,
@@ -147,7 +152,7 @@ def test_collect_era5_ancillary_landsat(
         centroid = [(-34.62198174915786, 146.75891632807912)]
 
         ancillary.collect_era5_ancillary(
-            scene_landsat_container.get_highest_resolution()[0][0],
+            scene_landsat_acquisition,
             centroid,
             nci_era5_dir_path,
             out_group,
@@ -183,7 +188,7 @@ def test_collect_era5_ancillary_landsat(
 
 @pytest.mark.skipif(not on_gadi, reason=_REASON)
 def test_collect_era5_ancillary_landsat_multi_points(
-    scene_landsat_container,
+    scene_landsat_acquisition,
     scene_landsat_base_path,
     nci_era5_dir_path,
     output_filename_landsat,
@@ -202,7 +207,7 @@ def test_collect_era5_ancillary_landsat_multi_points(
         ]
 
         ancillary.collect_era5_ancillary(
-            scene_landsat_container.get_highest_resolution()[0][0],
+            scene_landsat_acquisition,
             lat_longs,
             nci_era5_dir_path,
             out_group,
