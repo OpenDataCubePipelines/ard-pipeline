@@ -1,4 +1,6 @@
-"""Satellite and Solar angle claculations over a 2D grid."""
+"""
+Satellite and solar angle calculations over a 2D grid.
+"""
 
 import math
 
@@ -181,6 +183,7 @@ def swathe_edges(threshold, array):
 def track_bisection(acquisition, npoints, first_row, last_row):
     """Determine the type of intersection the satellite has with the
     acquisition, and where the bi-section coordinates should occur.
+
     Cases that are dealt with are:
 
       * Full intersection; The track intersects both ends of the image.
@@ -333,7 +336,7 @@ def create_boxline(
     boxline["end_latitude"] = lat
 
     kwargs = H5CompressionFilter.LZF.config().dataset_compression_kwargs()
-    desc = "Contains the bi-section, column start and column end array " "coordinates."
+    desc = "Contains the bi-section, column start and column end array coordinates."
     attrs = {
         "description": desc,
         "array_coordinate_offset": 0,
@@ -479,14 +482,17 @@ def calculate_julian_century(datetime):
     return century
 
 
+# TODO: is it necessary to return near duplicate data in slightly different forms?
+#       one element has field names, the other does not
 def setup_spheroid(proj_wkt):
-    """Given a WKT projection string, determine the spheroid parameters
-    that will be used in calculating the angle grids.
+    """Return spheroid parameters used to calculate angle grids.
 
     :param proj_wkt:
         A string containing valid WKT projection information.
 
     :return:
+        Two element tuple containing:
+
         A floating point np array of 4 elements containing
         spheroidal parameters.
 
@@ -496,7 +502,7 @@ def setup_spheroid(proj_wkt):
             * Index 3 contains the Earth rotational angular velocity in
               radians/second.
 
-        Also a np dataset of the following datatype:
+        A NumPy dataset of the following datatype:
 
             * dtype = [('semi_major_axis', 'float64'),
                        ('inverse_flattening', 'float64'),
@@ -601,6 +607,7 @@ def setup_orbital_elements(acquisition, tle_path):
 
 def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
     """Setup the satellite model.
+
     A wrapper routine for the `set_satmod` Fortran module built via
     ``F2Py``.
 
@@ -677,6 +684,7 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
 
 def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
     """Setup the satellite track times.
+
     A wrapper routine for the ``set_times`` Fortran module built via
     ``F2Py``.
 
@@ -764,8 +772,8 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
 def _store_parameter_settings(
     fid, spheroid, orbital_elements, satellite_model, satellite_track, params
 ):
-    """An internal function for storing the parameter settings for the
-    calculate_angles workflow.
+    """Internal function for storing parameter settings for the
+    calculate_angles() workflow.
     """
     group = fid.create_group("PARAMETERS")
 
@@ -865,9 +873,8 @@ def calculate_angles(
     tle_path=None,
     trackpoints=12,
 ):
-    """Calculate the satellite view, satellite azimuth, solar zenith,
-    solar azimuth, and relative azimuth angle grids, as well as the
-    time grid.
+    """Calculate satellite view, satellite azimuth, solar zenith,
+    solar azimuth, and relative azimuth angle grids and time grid.
 
     :param acquisition:
         An instance of an `Acquisition` object.
@@ -897,10 +904,6 @@ def calculate_angles(
         * DatasetName.ORBITAL_ELEMENTS
         * DatasetName.SATELLITE_MODEL
         * DatasetName.SATELLITE_TRACK
-
-    :param trackpoints:
-        Number of trackpoints to use when calculating solar angles
-        Default is 12
 
     :param compression:
         The compression filter to use.
@@ -999,8 +1002,8 @@ def calculate_angles(
         "decimal_hour": acquisition.decimal_hour(),
         "acquisition_datetime": acquisition.acquisition_datetime,
         "centre_longitude_latitude": centre_xy,
-        "minimum_latiude": min_lat,
-        "maximum_latiude": max_lat,
+        "minimum_latiude": min_lat,  # TODO: key spelt wrong
+        "maximum_latiude": max_lat,  # TODO: key spelt wrong
         "latitude_buffer": 1.0,
         "max_view_angle": acquisition.maximum_view_angle,
     }
