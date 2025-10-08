@@ -1002,8 +1002,8 @@ def calculate_angles(
         "decimal_hour": acquisition.decimal_hour(),
         "acquisition_datetime": acquisition.acquisition_datetime,
         "centre_longitude_latitude": centre_xy,
-        "minimum_latiude": min_lat,  # TODO: key spelt wrong
-        "maximum_latiude": max_lat,  # TODO: key spelt wrong
+        "minimum_latitude": min_lat,
+        "maximum_latitude": max_lat,
         "latitude_buffer": 1.0,
         "max_view_angle": acquisition.maximum_view_angle,
     }
