@@ -155,10 +155,10 @@ def first_and_last(array):
     return (i[0], i[-1]) if i.shape[0] else (-1, -1)
 
 
-def asymetric_linspace(start, stop, num, midpoint):
+def asymmetric_linspace(start, stop, num, midpoint):
     """Utility like numpy.linspace but with custom midpoint.
 
-    >>> assymetric_linspace(start=10, stop=20, num=5, midpoint=18)
+    >>> asymmetric_linspace(start=10, stop=20, num=5, midpoint=18)
     [10, 14, 18, 19, 20]
     """
     front = np.linspace(start, midpoint, num // 2, endpoint=False, dtype="int64")
@@ -437,12 +437,12 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     # Note, assumes that if track intersects two rows then it also
     # intersects all intervening rows.
 
-    grid_rows = asymetric_linspace(0, rows - 1, vertices[0], midpoint=mid_row)
+    grid_rows = asymmetric_linspace(0, rows - 1, vertices[0], midpoint=mid_row)
 
     nvertices = vertices[0] * vertices[1]
     locations = np.empty((vertices[0], vertices[1], 2), dtype="int64")
     for ig, ir in enumerate(grid_rows):  # row indices for sample-grid & raster
-        grid_line = asymetric_linspace(
+        grid_line = asymmetric_linspace(
             istart[ir], iend[ir], vertices[1], mid_col or xcentre[ir]
         )
         locations[ig, :, 0] = ir
