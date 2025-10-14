@@ -799,7 +799,7 @@ def _store_parameter_settings(
     attach_table_attributes(orb_dset, title="Orbital Elements", attrs=attrs)
 
     # satellite model
-    desc = "The satellite model used in the satellite and solar angles " "calculation."
+    desc = "The satellite model used in the satellite and solar angles calculation."
     attrs = {"description": desc}
     dname = DatasetName.SATELLITE_MODEL.value
     sat_dset = group.create_dataset(dname, data=satellite_model)
@@ -879,7 +879,7 @@ def calculate_angles(
     :param acquisition:
         An instance of an `Acquisition` object.
 
-    :param lon_lat_group::
+    :param lon_lat_group:
         The root HDF5 `Group` that contains the longitude and
         latitude datasets.
         The dataset pathnames are given by:
@@ -931,7 +931,7 @@ def calculate_angles(
     century = calculate_julian_century(acquisition.acquisition_datetime)
     geobox = acquisition.gridded_geo_box()
 
-    # longitude and latitude datasets
+    # read longitude and latitude datasets
     longitude = lon_lat_group[DatasetName.LON.value]
     latitude = lon_lat_group[DatasetName.LAT.value]
 
@@ -992,8 +992,7 @@ def calculate_angles(
 
     grp = fid[GroupName.SAT_SOL_GROUP.value]
 
-    # store the parameter settings used with the satellite and solar angles
-    # function
+    # store parameter settings used with the satellite & solar angles function
     params = {
         "dimensions": (acquisition.lines, acquisition.samples),
         "lines": acquisition.lines,
@@ -1144,6 +1143,7 @@ def calculate_angles(
     # outputs
     # TODO: rework create_boxline so that it reads tiled data effectively
     create_centreline_dataset(geobox, x_cent, n_cent, grp)
+
     create_boxline(
         acquisition,
         sat_v_ds[:],
