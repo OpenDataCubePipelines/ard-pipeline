@@ -96,8 +96,9 @@ SUBROUTINE set_satmod(lon0,lat0,spheroid,orb_elements,smodel,istat)
     latin = lat0
     psx = arcsecond
     psy = arcsecond
-    call geo2metres_pixel_size(latin,psx,psy,spheroid,psx_out,&
-                               psy_out,istat)
+
+    call geo2metres_pixel_size(latin,psx,psy,spheroid,psx_out,psy_out,istat)
+
     hxy0 = psx_out/psy_out
 
 !   smodel(phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0,N0,H0,th_ratio0)

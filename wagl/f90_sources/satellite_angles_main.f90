@@ -101,43 +101,44 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
     end do
 
     do i=1,nrow
-    do j=1,ncol
-        xout = alon(i, j)
-        yout = alat(i, j)
+        do j=1,ncol
+            xout = alon(i, j)
+            yout = alat(i, j)
 
-!       calculate pixel size (half)
-        if (j .gt. 1) then
-            delxx = (alon(i, j)-alon(i, j-1))/2
-        else
-            delxx = (alon(i, j+1)-alon(i, j))/2
-        endif
+!           calculate pixel size (half)
+            if (j .gt. 1) then
+                delxx = (alon(i, j)-alon(i, j-1)) / 2
+            else
+                delxx = (alon(i, j+1)-alon(i, j)) / 2
+            endif
 
-        tol_lam = delxx*d2r*1.2
+            tol_lam = delxx*d2r*1.2
 
-!       go through the base sequence used in the test examples
-        lam_p = xout*d2r
+!           go through the base sequence used in the test examples
+            lam_p = xout*d2r
 
-        call geod2geo(yout, orb_elements, spheroid, phip_p, istat_elem)
+            call geod2geo(yout, orb_elements, spheroid, phip_p, istat_elem)
 
-        istat(i, j) = istat_elem
+            istat(i, j) = istat_elem
 
-        call cal_angles(lam_p, phip_p, tol_lam, orb_elements, &
-               spheroid, smodel, track, tan_beta, &
-               sin_orb_incl, cos_orb_incl, tan_orb_incl, &
-               ntpoints, timet, theta_p, &
-               azimuth, istat_elem)
+            call cal_angles(lam_p, phip_p, tol_lam, orb_elements, &
+                            spheroid, smodel, track, tan_beta, &
+                            sin_orb_incl, cos_orb_incl, tan_orb_incl, &
+                            ntpoints, timet, theta_p, &
+                            azimuth, istat_elem)
 
-        if (istat(i, j) .eq. 0) istat(i, j) = istat_elem
+            if (istat(i, j) .eq. 0) istat(i, j) = istat_elem
 
-        tim(i, j) = timet
-        view(i, j) = theta_p*r2d
-        azi(i, j) = azimuth*r2d
-        if ((abs(timet) .gt. 1.0e-5) .and. (abs(view(i, j)) .lt. 1.0e-7) &
-          .and. (abs(azi(i, j)) .lt. 1.0e-7)) then
-            X_cent(row_offset + i) = X_cent(row_offset + i)+real(j + col_offset)
-            N_cent(row_offset + i) = N_cent(row_offset + i)+1.0
-        endif
-    enddo
+            tim(i, j) = timet
+            view(i, j) = theta_p*r2d
+            azi(i, j) = azimuth*r2d
+
+            if ((abs(timet) .gt. 1.0e-5) .and. (abs(view(i, j)) .lt. 1.0e-7) &
+              .and. (abs(azi(i, j)) .lt. 1.0e-7)) then
+                X_cent(row_offset + i) = X_cent(row_offset + i)+real(j + col_offset)
+                N_cent(row_offset + i) = N_cent(row_offset + i)+1.0
+            endif
+        enddo
     enddo
 
     return
