@@ -304,10 +304,10 @@ def create_boxline(
             ("end_index", "int64"),
             ("bisection_longitude", "float64"),
             ("bisection_latitude", "float64"),
-            ("start_longitude", "float64"),
-            ("start_latitude", "float64"),
-            ("end_longitude", "float64"),
-            ("end_latitude", "float64"),
+            # ("start_longitude", "float64"),  # NB: appears unused
+            # ("start_latitude", "float64"),  # NB: appears unused
+            # ("end_longitude", "float64"),  # NB: appears unused
+            # ("end_latitude", "float64"),  # NB: appears unused
         ]
     )
     boxline = np.empty(rows, dtype=boxline_dtype)
@@ -327,13 +327,13 @@ def create_boxline(
     boxline["bisection_longitude"] = lon
     boxline["bisection_latitude"] = lat
 
-    lon, lat = convert_to_lonlat(geobox, istart, row_index)
-    boxline["start_longitude"] = lon
-    boxline["start_latitude"] = lat
-
-    lon, lat = convert_to_lonlat(geobox, iend, row_index)
-    boxline["end_longitude"] = lon
-    boxline["end_latitude"] = lat
+    # lon, lat = convert_to_lonlat(geobox, istart, row_index)
+    # boxline["start_longitude"] = lon
+    # boxline["start_latitude"] = lat
+    #
+    # lon, lat = convert_to_lonlat(geobox, iend, row_index)
+    # boxline["end_longitude"] = lon
+    # boxline["end_latitude"] = lat
 
     kwargs = H5CompressionFilter.LZF.config().dataset_compression_kwargs()
     desc = "Contains the bi-section, column start and column end array coordinates."
