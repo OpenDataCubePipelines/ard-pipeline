@@ -225,7 +225,7 @@ def format_json(
                     "binary": False,
                 }
 
-                data = select_profile_australia(
+                data = select_profile_worldwide(
                     acquisitions[0].acquisition_datetime, centre_lat, input_data
                 )
 
