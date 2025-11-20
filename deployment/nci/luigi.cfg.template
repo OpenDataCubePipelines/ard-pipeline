@@ -18,7 +18,7 @@ h5_driver =
 
 [Package]
 yamls_dir =
-cleanup = true
+cleanup = false
 cloud_buffer_distance = 0
 cloud_shadow_buffer_distance = 0
 products = ${ard_product_array}

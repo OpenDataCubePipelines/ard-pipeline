@@ -76,7 +76,7 @@ echo "modtran_version = ${modtran_version:="6.0.1"}"
 echo
 # It thinks we're trying to quote the inner json for bash
 # shellcheck disable=SC2089
-echo "ard_product_array=${ard_product_array:="[\"NBART\", \"NBAR\"]"}"
+echo "ard_product_array=${ard_product_array:="[\"LAMBERTIAN\", \"NBART\", \"NBAR\"]"}"
 echo "fmask_version=${fmask_version:="0.5.7"}"
 echo
 # Uppercase to match the variable that DEA modules use (If you already have it loaded, we'll take it from there).
