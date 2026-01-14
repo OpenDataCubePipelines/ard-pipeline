@@ -1,7 +1,7 @@
 ! subroutine q_cal
 SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel, &
-             sin_orb_incl, cos_orb_incl, tan_orb_incl, rhocal,tcal, &
-             lamcal,betacal,istat)
+             sin_orb_incl, cos_orb_incl, tan_orb_incl, &
+             rhocal, tcal, lamcal, betacal, istat)  ! subroutine 'returns' these
 
 !   base subroutine to calculate base track information
 !   relative to a given geocentric latitude
@@ -47,7 +47,7 @@ SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel, &
 
     implicit none
 
-    double precision phip
+    double precision phip    ! TODO: is this phi prime?
 
     double precision orb_elements(3), spheroid(4)
     double precision sin_orb_incl, cos_orb_incl, tan_orb_incl
@@ -78,7 +78,7 @@ SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel, &
     rhocal = acos(sin(phip)/sin_orb_incl)
     tcal = (rhocal+pi/2.0d0)/ws
     lamcal = gamm0-pi/2.0d0+atan2(sin(rhocal), &
-      cos(rhocal)*cos_orb_incl)-we*(tcal-t0)
+               cos(rhocal)*cos_orb_incl)-we*(tcal-t0)
     betacal = atan(-1.0d0/(tan_orb_incl*sin(rhocal)))
 
     return
