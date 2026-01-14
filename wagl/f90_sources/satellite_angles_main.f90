@@ -1,7 +1,10 @@
 ! subroutine angle
-SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_elements, &
-             ntpoints,smodel,track, &
-             view,azi,tim,X_cent,N_cent,istat)
+SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset, &
+                           alat,alon,spheroid,orb_elements, &
+                           ntpoints,smodel,track, &
+                           view,azi,tim,X_cent,N_cent,istat)  ! the `return` vars
+
+! TODO how much work required to fix calculations for satellites tracking sideways across scenes?
 
 !   program to calculate solar, view and azimuth angle from
 !   both UTM and lat/lon projection if we only know one point in the
@@ -14,8 +17,8 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
 !       nrow
 !       ncol
 !       nlines
-!       row_offset
-!       col_offset
+!       row_offset  ! TODO: is this the tile offset?
+!       col_offset  ! TODO: is this the tile offset?
 !       alat
 !       alon
 !       spheroid
@@ -106,6 +109,7 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
             yout = alat(i, j)
 
 !           calculate pixel size (half)
+            ! TODO is this delta X or delta X squared?
             if (j .gt. 1) then
                 delxx = (alon(i, j)-alon(i, j-1)) / 2
             else
@@ -135,7 +139,9 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
 
             if ((abs(timet) .gt. 1.0e-5) .and. (abs(view(i, j)) .lt. 1.0e-7) &
               .and. (abs(azi(i, j)) .lt. 1.0e-7)) then
-                X_cent(row_offset + i) = X_cent(row_offset + i)+real(j + col_offset)
+
+                ! TODO: fix or replace for calculation tracks crossing 'sideways' over scene?
+                X_cent(row_offset + i) = X_cent(row_offset + i)+real(j + col_offset
                 N_cent(row_offset + i) = N_cent(row_offset + i)+1.0
             endif
         enddo
