@@ -6,7 +6,7 @@ SUBROUTINE geod2geo(yin,orb_elements,spheroid,phip,istat)
 !   * Re-written as an independent subroutine by JS, Aug 2014
 
 !   Inputs:
-!       yin
+!       yin TODO is this geodetic latitude?
 !       orb_elements
 !           1. Orbital inclination (degrees)
 !           2. Semi_major radius (m)
@@ -18,7 +18,7 @@ SUBROUTINE geod2geo(yin,orb_elements,spheroid,phip,istat)
 !           4. Earth rotational angular velocity rad/sec
 
 !   Outputs:
-!       phip
+!       phip  ! TODO is this phi prime, or geocentric latitude in radians?
 !       istat
 
     use sys_variables, only : pi, d2r, r2d
@@ -45,10 +45,12 @@ SUBROUTINE geod2geo(yin,orb_elements,spheroid,phip,istat)
 !   Initialise the return status
     istat = 0
 
+    ! TODO where is this algorithm documented?
+    !   https://en.wikipedia.org/wiki/Geodetic_coordinates
     temp = dble(yin)*d2r
     sin_yin = sin(temp)
     cos_yin = cos(temp)
-    RN = asph/sqrt(1.0d0-e2*sin_yin**2)
+    RN = asph/sqrt(1.0d0-e2*sin_yin**2)  ! https://en.wikipedia.org/wiki/Geographic_coordinate_conversion
     phip = temp-asin(RN*e2*sin_yin*cos_yin/orad)
 
     return
