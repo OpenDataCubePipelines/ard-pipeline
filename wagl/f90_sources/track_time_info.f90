@@ -1,6 +1,6 @@
 ! subroutine set_times
-SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
-             smodel,track)
+SUBROUTINE set_times(ymin, ymax, ntpoints, spheroid, orb_elements, &
+                     smodel, track)
 
 !   Calculate satellite track times and other info
 
@@ -76,17 +76,17 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
     tan_orb_incl = tan(orb_incl)
 
 !   set up the time range to use for the satellite track
-    call geod2geo(ymax,orb_elements,spheroid,phip_max,istat)
+    call geod2geo(ymax,orb_elements,spheroid,phip_max,istat)  ! sets phip_max
     call q_cal(phip_max,orb_elements,spheroid,smodel, &
-               sin_orb_incl, cos_orb_incl, tan_orb_incl, rhocal,tcal, &
-               lamcal,betacal,istat)
+               sin_orb_incl, cos_orb_incl, tan_orb_incl, &
+               rhocal,tcal, lamcal,betacal,istat)  ! sets these variables
 
     t_min = tcal-5.0d0
 
-    call geod2geo(ymin,orb_elements,spheroid,phip_min,istat)
+    call geod2geo(ymin,orb_elements,spheroid,phip_min,istat)  ! sets phip_min
     call q_cal(phip_min,orb_elements,spheroid,smodel, &
-               sin_orb_incl, cos_orb_incl, tan_orb_incl, rhocal,tcal, &
-               lamcal,betacal,istat)
+               sin_orb_incl, cos_orb_incl, tan_orb_incl,  &
+               rhocal, tcal, lamcal, betacal, istat)  ! sets these variables
 
     t_max = tcal+5.0d0
 
