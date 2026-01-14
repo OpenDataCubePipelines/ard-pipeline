@@ -112,7 +112,7 @@ def create_centreline_dataset(geobox, x, n, out_group):
         [
             ("row_index", "int64"),
             ("col_index", "int64"),
-            ("n_pixels", "float"),
+            ("n_pixels", "float"),  # TODO: is this num points in intersection?
             ("latitude", "float64"),
             ("longitude", "float64"),
         ]
@@ -180,6 +180,7 @@ def swathe_edges(threshold, array):
     return start, end
 
 
+# TODO: appears broken as track doesn't intersect top & bottom rows
 def track_bisection(acquisition, npoints, first_row, last_row):
     """Determine the type of intersection the satellite has with the
     acquisition, and where the bi-section coordinates should occur.
@@ -288,8 +289,13 @@ def create_boxline(
 
     row_index = np.arange(rows)
     col_index = centreline_dataset["col_index"][:]
-    npoints = centreline_dataset["n_pixels"][:]
+    npoints = centreline_dataset["n_pixels"][
+        :
+    ]  # TODO: rename & keep consistent across py/f90
 
+    # TODO: track_bisection() broken, currently doesn't handle sideways tracks
+    # TODO: detect this first, then assess how tricky it is to fix?
+    # TODO: fix npoints naming for ease of reading?
     intersection, _, bisection = track_bisection(
         acquisition, npoints, col_index[0], col_index[-1]
     )
@@ -297,6 +303,7 @@ def create_boxline(
     # record curves for parcellation (of the raster into interpolation cells)
     boxline_dtype = np.dtype(
         [
+            # TODO: how does the first non-named column get added?
             ("row_index", "int64"),
             ("bisection_index", "int64"),
             ("npoints", "int64"),
