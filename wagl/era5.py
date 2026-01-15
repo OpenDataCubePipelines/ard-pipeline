@@ -47,6 +47,15 @@ TCO3_MINIMUM_ATM_CM = 0.0
 TCO3_MAXIMUM_ATM_CM = 700.0 / 1000  # convert Dobson units to ATM-CM
 TCO3_LOW_ATM_CM = 100.0 / 1000
 
+# Below are estimates of sane min/max surface pressure, based on advice & data
+# analysis. An Antarctic region of -60 to -90 degrees was sampled for min, mean
+# & max surface pressure for 2020 to early 2025, with results plotted here:
+# https://github.com/OpenDataCubePipelines/ard-pipeline/issues/113#issuecomment-3021722692
+SP_MINIMUM_PA = 45000.0
+SP_MAXIMUM_PA = 110000.0
+
+
+# Multi level pressure variables
 ERA5_PRESSURE_LEVELS_VARIABLES = ("r", "t", "z")
 
 # ERA5 single levels have a variable in the file name & sometimes a different
@@ -179,10 +188,40 @@ def profile_data_frame_workflow(
             ds_pressure_levels, ds_single_level, acquisition_datetime, lat_lon
         )
 
+        # TODO: rejig sanity check to reference the relevant file path to help
+        #  debug files containing strange values
+        validate_surface_pressure(single_level_values.surface_pressure, lat_lon)
+
         frame = build_profile_data_frame(
             pressure_levels_values, single_level_values, ecwmf_levels
         )
         yield frame
+
+
+def validate_surface_pressure(sp_pa, lat_lon):
+    # `sp_pa` is assumed to be a single value given workflow point sampling.
+    # ERA5 reanalysis data has 0.25 * 0.25 cells, indicating multi-pixel area
+    # sampling is not required.
+    #
+    # NB: skip NODATA & NaN checks as these values were not detected during
+    #  exploratory data analysis to understand ERA5's data characteristics. See
+    #  https://github.com/OpenDataCubePipelines/ard-pipeline/issues/113 for info
+
+    if sp_pa <= SP_MINIMUM_PA:
+        msg = (
+            f"Surface pressure data contains abnormal low pressure values at "
+            f"{lat_lon}. The DE Antarctica prototype has not determined handling "
+            f"requirements for this case yet."
+        )
+        raise NotImplementedError(msg)
+
+    if sp_pa > SP_MAXIMUM_PA:
+        msg = (
+            f"Surface pressure data contains abnormal high pressure values at "
+            f"{lat_lon}. The DE Antarctica prototype has not determined handling "
+            f"requirements for this case yet."
+        )
+        raise NotImplementedError(msg)
 
 
 # TODO: could refactor into workflow function
@@ -375,7 +414,7 @@ def build_profile_data_frame(
 
     profile_frame = pd.DataFrame(var_name_mapping)
 
-    # apply data scaling & corrections
+    # `sp` / surface_pressure is in Pascals, needs conversion hPa/hectopascals
     surface_pressure = single_level_values.surface_pressure / 100.0
     geopotential_height = scale_z_to_geopotential_height(
         single_level_values.geopotential
