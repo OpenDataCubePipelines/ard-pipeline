@@ -84,6 +84,11 @@ def wagga_scene_sentinel2_container(wagga_scene_sentinel2_path):
 
 
 @pytest.fixture
+def wagga_scene_sentinel2_acquisition(wagga_scene_sentinel2_container):
+    return wagga_scene_sentinel2_container.get_highest_resolution()[0][0]
+
+
+@pytest.fixture
 def scene_landsat_path():
     gdata = "/g/data/da82/AODH/USGS/L1/Landsat"
     p = "C1/092_084/LT50920842008269ASA00/LT05_L1TP_092084_20080925_20161029_01_T1.tar"
@@ -248,24 +253,24 @@ def test_collect_era5_ancillary_landsat_multi_points(
 
 @pytest.mark.skipif(not on_gadi, reason=_REASON)
 def test_collect_era5_ancillary_sentinel(
-    wagga_scene_sentinel2_container, nci_era5_dir_path, output_filename_sentinel
+    wagga_scene_sentinel2_acquisition, nci_era5_dir_path, output_filename_sentinel
 ):
     tmp_dir = init_tmp_dir()
     dest_path = os.path.join(tmp_dir, output_filename_sentinel)
 
-    acq = wagga_scene_sentinel2_container.get_highest_resolution()[0][0]
+    acq = wagga_scene_sentinel2_acquisition
     geobox = acq.gridded_geo_box()
     lonlats = (geobox.centre_lonlat, (147.34547961918634, -35.11559202501883))
 
     # root group name copies naming from workflow H5 output files
-    rootname = wagga_scene_sentinel2_container.granules[0]
+    rootname = "S2_FAKE_ROOT"  # ignore granule name as it requires container
 
     with h5py.File(dest_path, "w") as fid:
         root_group = fid.create_group(rootname)  # mimic scene_landsat_base_path
         out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
         ancillary.collect_era5_ancillary(
-            wagga_scene_sentinel2_container,
+            wagga_scene_sentinel2_acquisition,
             lonlats,
             nci_era5_dir_path,
             out_group,
