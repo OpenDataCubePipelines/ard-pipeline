@@ -121,17 +121,6 @@ def output_filename_landsat(scene_landsat_path):
     return out
 
 
-# config copied from luigi cfg template & singlefile_workflow.py
-_default_cfg_paths = {
-    "aerosol": {"user": 0.05},
-    "dem_path": "/g/data/v10/eoancillarydata-2/elevation/world_1deg/DEM_one_deg_20June2019.h5:/SRTM/GA-DSM",
-    "brdf_dict": {
-        "brdf_path": "/g/data/v10/eoancillarydata-2/BRDF/MCD43A1.061",
-        "ocean_mask_path": "/g/data/v10/eoancillarydata-2/ocean_mask/base_oz_tile_set_water_mask_geotif.tif",
-    },
-}
-
-
 def init_tmp_dir():
     tmp_dir = os.path.abspath(os.environ[TMP_DIR])
     tmp_dir = os.path.join(tmp_dir, "ard-era5-testing")
@@ -161,7 +150,6 @@ def test_collect_era5_ancillary_landsat(
             scene_landsat_container,
             centroid,
             nci_era5_dir_path,
-            _default_cfg_paths,
             out_group,
         )
 
@@ -224,7 +212,6 @@ def test_collect_era5_ancillary_landsat_multi_points(
             scene_landsat_container,
             points,
             nci_era5_dir_path,
-            _default_cfg_paths,
             out_group,
         )
 
@@ -276,7 +263,6 @@ def test_collect_era5_ancillary_sentinel(
             wagga_scene_sentinel2_container,
             lonlats,
             nci_era5_dir_path,
-            _default_cfg_paths,
             out_group,
         )
 
