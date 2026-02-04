@@ -172,12 +172,11 @@ def test_collect_era5_ancillary_landsat_single(
     df = h5py.File(dest_path)
     base = scene_landsat_base_path
 
-    # NB: expected_ozone = "TODO"
-    ozone = df[f"{base}/ANCILLARY/OZONE"][()]
+    ozone = df[f"{base}/ANCILLARY/POINT-0/OZONE"][()]
     assert ozone is not None
     assert ozone != 0.0  # FIXME: copy ozone from source data?
 
-    # check atmos profile
+    # check atmospheric profile
     profile = df[f"{base}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
     assert profile is not None
     assert len(profile) == 38  # number of rows
@@ -203,6 +202,7 @@ def test_collect_era5_ancillary_landsat_multi_points(
     nci_era5_dir_path,
     output_filename_landsat,
 ):
+    # direct to alternate file to prevent I/O clashes
     tmp_dir = init_tmp_dir()
     dest_path = os.path.join(tmp_dir, output_filename_landsat)
 
@@ -277,6 +277,9 @@ def test_collect_era5_ancillary_sentinel(
 
     # very basic test to ensure readable HDF5 output...
     df = h5py.File(dest_path)
+
+    # TODO: rough test for now to check ozone existence...
+    assert df[f"{rootname}/ANCILLARY/POINT-0/OZONE"][()]
 
     profile = df[f"{rootname}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
     assert profile is not None  # same as profile 1 in the single location test
