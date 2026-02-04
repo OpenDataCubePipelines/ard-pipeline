@@ -255,8 +255,7 @@ def test_collect_era5_ancillary_sentinel(
     tmp_dir = init_tmp_dir()
     dest_path = os.path.join(tmp_dir, output_filename_sentinel)
 
-    acq = wagga_scene_sentinel2_acquisition
-    geobox = acq.gridded_geo_box()
+    geobox = wagga_scene_sentinel2_acquisition.gridded_geo_box()
     points = (geobox.centre_lonlat[::-1], (-35.11559202501883, 147.34547961918634))
 
     # root group name copies naming from workflow H5 output files
