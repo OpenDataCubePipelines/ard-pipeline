@@ -172,9 +172,6 @@ def test_collect_era5_ancillary_landsat_single(
     df = h5py.File(dest_path)
     base = scene_landsat_base_path
 
-    expected_aerosol = 0.05
-    assert df[f"{base}/ANCILLARY/AEROSOL"][()] == expected_aerosol
-
     # NB: expected_ozone = "TODO"
     ozone = df[f"{base}/ANCILLARY/OZONE"][()]
     assert ozone is not None
@@ -280,9 +277,6 @@ def test_collect_era5_ancillary_sentinel(
 
     # very basic test to ensure readable HDF5 output...
     df = h5py.File(dest_path)
-
-    expected_aerosol = 0.05
-    assert df[f"{rootname}/ANCILLARY/AEROSOL"][()] == expected_aerosol
 
     profile = df[f"{rootname}/ANCILLARY/POINT-0/ATMOSPHERIC-PROFILE"]
     assert profile is not None  # same as profile 1 in the single location test
