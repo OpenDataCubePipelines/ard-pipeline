@@ -154,7 +154,7 @@ def test_collect_era5_ancillary_landsat_single(
     with h5py.File(dest_path, "w") as fid:
         root_group = fid.create_group(scene_landsat_base_path)
         out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
-        centroid = [(146.75891632807912, -34.62198174915786)]
+        centroid = [(-34.62198174915786, 146.75891632807912)]  # needs lat/long order!
 
         ancillary.collect_era5_ancillary(
             scene_landsat_acquisition,
@@ -214,8 +214,8 @@ def test_collect_era5_ancillary_landsat_multi_points(
         out_group = root_group.create_group(constants.GroupName.ANCILLARY_GROUP.value)
 
         points = [
-            (146.75891632807912, -34.62198174915786),  # centroid
-            (147.34547961918634, -35.11559202501883),
+            (-34.62198174915786, 146.75891632807912),  # centroid
+            (-35.11559202501883, 147.34547961918634),
         ]  # Wagga T intersection
 
         ancillary.collect_era5_ancillary(
@@ -260,7 +260,7 @@ def test_collect_era5_ancillary_sentinel(
 
     acq = wagga_scene_sentinel2_acquisition
     geobox = acq.gridded_geo_box()
-    lonlats = (geobox.centre_lonlat, (147.34547961918634, -35.11559202501883))
+    points = (geobox.centre_lonlat[::-1], (-35.11559202501883, 147.34547961918634))
 
     # root group name copies naming from workflow H5 output files
     rootname = "S2_FAKE_ROOT"  # ignore granule name as it requires container
@@ -271,7 +271,7 @@ def test_collect_era5_ancillary_sentinel(
 
         ancillary.collect_era5_ancillary(
             wagga_scene_sentinel2_acquisition,
-            lonlats,
+            points,
             nci_era5_dir_path,
             out_group,
         )
