@@ -622,10 +622,11 @@ def aerosol_average(aerosol, clear_pixel_mask, aperture):
 
 
 def get_aerosol_data_batch4(container, lonlats):
-    extracted_folder = "/g/data/u46/users/ia1511/Work/projects/support-eccoe/batch-4/extracted-ancillaries"
+    extracted_folder = (
+        "/g/data/u46/users/ia1511/Work/projects/support-eccoe/usgs-lsrd-extracted"
+    )
     scene_id = container.granules[0]
-    instr = "LS9" if scene_id.startswith("LC9") else "LS8"
-    anc_folder = f"{extracted_folder}/{instr}/{scene_id}"
+    anc_folder = f"{extracted_folder}/{scene_id}"
 
     def imread(path):
         with rasterio.open(path) as fl:
