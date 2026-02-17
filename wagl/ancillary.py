@@ -617,7 +617,6 @@ def aerosol_average(aerosol, clear_pixel_mask, aperture):
         return np.sum(aerosol * mask) / np.sum(mask)
 
     # if no pixels within aperture, settle for scene average
-    raise ValueError
     return np.sum(aerosol * clear_pixel_mask) / np.sum(clear_pixel_mask)
 
 
