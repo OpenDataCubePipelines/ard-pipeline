@@ -34,6 +34,14 @@ function remove_workdirs {
     log_message $LOG_INFO "Working directories removed"
 }
 
+# Fetch scene from S3 bucket for processing 
+function fetch_ard_granule {
+    L1_BUCKET="s3://$SOURCE_BUCKET"
+    L1_PREFIX=$SOURCE_PREFIX
+    # simple hack to convert our values to piggy back on the landsat logic, since its quite generic
+    fetch_landsat_granule
+}
+
 # Fetch Landsat granule from S3 bucket
 function fetch_landsat_granule {
     log_message $LOG_INFO "Fetching scene from s3"
