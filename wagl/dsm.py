@@ -400,13 +400,21 @@ def get_dsm(
 
     try:
         # split the DSM filename, dataset name, and load
-        fname, dname = srtm_pathname.split(":")
-        with h5py.File(fname, "r") as dsm_fid:
-            dsm_ds = dsm_fid[dname]
-            dsm_data = read_subset_to_geobox(dsm_ds, dem_geobox)
+        fname, dname = srtm_pathname.split(";")
+        if fname.startswith("s3://"):
+            import fsspec
+            with fsspec.open(fname, mode="rb", anon=False) as fobj:
+                with h5py.File(fobj, "r") as dsm_fid:
+                    dsm_ds = dsm_fid[dname]
+                    dsm_data = read_subset_to_geobox(dsm_ds, dem_geobox)
+                    metadata = current_h5_metadata(dsm_fid, dataset_path=dname)
+        else:
+            with h5py.File(fname, "r") as dsm_fid:
+                dsm_ds = dsm_fid[dname]
+                dsm_data = read_subset_to_geobox(dsm_ds, dem_geobox)
 
-            # ancillary metadata tracking
-            metadata = current_h5_metadata(dsm_fid, dataset_path=dname)
+                # ancillary metadata tracking
+                metadata = current_h5_metadata(dsm_fid, dataset_path=dname)
 
     except (IndexError, ValueError):
         # ancillary metadata tracking
