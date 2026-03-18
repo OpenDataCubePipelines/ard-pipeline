@@ -16,6 +16,7 @@ from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 from scipy import ndimage
 from sklearn.metrics.pairwise import haversine_distances
+from urllib.parse import urlparse
 
 from wagl.constants import DatasetName, GroupName
 from wagl.data import read_subset, reproject_array_to_array
@@ -400,9 +401,11 @@ def get_dsm(
 
     try:
         # split the DSM filename, dataset name, and load
-        fname, dname = srtm_pathname.split(";")
-        if fname.startswith("s3://"):
+        urlpath = urlparse(srtm_pathname)
+        fname, dname = urlpath.path.split(":")
+        if urlpath.scheme == "s3":
             import fsspec
+
             with fsspec.open(fname, mode="rb", anon=False) as fobj:
                 with h5py.File(fobj, "r") as dsm_fid:
                     dsm_ds = dsm_fid[dname]
