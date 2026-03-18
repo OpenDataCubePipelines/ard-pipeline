@@ -248,6 +248,11 @@ dependencies:
 -   zstd=1.5.5
 -   pip:
     -   aenum==3.1.15
+    -   aiobotocore==2.12.3
+    -   aiohappyeyeballs==2.6.1
+    -   aiohttp==3.13.3
+    -   aioitertools==0.13.0
+    -   aiosignal==1.4.0
     -   anyio==4.3.0
     -   awscli==1.32.55
     -   boto==2.49.0
@@ -271,6 +276,7 @@ dependencies:
     -   ephem==4.1.5
     -   fiona==1.9.5
     -   folium==0.16.0
+    -   frozenlist==1.8.0
     -   fsspec==2024.2.0
     -   geoalchemy2==0.14.6
     -   geopandas==0.14.3
@@ -290,11 +296,13 @@ dependencies:
     -   markupsafe==2.1.5
     -   marshmallow==3.21.1
     -   msgpack==1.0.8
+    -   multidict==6.7.1
     -   mypy-extensions==1.0.0
     -   nested-lookup==0.2.25
     -   oauthlib==3.2.2
     -   opencv-python-headless==4.9.0.80
     -   partd==1.4.1
+    -   propcache==0.4.1
     -   psutil==5.9.8
     -   psycopg2==2.9.9
     -   pyasn1==0.5.1
@@ -308,6 +316,7 @@ dependencies:
     -   rpds-py==0.18.0
     -   rsa==4.7.2
     -   s2cloudless==1.7.2
+    -   s3fs==2024.2.0
     -   s3transfer==0.10.0
     -   sentinelhub==3.10.1
     -   shapely==2.0.3
@@ -326,6 +335,7 @@ dependencies:
     -   wrapt==1.16.0
     -   xarray==2024.2.0
     -   xyzservices==2023.10.1
+    -   yarl==1.23.0
     -   zict==3.0.0
     -   zipp==3.17.0
 prefix: /opt/conda
