@@ -4,6 +4,7 @@
 import itertools
 import os.path
 from math import ceil, degrees, floor, radians
+from urllib.parse import urlparse
 
 import boto3
 import h5py
@@ -16,7 +17,6 @@ from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 from scipy import ndimage
 from sklearn.metrics.pairwise import haversine_distances
-from urllib.parse import urlparse
 
 from wagl.constants import DatasetName, GroupName
 from wagl.data import read_subset, reproject_array_to_array
