@@ -15,8 +15,10 @@ repos:
     hooks:
     -   id: pretty-format-toml
         args: [--autofix, --indent, '4']
+        additional_dependencies: [setuptools<82]
     -   id: pretty-format-yaml
         args: [--autofix, --indent, '4']
+        additional_dependencies: [setuptools<82]
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.9
     hooks:
