@@ -4,7 +4,6 @@
 import itertools
 import os.path
 from math import ceil, degrees, floor, radians
-from urllib.parse import urlparse
 
 import boto3
 import h5py
@@ -400,10 +399,12 @@ def get_dsm(
     )
 
     try:
-        # split the DSM filename, dataset name, and load
-        urlpath = urlparse(srtm_pathname)
-        fname, dname = urlpath.path.split(":")
-        if urlpath.scheme == "s3":
+        # handle format
+        # eg srtm_pathname = [s3://bucket]/path/file.h5:/dataset/path
+        dname = srtm_pathname.split(":")[-1]
+        fname = ":".join(srtm_pathname.split(":")[:-1])
+
+        if fname.startswith("s3://"):
             import fsspec
 
             with fsspec.open(fname, mode="rb", anon=False) as fobj:
