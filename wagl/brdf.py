@@ -229,16 +229,8 @@ def coord_transformer(src_crs, dst_crs):
         A function that takes a point in the source CRS and returns the same
         point expressed in the destination CRS.
     """
-
-    def crs_to_proj(crs):
-        return pyproj.Proj(**crs.to_dict())
-
-    def result(*args, **kwargs):
-        return pyproj.transform(
-            crs_to_proj(src_crs), crs_to_proj(dst_crs), *args, **kwargs
-        )
-
-    return result
+    transformer = pyproj.Transformer.from_proj(src_crs, dst_crs, always_xy=True)
+    return transformer.transform
 
 
 class BrdfSummaryDict(TypedDict):

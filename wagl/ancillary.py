@@ -140,7 +140,7 @@ def check_interpolation_sample_geometry(container, group, grp_name):
     coord = np.zeros((coord_read.shape[0], 2), dtype="int")
     map_x = coord_read.map_x.values
     map_y = coord_read.map_y.values
-    coord[:, 1], coord[:, 0] = (map_x, map_y) * ~geobox.transform
+    coord[:, 1], coord[:, 0] = ~geobox.transform * (map_x, map_y)
 
     unique_coords = {(coord[i, 0], coord[i, 1]) for i in range(coord.shape[0])}
 

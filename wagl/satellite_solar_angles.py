@@ -369,7 +369,7 @@ def create_coordinator(locations, geobox):
     coordinator["col_index"] = locations[:, 1]
 
     # adding half to get center-pixel-aligned coordinates
-    map_xy = (locations[:, 1] + 0.5, locations[:, 0] + 0.5) * geobox.transform
+    map_xy = geobox.transform * (locations[:, 1] + 0.5, locations[:, 0] + 0.5)
     coordinator["map_y"] = map_xy[1]
     coordinator["map_x"] = map_xy[0]
 
@@ -667,8 +667,7 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
         "th_ratio0",
     ]
     dtype = np.dtype([(col, "float64") for col in columns])
-    smodel_dset = np.zeros(1, dtype=dtype)
-    smodel_dset.data = smodel
+    smodel_dset = np.array([tuple(smodel)], dtype=dtype)
 
     return smodel, smodel_dset
 

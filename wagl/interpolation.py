@@ -415,7 +415,7 @@ def interpolate(
     coord = np.zeros((coordinator.shape[0], 2), dtype="int")
     map_x = coordinator.map_x.values
     map_y = coordinator.map_y.values
-    coord[:, 1], coord[:, 0] = (map_x, map_y) * ~geobox.transform
+    coord[:, 1], coord[:, 0] =  ~geobox.transform * (map_x, map_y)
     centre = boxline.bisection_index.values
     start = boxline.start_index.values
     end = boxline.end_index.values
