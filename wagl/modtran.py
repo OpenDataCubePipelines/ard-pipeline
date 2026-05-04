@@ -350,7 +350,12 @@ def run_modtran(
 
         group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
-        subprocess.check_call([modtran_exe, json_mod_infile], cwd=workpath)
+        subprocess.run(
+            [modtran_exe, json_mod_infile],
+            cwd=workpath,
+            capture_output=True,
+            check=True,
+        )
 
         chn_fname = glob.glob(pjoin(workpath, "*.chn"))[0]
         tp6_fname = glob.glob(pjoin(workpath, "*.tp6"))[0]
