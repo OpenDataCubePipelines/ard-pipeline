@@ -532,14 +532,14 @@ def calculate_coefficients(
             result[0].insert(1, "LONGITUDE", lonlat[0])
             result[0].insert(2, "LATITUDE", lonlat[1])
             result[0].insert(3, "DATETIME", timestamp)
-            nbar_coefficients = nbar_coefficients.append(result[0])
+            nbar_coefficients = pd.concat([nbar_coefficients, result[0]])
 
         if result[1] is not None:
             result[1].insert(0, "POINT", point)
             result[1].insert(1, "LONGITUDE", lonlat[0])
             result[1].insert(2, "LATITUDE", lonlat[1])
             result[1].insert(3, "DATETIME", pd.to_datetime(timestamp))
-            sbt_coefficients = sbt_coefficients.append(result[1])
+            sbt_coefficients = pd.concat([sbt_coefficients, result[1]])
 
     nbar_coefficients.reset_index(inplace=True)
     sbt_coefficients.reset_index(inplace=True)

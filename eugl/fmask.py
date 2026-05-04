@@ -97,6 +97,7 @@ def uri_to_gdal(url: str):
     # rio is considering removing this, so it's confined here to one place.
     # Some old wagl code did a much simpler but incomplete method:
     # >>> jp2_path = acq.uri.replace("zip:", "/vsizip/").replace("!", "")
+    # but is it really needed? modern GDAL may be able to handle it directly
     return rasterio.path.parse_path(url).as_vsi()
 
 
