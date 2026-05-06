@@ -85,7 +85,7 @@ jobs:
 
         -   name: Push Docker image
             run: |
-                TAG=$(cat git-tag.txt)
+                TAG=$(cat git-tag.txt)-ls
                 docker tag ard-pipeline:dev geoscienceaustralia/ard-pipeline:dev
                 docker tag ard-pipeline:dev geoscienceaustralia/ard-pipeline:$TAG
                 docker tag ard-pipeline:dev  ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:dev
