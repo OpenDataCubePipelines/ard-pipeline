@@ -831,7 +831,9 @@ def closest_match(
 
         diff = abs(date - timestamp).total_seconds()
 
-        df = pd.concat([df, pd.DataFrame({"filename": filename, "diff": diff})], ignore_index=True)
+        df = pd.concat(
+            [df, pd.DataFrame({"filename": filename, "diff": diff})], ignore_index=True
+        )
 
     closest = df.loc[df["diff"].idxmin()]
     return [pjoin(folder, closest["filename"])]
