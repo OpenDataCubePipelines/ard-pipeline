@@ -9,8 +9,6 @@ import boto3
 import h5py
 import numpy as np
 import rasterio
-from botocore import UNSIGNED
-from botocore.config import Config
 from osgeo import osr
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
@@ -203,7 +201,8 @@ def split_s3_path_into_bucket_and_prefix(s3_path: str) -> tuple[str, str]:
 
 
 def read_s3_object_into_memory(bucket, key):
-    s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+    # s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+    s3 = boto3.client("s3")
 
     try:
         buffer = MemoryFile(filename=os.path.basename(key))
