@@ -28,7 +28,7 @@ repos:
     # TODO: clean up these old scripts
     hooks:
     -   id: shellcheck
-        exclude: ^(deployment/scripts/|deployment/overlay/scripts|deployment/nci/templates)
+        exclude: ^(deployment/scripts/|deployment/overlay/scripts|deployment/nci/templates|deployment/templates)
 -   repo: https://github.com/jazzband/pip-tools
     rev: 7.4.1
     hooks:
