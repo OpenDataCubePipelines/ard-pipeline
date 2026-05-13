@@ -9,6 +9,7 @@ import boto3
 import h5py
 import numpy as np
 import rasterio
+from botocore.exceptions import ClientError
 from osgeo import osr
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
@@ -208,8 +209,13 @@ def read_s3_object_into_memory(bucket, key):
         buffer = MemoryFile(filename=os.path.basename(key))
         s3.download_fileobj(bucket, key, buffer)
         return buffer
-    except s3.exceptions.NoSuchKey:
-        raise FileNotFoundError(f"Failed to get cop30 DEM tile for s3://{bucket}/{key}")
+    except ClientError as e:
+        code = e.response["Error"]["Code"]
+        if code in ("404", "NoSuchKey"):
+            raise FileNotFoundError(
+                f"Failed to get cop30 DEM tile for s3://{bucket}/{key}"
+            ) from e
+        raise  # rethrow unexpected errors
 
 
 def covering_geobox_subset(dst_geobox, src_geobox):
