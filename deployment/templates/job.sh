@@ -8,7 +8,6 @@ scene_file=""
 mission="LS"  # or "S2" for Sentinel-2, used to determine which ancillary fetch function to use
 home_dir=$HOME  # used for luigi config paths, e.g. gverify executable, should be the same as the home dir in the conda environment
 local_ancillary_files=""  # local dir to sync data to, e.g. for ancillary files
-luigi_config_template=""  # template luigi config file, should be in the same dir as this script
 era5_dir_path=""  # path to era5 ancillary data, used for luigi config
 merra2_dir_path=""  # path to merra2 ancillary data, used for luigi config
 
@@ -18,7 +17,6 @@ while [[ "$#" -gt 0 ]]; do
         --scene-file) scene_file="$2"; shift ;;
         --mission) mission="$2"; shift ;;
         --local-ancillary-files) local_ancillary_files="$2"; shift ;;
-        --luigi-config-template) luigi_config_template="$2"; shift ;;
         --home-dir) home_dir="$2"; shift ;;
         --era5-dir-path) era5_dir_path="$2"; shift ;;
         --merra2-dir-path) merra2_dir_path="$2"; shift ;;
@@ -46,10 +44,6 @@ if [[ -z "$local_ancillary_files" ]]; then
     local_ancillary_files="$home_dir/ard-pipeline/test_aws/data"  # local dir to sync data to, e.g. for ancillary files
 fi
 
-if [[ -z "$luigi_config_template" ]]; then
-    luigi_config_template="$home_dir/ard-pipeline/templates/luigi.cfg.template"  # template luigi config file, should be in the same dir as this script
-fi
-
 if [[ -z "$era5_dir_path" ]]; then
     era5_dir_path="$home_dir/ard-pipeline/test_aws/data/ERA5"  # path to era5 ancillary data, used for luigi config
 fi
@@ -58,6 +52,8 @@ if [[ -z "$merra2_dir_path" ]]; then
     merra2_dir_path="$home_dir/ard-pipeline/test_aws/data/MERRA2"  # path to merra2 ancillary data, used for luigi config
 fi
 
+LUIGI_CONFIG_TEMPLATE="$home_dir/ard-pipeline/deployment/templates/luigi.cfg.template"  # template luigi config file, should be in the same dir as this script
+LUIGI_LOGGING_TEMPLATE="$home_dir/ard-pipeline/deployment/templates/luigi-logging.cfg.template"  # template luigi logging config file, should be in the same dir as this script
 S3_ANCILLARY_FILES="s3://dea-non-public-data/eo-ancillary-data"  # base path to ancillary files on s3, used for fetching ancillaries
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -74,8 +70,18 @@ echo "Using ERA5 dir path: $era5_dir_path"
 echo "Using MERRA2 dir path: $merra2_dir_path"
 echo "Script dir: $SCRIPT_DIR"
 
-luigi_config_file_lines=$(cat $luigi_config_template)
-luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{LOGGING_CONF_FILE}}|$SCRIPT_DIR/luigi-logging.cfg|g")
+## Generate luigi logging config file from template, replacing placeholders with actual paths
+luigi_logging_config_lines=$(cat $LUIGI_LOGGING_TEMPLATE)
+luigi_logging_config_lines=$(echo "$luigi_logging_config_lines" | sed "s|{{INTERFACE_FILE}}|'$SCRIPT_DIR/luigi-interface.log'|g")
+luigi_logging_config_lines=$(echo "$luigi_logging_config_lines" | sed "s|{{TASK_LOG_FILE}}|'$SCRIPT_DIR/task-log.jsonl'|g")
+luigi_logging_config_lines=$(echo "$luigi_logging_config_lines" | sed "s|{{WAGL_LOG_FILE}}|'$SCRIPT_DIR/status-log.jsonl'|g")
+
+luigi_logging_file="$SCRIPT_DIR/luigi-logging.cfg"  # must be the absolute path
+echo "$luigi_logging_config_lines" > $luigi_logging_file
+echo "Generated luigi logging config file at $luigi_logging_file"
+
+luigi_config_file_lines=$(cat $LUIGI_CONFIG_TEMPLATE)
+luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{LOGGING_CONF_FILE}}|$luigi_logging_file|g")
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{HOME_DIR}}|$home_dir|g")
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{TASK_HISTORY_DB_CONNECTION}}|$SCRIPT_DIR/luigi-task-hist.db|g")
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{ERA5_DIR_PATH}}|$era5_dir_path|g")
@@ -193,9 +199,10 @@ else
     exit 1
 fi
 
-export LUIGI_CONFIG_PATH="$SCRIPT_DIR/luigi.cfg"  # must be the absolute path
-echo "$luigi_config_file_lines" > $LUIGI_CONFIG_PATH
-echo "Generated luigi config file at $LUIGI_CONFIG_PATH"
+luigi_config_path="$SCRIPT_DIR/luigi.cfg"  # must be the absolute path
+echo "$luigi_config_file_lines" > $luigi_config_path
+echo "Generated luigi config file at $luigi_config_path"
+export LUIGI_CONFIG_PATH=$luigi_config_path
 
 # load the conda environment into the "session"
 source /home/ubuntu/miniconda3/envs/ard-pipeline/bin/activate  # TODO: edit for user settings
@@ -208,6 +215,7 @@ umask 0022
 # is based on the assumption that production runs will use
 # `ard_pbs` & potentially non-unique IDs here are only for
 # development & debugging purposes.
+project=`realpath $(pwd)`
 timestamp=`date +"%Y%m%d-%H%M%S"`
 work_batch_dir="$SCRIPT_DIR/work/$timestamp-batch"
 log_job_dir="$SCRIPT_DIR/logs/$timestamp-batch"
@@ -220,7 +228,7 @@ luigi --module tesp.workflow ARDP \
       --workdir $work_batch_dir \
       --pkgdir "$SCRIPT_DIR/pkg" \
       --yamls-dir="" \
-      --workers 5 \
+      --workers 2 \
       --parallel-scheduling
 
 # TODO optional, add results postprocessing such as:

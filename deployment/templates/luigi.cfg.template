@@ -12,7 +12,7 @@ brdf = {"brdf_path": {{BRDF_PATH}},
         "ocean_mask_path": "s3://dea-dev-bucket/s2-wagl-nrt/copernicus-dem-30m/",
         "extended_ocean_mask_path": "s3://dea-dev-bucket/s2-wagl-nrt/copernicus-dem-30m/",
         "viirs_i_path": "EMPTY-VIIRS-I-PATH",
-        "viirs_m_path": "EMPTY-VIIRS-M-PATH",}
+        "viirs_m_path": "EMPTY-VIIRS-M-PATH"}
 offshore_territory_boundary_path = EMPTY-OFFSHORE-TERRITORY-BOUNDARY-PATH
 dem_path =
 ecmwf_path =
@@ -67,7 +67,7 @@ backup_reference_directory = {{GQA_BACKUP_GCP_DIR}}
 rpc_connect_timeout = 60.0
 rpc_retry_attempts = 10
 rpc_retry_wait = 60
-# logging_conf_file = {{LOGGING_CONF_FILE}}
+logging_conf_file = {{LOGGING_CONF_FILE}}
 # max-reschedules = 1
 
 [scheduler]
