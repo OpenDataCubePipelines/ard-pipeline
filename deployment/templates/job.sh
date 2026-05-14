@@ -10,6 +10,7 @@ home_dir=$HOME  # used for luigi config paths, e.g. gverify executable, should b
 local_ancillary_files=""  # local dir to sync data to, e.g. for ancillary files
 era5_dir_path=""  # path to era5 ancillary data, used for luigi config
 merra2_dir_path=""  # path to merra2 ancillary data, used for luigi config
+skip_gqa="true"  # whether to skip gqa, set to "skip_gqa = true" in luigi config if true
 
 # Parse named arguments
 while [[ "$#" -gt 0 ]]; do
@@ -20,6 +21,7 @@ while [[ "$#" -gt 0 ]]; do
         --home-dir) home_dir="$2"; shift ;;
         --era5-dir-path) era5_dir_path="$2"; shift ;;
         --merra2-dir-path) merra2_dir_path="$2"; shift ;;
+        --skip-gqa) skip_gqa="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -151,18 +153,23 @@ function fetch_ancillaries_s2 {
 
     fetch_brdf $scene_date
 
-    get_path_row $tile
-    for overlap in "${OVERLAPS[@]}"
-    do
-        path="${overlap:0:3}"
-        row="${overlap:3:3}"
-        echo "[Scene details] PATH:'$path' ROW:'$row'"
-        # fetch wrs ancillaries for each tile
-        fetch_wrs $path $row
-        # fetch Fix_QA_points file for root_fix_qa_location for each tile
-        aws s3 sync "$S3_ANCILLARY_FILES/GCP/Fix_QA_points/$path/$row" "$local_ancillary_files/GQA/Fix_QA_points/$path/$row"
-        luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{GQA_FIX_QA_DIR}}|$local_ancillary_files/GQA/Fix_QA_points|g")
-    done
+    if [[ "$skip_gqa" == "true" ]]; then
+        echo "Skipping GQA ancillary fetch due to missing WRS files for this scene."
+        luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{SKIP_GQA}}|skip_gqa = true|g")
+    else
+        get_path_row $tile
+        for overlap in "${OVERLAPS[@]}"
+            do
+                path="${overlap:0:3}"
+                row="${overlap:3:3}"
+                echo "[Scene details] PATH:'$path' ROW:'$row'"
+                # fetch wrs ancillaries for each tile
+                fetch_wrs $path $row
+                # fetch Fix_QA_points file for root_fix_qa_location for each tile
+                aws s3 sync "$S3_ANCILLARY_FILES/GCP/Fix_QA_points/$path/$row" "$local_ancillary_files/GQA/Fix_QA_points/$path/$row"
+            done
+    fi
+    luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{GQA_FIX_QA_DIR}}|$local_ancillary_files/GQA/Fix_QA_points|g")
 
     echo "ancillary fetch completed"
 }
@@ -180,11 +187,16 @@ function fetch_ancillaries_ls {
 
     echo "[Scene details] DATE:'$scene_date' PATH:'$path' ROW:'$row'"
 
-    fetch_wrs $path $row
     fetch_brdf $scene_date
 
-    # fetch Fix_QA_points file for root_fix_qa_location
-    aws s3 sync "$S3_ANCILLARY_FILES/GCP/Fix_QA_points/$path/$row" "$local_ancillary_files/GQA/Fix_QA_points/$path/$row"
+    if [[ "$skip_gqa" == "true" ]]; then
+        echo "Skipping GQA ancillary fetch due to missing WRS files for this scene."
+        luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{SKIP_GQA}}|skip_gqa = true|g")
+    else
+        fetch_wrs $path $row
+        # fetch Fix_QA_points file for root_fix_qa_location
+        aws s3 sync "$S3_ANCILLARY_FILES/GCP/Fix_QA_points/$path/$row" "$local_ancillary_files/GQA/Fix_QA_points/$path/$row"
+    fi
     luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{GQA_FIX_QA_DIR}}|$local_ancillary_files/GQA/Fix_QA_points|g")
 
     echo "ancillary fetch completed"
