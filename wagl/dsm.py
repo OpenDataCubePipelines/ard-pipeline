@@ -412,7 +412,9 @@ def get_dsm(
         # ancillary metadata tracking
         metadata = {"id": "cop-30m-dem"}
 
-        if os.path.isfile(cop_pathname):
+        if os.path.isfile(cop_pathname) or (
+            cop_pathname.startswith("s3://") and cop_pathname.endswith(".tif")
+        ):
             # read from mosaic
             with rasterio.open(cop_pathname, "r") as dsm_ds:
                 dsm_data = read_subset_to_geobox(dsm_ds, dem_geobox)
