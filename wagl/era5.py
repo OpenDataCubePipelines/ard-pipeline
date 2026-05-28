@@ -37,10 +37,9 @@ used unless specific use cases require fine-grained control.
 
 Future concerns:
 
-Tthis module is unsuited to cloud platforms as it relies on the
-older NCI model where all ancillaries are required before processing. The ARD
-pipeline does not concern itself with data downloads. Some of this code should be
-adaptable for cloud platforms.
+This module is unsuited to cloud platforms as it relies on the older NCI model
+where all ancillaries are required before processing. The ARD pipeline does not
+concern itself with data downloads. Some of this code should be reusable.
 
 These workflows may be necessary for any backwards compatibility with NCI.
 """
