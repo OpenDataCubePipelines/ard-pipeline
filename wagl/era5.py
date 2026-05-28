@@ -1,12 +1,25 @@
 """
-This prototype module extracts ERA5 reanalysis data for ard-pipeline ancillaries.
+Prototype ERA5 reanalysis data reader for `ard-pipeline` ancillaries.
 
-ERA5 is an alternate ancillary data source to that utilised in the standard NBAR
-workflow over Australia, and is used in the DE Antarctica project. This module is
-responsible for extracting data from ERA5 files & producing a data table for
-creating a custom MODTRAN profile. This is the "atmospheric data profile frame".
+ERA5 is an alternate ancillary data source to that used in the standard optical
+correction NBAR/NBART workflow for Australia. This code was developed for the DE
+Antarctica project, as alternate ancillary data was required for the workflow.
 
-See NCI's `rt52` project for the ERA5 data mirror (in NetCDF).
+The module responsible for:
+* Extracting ERA5 NetCDF data
+* Creating custom MODTRAN profile tables, the "atmospheric data profile frame".
+
+Limitations:
+This module (& related tests) was developed for NCI systems. Therefore, the code
+is coded against & is *partially coupled* to NCI systems for the following:
+* Directory layout
+* NetCDF file structure (data time span, naming)
+
+See NCI's `rt52` project for the ERA5 NetCDF data. NCI's data holding is not a
+mirror of ECWMF's ERA5 data. Comments in NCI's ERA5 data indicate they operate
+a customised data download, converting source `GRIB` to NetCDF & using their own
+file naming & directory layout. This module is developed to that layout.
+
 
 Usage notes:
 
@@ -14,9 +27,22 @@ The main top level functions are:
 * `profile_data_frame_workflow()`
 * `ozone_workflow()`
 
-The workflows are designed by *composition* to encapsulate the complexity with
-the ERA5 file structure & data access. Typically, only the workflow functions
-should be used unless specific use cases require fine-grained control.
+Two workflows exist due to data handling requirements. Ozone is not required in
+the profile data frame. It is separate & treated as independent data.
+
+Workflows are designed by *composition* to encapsulate complexity with the ERA5
+file structure & data access. Typically, only the workflow functions should be
+used unless specific use cases require fine-grained control.
+
+
+Future concerns:
+
+Tthis module is unsuited to cloud platforms as it relies on the
+older NCI model where all ancillaries are required before processing. The ARD
+pipeline does not concern itself with data downloads. Some of this code should be
+adaptable for cloud platforms.
+
+These workflows may be necessary for any backwards compatibility with NCI.
 """
 
 # NB: avoid importing wagl.acquisition as it requires Fortran dependencies which
