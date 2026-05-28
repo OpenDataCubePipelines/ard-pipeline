@@ -1,11 +1,18 @@
 """
 Prototype interface for reading MERRA2 aerosol optical thickness ancillary data.
 
-As of April 2025, GA does not have a local MERRA2 mirror (e.g. hosted at NCI),
-unlike the ECWMF ERA5 data. This partially prevents development of a true MERRA2
-solution for `ard-pipeline`.
+MERRA2 is an alternate ancillary data source to that used in the standard optical
+correction NBAR/NBART workflow for Australia. This code was developed for the DE
+Antarctica project, as alternate ancillary data was required for the workflow.
 
-MERRA2 data improves upon the standard ARD workflow as a subset of global
+
+Limitations:
+As of April 2025, DE does not have a local MERRA2 mirror, nor does NCI host a
+"public good" repository (unlike ECWMF ERA5 data). This partially prevents
+development of a true MERRA2 solution for `ard-pipeline`.
+
+Benefits:
+MERRA2 data improves upon the standard ARD workflow aerosol as a subset of global
 NetCDF attributes show:
 
 Filename = "MERRA2_300.tavg1_2d_aer_Nx.20080901.nc4" ;
@@ -18,9 +25,27 @@ Title = "MERRA2 tavg1_2d_aer_Nx: 2d,1-Hourly,Time-averaged,Single-Level,Assimila
 LatitudeResolution = "0.5" ;
 LongitudeResolution = "0.625" ;
 
-With sub-degree resolution, a Landsat scene around 2 by 2.5 degrees should have
+MERRA2 coverage is global with near half degree resolution (more than the aerosol
+data for the Australian pipeline).
+
+With sub-degree resolution, Landsat scene of around 2 by 2.5 degrees should have
 a different aerosol value for each sample coordinate. This improves upon having
 a single aerosol value (or default value) for an entire scene.
+
+
+Usage notes:
+
+The main top level function is `aerosol_workflow()`.
+
+
+Future concerns:
+
+This module is unsuited to cloud platforms as it relies on the NCI model where
+all ancillaries are required before processing. The ARD pipeline does not
+concern itself with data downloads. Some of this code should be reusable.
+
+The workflow may be necessary for backwards compatibility with NCI (or any
+platform where with data on local (like) disks.
 """
 
 import datetime
