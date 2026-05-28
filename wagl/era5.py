@@ -101,6 +101,8 @@ class ERA5FileMeta(typing.NamedTuple):
 
     ERA5 files have metadata within their file names. This class handles parsing
     file naming data to reduce complexity in ERA5 workflows.
+
+    Warning: the file naming is likely an *NCI convention*.
     """
 
     # NB: cannot find an ERA5 data naming standard, but hints are here:
@@ -270,6 +272,9 @@ def build_era5_path(base_dir, var, date_time: datetime.datetime, single=True):
 
     Given acquisition metadata, create the expected ERA5 path containing the
     ancillary data at the acquisition time.
+
+    Warning: the directory naming follows *NCI's naming conventions* as part of
+    their `rt52` project.
 
     :param base_dir: Root dir path for ERA5 data (e.g. "/g/data/rt53/era5")
     :param var: name of variable of interest
@@ -509,6 +514,8 @@ def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
 
     Total column ozone (tco3) is read from ERA5 in kg/m2 & is converted to ATM-CM
     atmosphere centimetres for MODTRAN.
+
+    Warning: the file naming is likely an *NCI convention*.
     """
     ozone_path = build_era5_path(
         era5_data_dir, ERA5_TOTAL_COLUMN_OZONE, acquisition_datetime, single=True
