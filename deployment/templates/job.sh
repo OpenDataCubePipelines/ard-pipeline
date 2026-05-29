@@ -10,7 +10,12 @@ home_dir=$HOME  # used for luigi config paths, e.g. gverify executable, should b
 local_ancillary_files=""  # local dir to sync data to, e.g. for ancillary files
 era5_dir_path=""  # path to era5 ancillary data, used for luigi config
 merra2_dir_path=""  # path to merra2 ancillary data, used for luigi config
+brdf_dir_path=""  # path to brdf ancillary data, used for luigi config
 skip_gqa="true"  # whether to skip gqa, set to "skip_gqa = true" in luigi config if true
+downloader_conda_path="$HOME/miniconda3/envs/ard-dl"  # name of conda env for the ancillary downloader
+downloader_scripts_dir="$HOME/ard-pipeline-downloader"  # path to ancillary downloader scripts
+pipeline_conda_path="$HOME/miniconda3/envs/ard-pipeline"  # name of conda env for the pipeline, used for loading the env into the "session" before running luigi
+conda_base_path="$HOME/miniconda3"  # base path to conda, used for sourcing conda.sh for activating envs
 
 # Parse named arguments
 while [[ "$#" -gt 0 ]]; do
@@ -21,6 +26,11 @@ while [[ "$#" -gt 0 ]]; do
         --home-dir) home_dir="$2"; shift ;;
         --era5-dir-path) era5_dir_path="$2"; shift ;;
         --merra2-dir-path) merra2_dir_path="$2"; shift ;;
+        --brdf-dir-path) brdf_dir_path="$2"; shift ;;
+        --downloader-conda-path) downloader_conda_path="$2"; shift ;;
+        --downloader-scripts-dir) downloader_scripts_dir="$2"; shift ;;
+        --pipeline-conda-path) pipeline_conda_path="$2"; shift ;;
+        --conda-base-path) conda_base_path="$2"; shift ;;
         --skip-gqa) skip_gqa="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
@@ -39,19 +49,31 @@ if [[ ! -f "$scene_file" ]]; then
     exit 1
 fi
 
+# Assert the downloader dir exists
+if [[ ! -d "$downloader_scripts_dir" ]]; then
+    echo "Error: Downloader scripts dir '$downloader_scripts_dir' does not exist."
+    exit 1
+fi
+
 filename=$(basename "$scene_file")
 echo "Processing scene file: $scene_file with filename: $filename"
+
+file_base=${filename%.*}
 
 if [[ -z "$local_ancillary_files" ]]; then
     local_ancillary_files="$home_dir/ard-pipeline/test_aws/data"  # local dir to sync data to, e.g. for ancillary files
 fi
 
 if [[ -z "$era5_dir_path" ]]; then
-    era5_dir_path="$home_dir/ard-pipeline/test_aws/data/ERA5"  # path to era5 ancillary data, used for luigi config
+    era5_dir_path="$local_ancillary_files/ERA5"  # path to era5 ancillary data, used for luigi config
 fi
 
 if [[ -z "$merra2_dir_path" ]]; then
-    merra2_dir_path="$home_dir/ard-pipeline/test_aws/data/MERRA2"  # path to merra2 ancillary data, used for luigi config
+    merra2_dir_path="$local_ancillary_files/MERRA2"  # path to merra2 ancillary data, used for luigi config
+fi
+
+if [[ -z "$brdf_dir_path" ]]; then
+    brdf_dir_path="$local_ancillary_files/BRDF"  # path to brdf ancillary data, used for luigi config
 fi
 
 LUIGI_CONFIG_TEMPLATE="$home_dir/ard-pipeline/deployment/templates/luigi.cfg.template"  # template luigi config file, should be in the same dir as this script
@@ -70,6 +92,7 @@ echo "Using s3 ancillary files dir: $S3_ANCILLARY_FILES"
 echo "Using mission: $mission"
 echo "Using ERA5 dir path: $era5_dir_path"
 echo "Using MERRA2 dir path: $merra2_dir_path"
+echo "Using BRDF dir path: $brdf_dir_path"
 echo "Script dir: $SCRIPT_DIR"
 
 ## Generate luigi logging config file from template, replacing placeholders with actual paths
@@ -88,6 +111,7 @@ luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{HOME_DIR}}|
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{TASK_HISTORY_DB_CONNECTION}}|$SCRIPT_DIR/luigi-task-hist.db|g")
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{ERA5_DIR_PATH}}|$era5_dir_path|g")
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{MERRA2_DIR_PATH}}|$merra2_dir_path|g")
+luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{BRDF_DIR_PATH}}|$brdf_dir_path|g")
 
 function is_empty_dir() {
   [ -z "$(ls -A "$1")" ]
@@ -116,26 +140,35 @@ function fetch_wrs {
   fi
 }
 
-function fetch_brdf {
-  scene_date=$1
-  scene_doy=$(date -d $scene_date +%j)
-  date_dir_dot="${scene_date//-/.}"
-  dest_dir="$local_ancillary_files/BRDF/MCD43A1.061/$date_dir_dot"
-
-  # fetch brdf files for this scene
-  aws s3 sync "$S3_ANCILLARY_FILES/BRDF/MCD43A1.061/$date_dir_dot" $dest_dir
-  luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{BRDF_PATH}}|\"$local_ancillary_files/BRDF/MCD43A1.061\"|g")
-
-  if is_empty_dir $dest_dir; then
-    # get fall backs (DOY)
-    aws s3 sync "$S3_ANCILLARY_FILES/BRDF_FALLBACK/MCD43A1.006/$scene_doy" "$local_ancillary_files/BRDF_FALLBACK/MCD43A1.006/$scene_doy"
-    luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|$local_ancillary_files/BRDF/MCD43A1.061|$local_ancillary_files/BRDF_FALLBACK/MCD43A1.006|g")
-  fi
-
-#   TODO only get water brdf viirs (VIIRS-I, VIIRS-M) if required ? (instead of base ???)
-#   aws s3 sync "$S3_ANCILLARY_FILES/BRDF/VNP43MA1.002/$date_dir_dot" "$local_ancillary_files/brdf/VNP43MA1.002/$date_dir_dot"
-#   aws s3 sync "$S3_ANCILLARY_FILES/BRDF/VNP43IA1.002/$date_dir_dot" "$local_ancillary_files/brdf/VNP43IA1.002/$date_dir_dot"
+function fetch_era5 {
+    python $downloader_scripts_dir/era5_cli.py --inputs $file_base --base-dir $era5_dir_path
 }
+
+function fetch_merra2 {
+    # Placeholder function for fetching MERRA-2 ancillary data, to be implemented as needed.
+}
+
+function fetch_brdf {
+    python $downloader_scripts_dir/brdf_cli.py --inputs $file_base --base-dir $brdf_dir_path
+}
+
+
+function fetch_ancillaries {
+    conda activate $downloader_conda_path
+
+    fetch_era5
+    # fetch_merra2 $scene_date
+    fetch_brdf
+
+    conda deactivate
+
+}
+
+
+function get_path_row {
+    mapfile -t OVERLAPS < <(python /scripts/tile_converter.py $1) # where is this script??
+}
+
 
 function fetch_ancillaries_s2 {
     echo "fetching ancillaries..."
@@ -151,7 +184,7 @@ function fetch_ancillaries_s2 {
 
     echo "[Scene details] DATE:'$scene_date' TILE:'$tile'"
 
-    fetch_brdf $scene_date
+    fetch_ancillaries
 
     if [[ "$skip_gqa" == "true" ]]; then
         echo "Skipping GQA ancillary fetch due to missing WRS files for this scene."
@@ -187,7 +220,7 @@ function fetch_ancillaries_ls {
 
     echo "[Scene details] DATE:'$scene_date' PATH:'$path' ROW:'$row'"
 
-    fetch_brdf $scene_date
+    fetch_ancillaries
 
     if [[ "$skip_gqa" == "true" ]]; then
         echo "Skipping GQA ancillary fetch due to missing WRS files for this scene."
@@ -201,6 +234,8 @@ function fetch_ancillaries_ls {
 
     echo "ancillary fetch completed"
 }
+
+source "$conda_base_path/etc/profile.d/conda.sh"
 
 if [ "$mission" == "LS" ]; then
     fetch_ancillaries_ls
@@ -217,7 +252,7 @@ echo "Generated luigi config file at $luigi_config_path"
 export LUIGI_CONFIG_PATH=$luigi_config_path
 
 # load the conda environment into the "session"
-source /home/ubuntu/miniconda3/envs/ard-pipeline/bin/activate  # TODO: edit for user settings
+conda activate $pipeline_conda_path
 
 umask 0022
 
