@@ -161,12 +161,32 @@ def profile_data_frame_workflow(
     # ERA5 data has a ~4 month production lag & may not exist for the acquisition
     # fail fast in this DE Antarctica prototype
     for p in pressure_level_paths + single_level_paths:
+        not_found_msg = (
+            f"ERA5 data not found {p}\nIs the ERA5 data missing due to"
+            f" production lag?"
+        )
         if not os.path.exists(p):
-            msg = (
-                f"ERA5 data not found {p}\nIs the ERA5 data missing due to"
-                f" production lag?"
-            )
-            raise FileNotFoundError(msg)
+            if p in single_level_paths:
+                # fall back to the alternate variable name for single level if the primary is missing
+                var = p.split("/")[-3]
+                var_index = ERA5_SINGLE_LEVEL_VARIABLES.index(var)
+                path_index = single_level_paths.index(p)
+                p = p.replace(
+                    f"reanalysis/{ERA5_SINGLE_LEVEL_VARIABLES[var_index]}",
+                    f"reanalysis/{ERA5_SINGLE_LEVEL_NC_VARIABLES[var_index]}",
+                )
+                p = p.replace(
+                    f"{ERA5_SINGLE_LEVEL_VARIABLES[var_index]}_era5",
+                    f"{ERA5_SINGLE_LEVEL_NC_VARIABLES[var_index]}_era5",
+                )
+                if not os.path.exists(p):
+                    raise FileNotFoundError(
+                        not_found_msg
+                        + f"\nAlso tried alternate path {p} for single level variable."
+                    )
+                single_level_paths[path_index] = p  # update path for this variable
+            else:
+                raise FileNotFoundError(not_found_msg)
 
     ds_pressure_levels, ds_single_level = open_data_files(
         pressure_level_paths, single_level_paths
@@ -280,10 +300,15 @@ def read_data(
     # z -> geopotential
     # sp -> surface pressure
     # 2d -> dewpoint temperature (2m)
-    var_datasets = zip(ERA5_SINGLE_LEVEL_NC_VARIABLES, single_level_datasets)
+    var_datasets = zip(
+        ERA5_SINGLE_LEVEL_VARIABLES,
+        ERA5_SINGLE_LEVEL_NC_VARIABLES,
+        single_level_datasets,
+    )
 
     raw_single_level = [
-        get_closest_value(ds, var, date_time, latlong) for var, ds in var_datasets
+        get_closest_value(ds, (var, nc_var), date_time, latlong)
+        for var, nc_var, ds in var_datasets
     ]
 
     # TODO: check / handle NODATA / fail fast
@@ -296,7 +321,10 @@ def read_data(
 # TODO: Which method for closest record in ERA5?
 #   Nearest timestep or closest previous timestep?
 def get_closest_value(
-    ds: xarray.Dataset, variable: str, date_time: datetime.datetime, latlong: tuple
+    ds: xarray.Dataset,
+    variable: str | tuple,
+    date_time: datetime.datetime,
+    latlong: tuple,
 ):
     """
     Returns closest *previous* value for the variable at the time & location.
@@ -306,7 +334,10 @@ def get_closest_value(
     https://help.marine.copernicus.eu/en/articles/5470092-how-to-use-add_offset-and-scale_factor-to-calculate-real-values-of-a-variable
 
     :param ds: an *open* xarray Dataset of ERA5 NetCDF data
-    :param variable: name of the ERA5 variable to extract
+    :param variable: name or tuple of the ERA5 variable(s) to extract.
+        The code will look for the existing variable name in the dataset,
+        but will also attempt to find an alternate variable name for single level variables if the primary is not found.
+        See `ERA5_SINGLE_LEVEL_VARIABLES` & `ERA5_SINGLE_LEVEL_NC_VARIABLES`.
     :param date_time: acquisition datetime
     :param latlong: (lat, long) tuple of the pixel to extract data for
     """
@@ -317,7 +348,12 @@ def get_closest_value(
     # TODO: catch KeyError or break & fail fast to indicate likely bad code?
     #  Mismatching time/location vars are unlikely to occur if using the funcs
     #  to build the ERA5 data paths, this should select the correct NetCDF
-    var = ds[variable]
+
+    if isinstance(variable, str):
+        variable_in_ds = variable
+    else:
+        variable_in_ds = next(v for v in variable if v in ds)
+    var = ds[variable_in_ds]
     latitude, longitude = latlong
     subset = var.sel(  # NB: sel() retrieves data for single & multiple levels
         time=date_time, method="ffill", latitude=latitude, longitude=longitude
