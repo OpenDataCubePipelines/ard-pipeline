@@ -12,10 +12,10 @@ era5_dir_path=""  # path to era5 ancillary data, used for luigi config
 merra2_dir_path=""  # path to merra2 ancillary data, used for luigi config
 brdf_dir_path=""  # path to brdf ancillary data, used for luigi config
 skip_gqa="true"  # whether to skip gqa, set to "skip_gqa = true" in luigi config if true
-downloader_conda_path="$HOME/miniconda3/envs/ard-dl"  # name of conda env for the ancillary downloader
-downloader_scripts_dir="$HOME/ard-pipeline-downloader"  # path to ancillary downloader scripts
-pipeline_conda_path="$HOME/miniconda3/envs/ard-pipeline"  # name of conda env for the pipeline, used for loading the env into the "session" before running luigi
+downloader_scripts_dir=""  # path to ancillary downloader scripts
 conda_base_path="$HOME/miniconda3"  # base path to conda, used for sourcing conda.sh for activating envs
+downloader_conda_path="$conda_base_path/envs/ard-dl"  # name of conda env for the ancillary downloader
+pipeline_conda_path="$conda_base_path/envs/ard-pipeline"  # name of conda env for the pipeline, used for loading the env into the "session" before running luigi
 
 # Parse named arguments
 while [[ "$#" -gt 0 ]]; do
@@ -47,6 +47,10 @@ fi
 if [[ ! -f "$scene_file" ]]; then
     echo "Error: Scene file '$scene_file' does not exist."
     exit 1
+fi
+
+if [[ -z "$downloader_scripts_dir" ]]; then
+    downloader_scripts_dir="$home_dir/ard-pipeline-downloader"  # default path to ancillary downloader scripts
 fi
 
 # Assert the downloader dir exists
@@ -144,9 +148,9 @@ function fetch_era5 {
     python $downloader_scripts_dir/era5_cli.py --inputs $file_base --base-dir $era5_dir_path
 }
 
-function fetch_merra2 {
+# function fetch_merra2 {
     # Placeholder function for fetching MERRA-2 ancillary data, to be implemented as needed.
-}
+# }
 
 function fetch_brdf {
     python $downloader_scripts_dir/brdf_cli.py --inputs $file_base --base-dir $brdf_dir_path

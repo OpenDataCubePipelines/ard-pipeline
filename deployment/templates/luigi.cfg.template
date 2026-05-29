@@ -7,7 +7,7 @@ cop_pathname = s3://dea-dev-bucket/s2-wagl-nrt/copernicus-dem-30m/
 tle_path = /EMPTY-TLE-PATH
 
 # DE Ant specific BRDF
-brdf = {"brdf_path": {{BRDF_PATH}},
+brdf = {"brdf_path": "{{BRDF_DIR_PATH}}",
         "brdf_fallback_path": "TODO_no_fallback",
         "ocean_mask_path": "s3://dea-dev-bucket/s2-wagl-nrt/copernicus-dem-30m/",
         "extended_ocean_mask_path": "s3://dea-dev-bucket/s2-wagl-nrt/copernicus-dem-30m/",
