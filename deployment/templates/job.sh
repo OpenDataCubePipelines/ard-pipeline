@@ -115,7 +115,7 @@ luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{HOME_DIR}}|
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{TASK_HISTORY_DB_CONNECTION}}|$SCRIPT_DIR/luigi-task-hist.db|g")
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{ERA5_DIR_PATH}}|$era5_dir_path|g")
 luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{MERRA2_DIR_PATH}}|$merra2_dir_path|g")
-luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{BRDF_DIR_PATH}}|$brdf_dir_path|g")
+luigi_config_file_lines=$(echo "$luigi_config_file_lines" | sed "s|{{BRDF_DIR_PATH}}|$brdf_dir_path/MCD43A1.061|g")
 
 function is_empty_dir() {
   [ -z "$(ls -A "$1")" ]
