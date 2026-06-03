@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 import luigi
+from dotenv import load_dotenv
 from luigi.local_target import LocalFileSystem
 
 from eugl import s2cl
@@ -482,4 +483,5 @@ class ARDP(luigi.WrapperTask):
 
 
 if __name__ == "__main__":
+    load_dotenv()
     luigi.run()
