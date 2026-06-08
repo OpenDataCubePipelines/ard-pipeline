@@ -282,3 +282,26 @@ This will automatically download the ancillary files in the downloader's conda e
 Running the script will start a `Luigi` server which will keep running after the job is finished (failed or succeeded). To stop the server you can run `pkill -9 luigid`
 
 **Note**: If you have cloned the ard pipeline repo to a directory other than your home directory, or placed the downloader project or MODTRAN directory on a path other than you home directory, you will need to pass extra input arguments to the `job.sh` command. Check the content of `job.sh` file for more information.
+
+### Running the code inside a Docker container
+The Dockerfile provided in the project directory only builds an isolated environment with necessary packages and libraries installed to run the code. It is an alternative to the local Conda environment that could be transferred to and used in other machines and platforms.
+
+To build the Docker container run:
+```bash
+docker build --platform linux/amd64 -t ard:dev .
+```
+
+Then run the following to enter the container in an interactive shell mode and also mount the required volumes:
+
+```bash
+docker run --platform linux/amd64 -it --rm --volume "${PWD}:/ard-pipeline" --volume $HOME/MODTRAN6:/home/MODTRAN6 -w /ard-pipeline ard:dev /bin/bash -l
+```
+
+Run the steps below inside the container first:
+
+```bash
+export PATH="/home/MODTRAN6/bin/linux:$PATH"
+pip install --no-build-isolation --editable .
+```
+
+You should be able to start jobs inside the container now.
