@@ -34,7 +34,7 @@ nosetests.xml
 .idea
 *.iml
 *.ipr
-env
+.env
 version.py
 
 # Node artifact files

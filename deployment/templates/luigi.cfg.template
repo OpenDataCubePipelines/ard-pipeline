@@ -1,0 +1,80 @@
+[DataStandardisation]
+workflow = NBAR
+vertices = (3, 3)
+modtran_exe = {{HOME_DIR}}/MODTRAN6/bin/linux/mod6c_cons
+srtm_pathname =
+cop_pathname = s3://dea-dev-bucket/s2-wagl-nrt/copernicus-dem-30m/
+tle_path = /EMPTY-TLE-PATH
+
+# DE Ant specific BRDF
+brdf = {"brdf_path": "{{BRDF_DIR_PATH}}",
+        "brdf_fallback_path": "TODO_no_fallback",
+        "ocean_mask_path": "s3://dea-dev-bucket/s2-wagl-nrt/copernicus-dem-30m/",
+        "extended_ocean_mask_path": "s3://dea-dev-bucket/s2-wagl-nrt/copernicus-dem-30m/",
+        "viirs_i_path": "EMPTY-VIIRS-I-PATH",
+        "viirs_m_path": "EMPTY-VIIRS-M-PATH"}
+offshore_territory_boundary_path = EMPTY-OFFSHORE-TERRITORY-BOUNDARY-PATH
+dem_path =
+ecmwf_path =
+era5_dir_path = {{ERA5_DIR_PATH}}
+merra2_dir_path = {{MERRA2_DIR_PATH}}
+modtran_aerosol_model = AER_RURAL
+compression = LZF
+h5_driver =
+
+# DE Ant: ozone & water vapour entries removed for default ERA5 workflow
+
+[Package]
+yamls_dir =
+cleanup = false
+cloud_buffer_distance = 0
+cloud_shadow_buffer_distance = 0
+products = ["NBART", "NBAR"]
+stac_base_url =
+explorer_base_url =
+
+[ARDP]
+# root destination on S3
+url_root =
+
+[GQATask]
+output_yaml = {granule}.gqa.yaml
+cleanup = 0
+correlation_coefficient = 0.75
+iterations = 1
+standard_deviations = 1
+{{SKIP_GQA}}
+
+[GverifyTask]
+executable = {{HOME_DIR}}/GVerify/geo_assess/image-gverify_v0.25c
+ld_library_path = {{HOME_DIR}}/GVerify/geo_assess/lib_v0.25:{{HOME_DIR}}/GVerify/PinkMatter/Jasper
+gdal_data = {{HOME_DIR}}/GVerify/geo_assess/lib_v0.25/gdal_data
+pyramid_levels = 5
+geotiff_csv = {{HOME_DIR}}/GVerify/geo_assess/lib_v0.25/epsg_csv
+# formats = image-gverify.res,image-gverify.log,image-gverify_base.jpeg,image-gverify_result.jpeg
+thread_count = 4
+null_value = 0
+chip_size = 25
+grid_size = 50
+root_fix_qa_location = {{GQA_FIX_QA_DIR}}
+timeout = 300
+landsat_scenes_shapefile = {{HOME_DIR}}/GVerify/eoancillarydata/wrs2_descending.shp
+ocean_tile_list = {"Landsat": "{{HOME_DIR}}/GVerify/eoancillarydata/ocean_list.csv", "Sentinel-2": "{{HOME_DIR}}/GVerify/eoancillarydata/S2_ocean_tile.csv"}
+reference_directory = {{GQA_GCP_DIR}}
+backup_reference_directory = {{GQA_BACKUP_GCP_DIR}}
+
+[core]
+rpc_connect_timeout = 60.0
+rpc_retry_attempts = 10
+rpc_retry_wait = 60
+logging_conf_file = {{LOGGING_CONF_FILE}}
+# max-reschedules = 1
+
+[scheduler]
+record_task_history = true
+state_path = luigi-state.pkl
+disable_hard_timeout = 600
+worker_disconnect_delay = 1800
+
+[task_history]
+db_connection = sqlite:///{{TASK_HISTORY_DB_CONNECTION}}

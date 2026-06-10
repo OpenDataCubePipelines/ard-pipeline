@@ -12,22 +12,19 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 import luigi
-import yaml
-from eodatasets3.wagl import Granule, package
+from dotenv import load_dotenv
 from luigi.local_target import LocalFileSystem
 
 from eugl import s2cl
 from eugl.fmask import fmask
 from eugl.gqa import GQATask
 from tesp.constants import ProductPackage
-from tesp.metadata import _get_tesp_metadata
-from tesp.package import package_non_standard, write_stac_metadata
 from wagl.acquisition import (
     PackageIdentificationHint,
     acquisitions,
     preliminary_acquisitions_data,
 )
-from wagl.logs import STATUS_LOGGER, TASK_LOGGER
+from wagl.logs import TASK_LOGGER
 from wagl.singlefile_workflow import DataStandardisation
 
 QA_PRODUCTS = ["gqa", "fmask", "s2cloudless"]
@@ -314,100 +311,100 @@ class Package(luigi.Task):
         return luigi.LocalTarget(str(out_fname))
 
     def run(self):
-        def search_for_external_level1_metadata() -> Optional[Path]:
-            if self.yamls_dir is None or self.yamls_dir == "":
-                return None
+        # def search_for_external_level1_metadata() -> Optional[Path]:
+        #     if self.yamls_dir is None or self.yamls_dir == "":
+        #         return None
 
-            level1 = Path(self.level1)
+        #     level1 = Path(self.level1)
 
-            # Level1 is in a three-level directory structure, and we mirror it in the yaml_dir
-            # like this:
-            #     '{yaml_dir}/2021/2021-02/25S150E-30S155E/{yaml}'
-            result = (
-                Path(self.yamls_dir)
-                / level1.parent.parent.parent.name
-                / level1.parent.parent.name
-                / level1.parent.name
-                / (level1.stem + ".odc-metadata.yaml")
-            )
+        #     # Level1 is in a three-level directory structure, and we mirror it in the yaml_dir
+        #     # like this:
+        #     #     '{yaml_dir}/2021/2021-02/25S150E-30S155E/{yaml}'
+        #     result = (
+        #         Path(self.yamls_dir)
+        #         / level1.parent.parent.parent.name
+        #         / level1.parent.parent.name
+        #         / level1.parent.name
+        #         / (level1.stem + ".odc-metadata.yaml")
+        #     )
 
-            # If a singular yaml doesn't exist, there could be separate granule yamls
-            if not result.exists():
-                result = result.with_name(
-                    f"{level1.stem}.{self.granule}.odc-metadata.yaml"
-                )
+        #     # If a singular yaml doesn't exist, there could be separate granule yamls
+        #     if not result.exists():
+        #         result = result.with_name(
+        #             f"{level1.stem}.{self.granule}.odc-metadata.yaml"
+        #         )
 
-            if not result.exists():
-                raise ValueError(
-                    "Could not find matching metadata for L1 in the given yaml directory."
-                    f"Tried with and without granule in path: {result.as_posix()!r} "
-                    f"for dataset {self.level1!r}. "
-                    f"(if you intended to use a sibling yaml file, don't specify a yaml directory)"
-                )
+        #     if not result.exists():
+        #         raise ValueError(
+        #             "Could not find matching metadata for L1 in the given yaml directory."
+        #             f"Tried with and without granule in path: {result.as_posix()!r} "
+        #             f"for dataset {self.level1!r}. "
+        #             f"(if you intended to use a sibling yaml file, don't specify a yaml directory)"
+        #         )
 
-            return result
+        #     return result
 
-        # TODO; the package_file func can accept additional fnames for yamls etc
-        wagl_fname = Path(self.input()["wagl"].path)
-        fmask_img_fname = Path(self.input()["fmask"]["image"].path)
-        fmask_doc_fname = Path(self.input()["fmask"]["metadata"].path)
-        gqa_doc_fname = Path(self.input()["gqa"].path)
+        # # TODO; the package_file func can accept additional fnames for yamls etc
+        # wagl_fname = Path(self.input()["wagl"].path)
+        # fmask_img_fname = Path(self.input()["fmask"]["image"].path)
+        # fmask_doc_fname = Path(self.input()["fmask"]["metadata"].path)
+        # gqa_doc_fname = Path(self.input()["gqa"].path)
 
-        if self.input()["s2cloudless"] is not None:
-            s2cloudless_prob_fname = Path(
-                self.input()["s2cloudless"]["cloud_prob"].path
-            )
-            s2cloudless_mask_fname = Path(
-                self.input()["s2cloudless"]["cloud_mask"].path
-            )
-            s2cloudless_metadata_fname = Path(
-                self.input()["s2cloudless"]["metadata"].path
-            )
-        else:
-            s2cloudless_prob_fname = None
-            s2cloudless_mask_fname = None
-            s2cloudless_metadata_fname = None
+        # if self.input()["s2cloudless"] is not None:
+        #     s2cloudless_prob_fname = Path(
+        #         self.input()["s2cloudless"]["cloud_prob"].path
+        #     )
+        #     s2cloudless_mask_fname = Path(
+        #         self.input()["s2cloudless"]["cloud_mask"].path
+        #     )
+        #     s2cloudless_metadata_fname = Path(
+        #         self.input()["s2cloudless"]["metadata"].path
+        #     )
+        # else:
+        #     s2cloudless_prob_fname = None
+        #     s2cloudless_mask_fname = None
+        #     s2cloudless_metadata_fname = None
 
-        tesp_doc_fname = Path(self.workdir) / f"{self.granule}.tesp.yaml"
-        with tesp_doc_fname.open("w") as src:
-            yaml.safe_dump(_get_tesp_metadata(), src)
+        # tesp_doc_fname = Path(self.workdir) / f"{self.granule}.tesp.yaml"
+        # with tesp_doc_fname.open("w") as src:
+        #     yaml.safe_dump(_get_tesp_metadata(), src)
 
-        md = {}
-        for eods_granule in Granule.for_path(
-            wagl_fname,
-            granule_names=[self.granule],
-            fmask_image_path=fmask_img_fname,
-            fmask_doc_path=fmask_doc_fname,
-            s2cloudless_prob_path=s2cloudless_prob_fname,
-            s2cloudless_mask_path=s2cloudless_mask_fname,
-            s2cloudless_doc_path=s2cloudless_metadata_fname,
-            gqa_doc_path=gqa_doc_fname,
-            tesp_doc_path=tesp_doc_fname,
-            level1_metadata_path=search_for_external_level1_metadata(),
-        ):
-            if self.non_standard_packaging:
-                ds_id, md_path = package_non_standard(Path(self.pkgdir), eods_granule)
-            else:
-                ds_id, md_path = package(
-                    Path(self.pkgdir),
-                    eods_granule,
-                    product_maturity=self.product_maturity,
-                    included_products=self.products,
-                )
+        # md = {}
+        # for eods_granule in Granule.for_path(
+        #     wagl_fname,
+        #     granule_names=[self.granule],
+        #     fmask_image_path=fmask_img_fname,
+        #     fmask_doc_path=fmask_doc_fname,
+        #     s2cloudless_prob_path=s2cloudless_prob_fname,
+        #     s2cloudless_mask_path=s2cloudless_mask_fname,
+        #     s2cloudless_doc_path=s2cloudless_metadata_fname,
+        #     gqa_doc_path=gqa_doc_fname,
+        #     tesp_doc_path=tesp_doc_fname,
+        #     level1_metadata_path=search_for_external_level1_metadata(),
+        # ):
+        #     if self.non_standard_packaging:
+        #         ds_id, md_path = package_non_standard(Path(self.pkgdir), eods_granule)
+        #     else:
+        #         ds_id, md_path = package(
+        #             Path(self.pkgdir),
+        #             eods_granule,
+        #             product_maturity=self.product_maturity,
+        #             included_products=self.products,
+        #         )
 
-                if self.stac_base_url != "" and self.explorer_base_url != "":
-                    write_stac_metadata(
-                        md_path, self.pkgdir, self.stac_base_url, self.explorer_base_url
-                    )
+        #         if self.stac_base_url != "" and self.explorer_base_url != "":
+        #             write_stac_metadata(
+        #                 md_path, self.pkgdir, self.stac_base_url, self.explorer_base_url
+        #             )
 
-            md[ds_id] = md_path
-            STATUS_LOGGER.info(
-                "packaged dataset",
-                granule=self.granule,
-                level1=self.level1,
-                dataset_id=str(ds_id),
-                dataset_path=str(md_path),
-            )
+        #     md[ds_id] = md_path
+        #     STATUS_LOGGER.info(
+        #         "packaged dataset",
+        #         granule=self.granule,
+        #         level1=self.level1,
+        #         dataset_id=str(ds_id),
+        #         dataset_path=str(md_path),
+        #     )
 
         if self.cleanup:
             shutil.rmtree(self.workdir)
@@ -417,7 +414,7 @@ class Package(luigi.Task):
                 data = {
                     "params": self.to_str_params(),
                     # JSON can't serialise the returned Path obj
-                    "packaged_datasets": {str(k): str(v) for k, v in md.items()},
+                    # "packaged_datasets": {str(k): str(v) for k, v in md.items()},
                 }
                 json.dump(data, outf)
 
@@ -486,4 +483,5 @@ class ARDP(luigi.WrapperTask):
 
 
 if __name__ == "__main__":
+    load_dotenv()
     luigi.run()

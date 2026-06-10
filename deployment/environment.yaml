@@ -1,4 +1,4 @@
-name: base
+name: ard-pipeline
 channels:
 -   conda-forge
 -   defaults
