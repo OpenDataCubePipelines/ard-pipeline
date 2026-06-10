@@ -155,7 +155,7 @@ It utilises a bitshuffling filter on top of either a lz4 or lzf compression filt
 
 # Digital Earth Antarctica's ARD Pipeline on AWS
 
-This section explains how to setup and run the ARD pipeline on an AWS EC2 instance running Ubuntu 22 and higher distribution. This approach is specifically designed for Antarctica (As part od the ARD Pipeline for GA's DE Antarctica) but it could be easily expanded to any other region.
+This section explains how to setup and run the ARD pipeline on an AWS EC2 instance running Ubuntu 22 and higher distributions. This approach is specifically developed for GA's _DE Antarctica_ Optical ARD Pipeline, but can be easily expanded to any other region.
 
 ## Setup
 
@@ -175,7 +175,7 @@ Follow the steps in each section to setup your environment for running the pipel
 
 You can find your home directory by running `echo $HOME`.
 
-* Create and activate the conda environment dor the pipeline project by running
+* Create and activate the project's conda environment by running
 
 ```bash
 conda create -f deployment/environment.yaml
@@ -187,27 +187,28 @@ conda activate ard-pipeline
 
 You need a `conda` distribution to be able to create and activate conda environment. `Miniconda` distribution is the recommended one and it will be used in this guideline.
 
-* Run the following
+* Run the following to install additional pipeline dependencies:
 ```bash
 pip install --no-binary :all: \
   "git+https://github.com/ubarsc/rios@rios-${rios_version:-1.4.10}#egg=rios" \
   "git+https://github.com/ubarsc/python-fmask@pythonfmask-${fmask_version:-0.5.7}#egg=python-fmask" \
   awscli boto boto3
 ```
-This command will install additional requirements for the pipeline.
 
 * Install WAGL using the command:
 ```bash
 pip install --no-build-isolation --editable .
 ```
 
-* *OPTIONAL*: I you want to contribute to the code base, you will need to install the `pre-commit` library via `pip install pre-commit`
+* *OPTIONAL*: If you want to contribute to the code base, please install the `pre-commit` library with `pip install pre-commit`
 
 ### MODTRAN setup
 
+This section assumes users have access to various GA's S3 buckets on AWS.
+
 The pipeline requires [MODTRAN Software](http://modtran.spectral.com/modtran_index) for processing atmospheric information. To sut up a working copy of MODTRAN follow the steps below:
 
-* Copy MODTRAN 6 to you home directory from [AWS S3](s3://imam-dev-bucket/LS9-isolated-pipeline/volumes/ancillary/MODTRAN6.0.2.3G/) by running the command below (assuming that you are in you home directory):
+* Copy MODTRAN 6 to your home directory from [AWS S3](s3://imam-dev-bucket/LS9-isolated-pipeline/volumes/ancillary/MODTRAN6.0.2.3G/) by running the command below (assuming that you are in your home directory & have AWS CLI installed):
 
 ```bash
 aws s3 cp s3://imam-dev-bucket/LS9-isolated-pipeline/volumes/ancillary/MODTRAN6.0.2.3G/ MODTRAN6/ --recursive
@@ -236,7 +237,7 @@ $HOME/MODTRAN6/bin/linux/mod6c_cons -version
 which should show an output similar to this (depending n your software version): `MODTRAN(R) 6.0.2.3G`
 
 ### Checking the environment
-At this stage you can check if the environment is set up successfully buy running `./deployment/check-environment.sh` while you are in your ard-pipeline conda environment.
+At this stage you can check if the environment is configured correctly by running `./deployment/check-environment.sh` while you are in your ard-pipeline conda environment.
 
 You should be able to see results similar to this:
 
@@ -251,7 +252,7 @@ Checking modtran is available...✅
 ```
 
 ### ARD Pipeline Ancillary Downloader setup
-To run the ARD pipeline on AWS, you will need to use the ancillary data downloader package, designed to access and download the required ancillary files from various sources. For Digital Earth Antarctica specific pipeline, this data includes BRD, ERA45 and MERRA2 files required for running the pipeline over Antarctica. You need to clone this repo from here [ARD Pipeline Downloader](https://github.com/arcisad/ard-pipeline-downloader.git) to your **home** directory and create the conda environment for it using the `deployment/environment.yaml` file provided in its root directory. You don;t need to activate its conda environment for running the ARD pipeline.
+To run the ARD pipeline on AWS, you will need to use the `ard-pipeline-downloader` utility, designed to access and download the required ancillary files from various sources. For the Digital Earth Antarctica pipeline, this includes BRDF, ERA5 and MERRA2 data files. You need to clone this repo [ARD Pipeline Downloader](https://github.com/arcisad/ard-pipeline-downloader.git) to your **home** directory and create the conda environment for it using the `deployment/environment.yaml` file provided in its root directory. You don't need to activate its conda environment for running the ARD pipeline.
 
 ## Running a job
 You can run a job for a given scene using the provided `job.sh` file inside the `deployment/templates` directory. Create a new directory for your job (e.g. `batch_x` where x is your job number) and copy the `job.sh` file from the `deployment/templates` to your job directory.
