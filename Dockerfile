@@ -54,8 +54,12 @@ COPY wagl ./wagl
 COPY .git ./.git
 COPY pyproject.toml meson.build LICENCE.md README.md ./
 
+ARG ARD_PIPELINE_VERSION
 RUN --mount=type=cache,target=/root/.cache,id=pipours \
     --mount=type=tmpfs,target=/tmp <<EOF
+    if [ -n "${ARD_PIPELINE_VERSION}" ]; then
+        export SETUPTOOLS_SCM_PRETEND_VERSION="${ARD_PIPELINE_VERSION}"
+    fi
     pip install --config-settings=builddir=/tmp/ard-pipeline-build .
 EOF
 
