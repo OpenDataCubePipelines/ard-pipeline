@@ -272,7 +272,7 @@ dependencies:
     -   deprecat==2.1.1
     -   distributed==2024.2.1
     -   docutils==0.16
-    -   eodatasets3==0.30.9
+    -   eodatasets3==0.30.10
     -   ephem==4.1.5
     -   fiona==1.9.5
     -   folium==0.16.0
