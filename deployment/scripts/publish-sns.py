@@ -4,11 +4,13 @@ import json
 
 import boto3
 import click
+import math
 
 
 def get_attributes(stac_doc):
     properties = stac_doc["properties"]
     bbox = stac_doc["bbox"]
+    gqa_iterative_mean_xy = properties["gqa:iterative_mean_xy"]
 
     return {
         "action": {"DataType": "String", "StringValue": "ADDED"},
@@ -28,6 +30,17 @@ def get_attributes(stac_doc):
         "bbox.ll_lat": {"DataType": "Number", "StringValue": str(bbox[1])},
         "bbox.ur_lon": {"DataType": "Number", "StringValue": str(bbox[2])},
         "bbox.ur_lat": {"DataType": "Number", "StringValue": str(bbox[3])},
+        **(
+            {
+                "gqa_iterative_mean_xy": {
+                    "DataType": "Number",
+                    "StringValue": str(gqa_iterative_mean_xy),
+                }
+            }
+            if gqa_iterative_mean_xy is not None
+            and not math.isnan(gqa_iterative_mean_xy)
+            else {}
+        ),
         "maturity": {
             "DataType": "String",
             "StringValue": properties["dea:dataset_maturity"],
