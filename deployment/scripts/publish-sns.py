@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import json
+import math
 
 import boto3
 import click
-import math
 
 
 def get_attributes(stac_doc):
