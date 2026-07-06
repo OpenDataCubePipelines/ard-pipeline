@@ -38,7 +38,7 @@ def get_attributes(stac_doc):
                 }
             }
             if gqa_iterative_mean_xy is not None
-            and not math.isnan(gqa_iterative_mean_xy)
+            and not math.isnan(float(gqa_iterative_mean_xy))
             else {}
         ),
         "maturity": {
