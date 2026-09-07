@@ -70,6 +70,9 @@ ENV LC_ALL="C.UTF-8" \
     LANG="C.UTF-8" \
     PYTHONFAULTHANDLER=1
 
+# We need h5 to recognise conda's newer bitshuffle
+ENV HDF5_PLUGIN_PATH=/opt/conda/lib/python3.11/site-packages/bitshuffle/plugin:/opt/conda/lib/hdf5/plugin
+
 RUN --mount=type=cache,target=/var/cache/dnf,id=dnfprod <<EOF
     set -eu
     dnf --quiet makecache --refresh

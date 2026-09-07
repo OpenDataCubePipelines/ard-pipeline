@@ -23,6 +23,7 @@ dependencies:
 -   azure-core-cpp=1.11.1
 -   azure-storage-blobs-cpp=12.10.0
 -   azure-storage-common-cpp=12.5.0
+-   bitshuffle=0.5.2
 -   blas=1.0
 -   blosc=1.21.5
 -   boltons=23.0.0
@@ -74,7 +75,6 @@ dependencies:
 -   h5py=3.10.0
 -   hdf4=4.2.15
 -   hdf5=1.14.3
--   hdf5-external-filter-plugins-bitshuffle=0.1.0
 -   hdf5plugin=4.4.0
 -   icu=73.2
 -   idna=3.4
