@@ -48,6 +48,38 @@ set +ux
 
 conda env update -n base -f "$(dirname "$0")/environment.yaml"
 
+# Build the HDF5 bitshuffle filter ourselves, as neither conda build is usable:
+# - hdf5-external-filter-plugins-bitshuffle declares an LZ4 destination capacity of the uncompressed size, so an incompressible block is stored with a length of zero and cannot be read back
+# - conda-forge's bitshuffle is compiled with -march=native, but our build host can differ from our production host (AMD vs Intel!)
+bitshuffle_version=0.5.2
+bitshuffle_sdist="${cache_dir}/bitshuffle-${bitshuffle_version}.tar.gz"
+if [ ! -f "${bitshuffle_sdist}" ]; then
+  wget --progress=dot:giga -O "${bitshuffle_sdist}" \
+    "https://files.pythonhosted.org/packages/34/d3/539ae1f2c7404e5396f90a9b4cca2e0d83ed1a9c8e598f94efe88130094a/bitshuffle-${bitshuffle_version}.tar.gz"
+fi
+echo "dc0e3fb7bdbf42be1009cc3028744180600d625a75b31833a24aa32aeaf83d8d  ${bitshuffle_sdist}" | sha256sum -c -
+
+# Target the base ISA: one image runs across mixed CPU generations.
+march_flag=()
+if [ "${archname}" = "x86_64" ]; then
+  march_flag=(-march=x86-64)
+fi
+
+bitshuffle_build="$(mktemp -d)"
+tar xzf "${bitshuffle_sdist}" -C "${bitshuffle_build}"
+mkdir -p "${location}/lib/hdf5/plugin"
+(
+  cd "${bitshuffle_build}/bitshuffle-${bitshuffle_version}"
+  # The same sources and flags as upstream's setup.py builds the plugin extension with.
+  "${CC:-gcc}" -O3 -ffast-math -std=c99 -fPIC -shared "${march_flag[@]}" \
+    -Isrc -Ilz4 -I"${location}/include" \
+    src/bshuf_h5plugin.c src/bshuf_h5filter.c src/bitshuffle.c src/bitshuffle_core.c \
+    src/iochain.c lz4/lz4.c \
+    -L"${location}/lib" -lhdf5 \
+    -o "${location}/lib/hdf5/plugin/libh5bshuf.so"
+)
+rm -rf "${bitshuffle_build}"
+
 # Freeze the environment as it exists without our locally-installed  packages.
 # conda env export --from-history  > "${location}/environment.yaml"
 

@@ -70,6 +70,21 @@ f = h5py.File(tempfile.mktemp('-test.h5'),'w')
 dset = f.create_dataset("myData", (100, 100), **kwargs)
 print("✅")
 
+# Check Bitshuffle: try to recreate the incompressible data bug.
+# Note also that bitshuffle interally compiles with "march=native" by default", which can fail
+# when build hosts have different CPUs. (hence why we compile it ourselves)
+print("Attempting hdf5 bitshuffle compression...", end='', flush=True)
+import numpy
+kwargs = H5CompressionFilter.BITSHUFFLE.config(chunks=(256, 256)).dataset_compression_kwargs()
+data = numpy.frombuffer(numpy.random.default_rng(0).bytes(256 * 256 * 4), numpy.float32)
+data = data.reshape(256, 256)
+path = tempfile.mktemp('-bitshuffle.h5')
+with h5py.File(path, 'w') as fid:
+    fid.create_dataset("incompressible", data=data, **kwargs)
+with h5py.File(path, 'r') as fid:
+    assert fid["incompressible"][:].tobytes() == data.tobytes()
+print("✅")
+
 EOF
 
 
