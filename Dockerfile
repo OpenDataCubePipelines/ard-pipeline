@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1.5
-# We use rockylinux 8.8 to match the NCI gadi environment.
-FROM rockylinux:8.8 as builder
+# We use rockylinux to match the NCI gadi environment.
+FROM rockylinux:8.9 as builder
 SHELL ["/bin/bash", "-c"]
 
 ENV BUILD_DIR=/build \
@@ -13,6 +13,9 @@ ARG BUILDPLATFORM
 ARG TARGETARCH
 
 USER root
+
+# 8.9 is the last published library/rockylinux el8 tag; pull current el8_10 security patches on top.
+RUN dnf -y update && dnf clean all
 
 # Build deps
 RUN --mount=type=cache,target=/var/cache/dnf,id=dnfbuild <<EOF
