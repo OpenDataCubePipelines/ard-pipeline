@@ -66,7 +66,7 @@ RUN --mount=type=cache,target=/root/.cache,id=pipours \
     pip install --config-settings=builddir=/tmp/ard-pipeline-build .
 EOF
 
-FROM rockylinux:8.8 as prod
+FROM rockylinux:8.9 as prod
 
 # locale variables required by Click
 ENV LC_ALL="C.UTF-8" \
