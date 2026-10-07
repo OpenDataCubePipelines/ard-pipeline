@@ -5,6 +5,9 @@ import math
 import ephem
 import numpy as np
 from osgeo import osr
+import shapely
+import shapely.ops
+from pyproj import Transformer as proj
 
 from wagl.__sat_sol_angles import satellite_angle as satellite_angle_prim
 from wagl.__sat_sol_angles import solar_angle as solar_angle_prim
@@ -171,8 +174,13 @@ def track_bisection(acquisition, npoints, first_row, last_row):
     return intersection, row_bisection, column_bisection
 
 
-def create_coordinator(locations, geobox):
-    """:return:
+def create_coordinator(lonlats, geobox):
+    """
+    :param lonlats:
+        A 2D `NumPy` array of shape (N, 2) containing
+        longitude and latitude coordinates of the sample locations.
+
+    :return:
     A `NumPy` dataset of the following datatype:
 
     * np.dtype([('row_index', 'int64'),
@@ -193,37 +201,87 @@ def create_coordinator(locations, geobox):
             ("map_x", "int64"),
         ]
     )
-    coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
-    coordinator["row_index"] = locations[:, 0]
-    coordinator["col_index"] = locations[:, 1]
+    coordinator = np.empty(lonlats.shape[0], dtype=coordinator_dtype)
+    coordinator["latitude"] = lonlats[:, 1]
+    coordinator["longitude"] = lonlats[:, 0]
 
-    # adding half to get center-pixel-aligned coordinates
-    map_xy = geobox.transform * (locations[:, 1] + 0.5, locations[:, 0] + 0.5)
-    coordinator["map_y"] = map_xy[1]
-    coordinator["map_x"] = map_xy[0]
+    transformer = proj.from_crs(CRS, geobox.crs.ExportToWkt(), always_xy=True)
+    coordinator["map_x"], coordinator["map_y"] = transformer.transform(
+        coordinator["longitude"], coordinator["latitude"]
+    )
 
-    lon, lat = convert_to_lonlat(geobox, locations[:, 1], locations[:, 0])
-    coordinator["latitude"] = lat
-    coordinator["longitude"] = lon
+    cols, rows = ~geobox.transform * (coordinator["map_x"], coordinator["map_y"])
+    coordinator["col_index"] = cols
+    coordinator["row_index"] = rows
 
     return coordinator
 
 
-def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
+def create_track_linestring(track_dset):
+    track_lon = np.rad2deg(track_dset["lam"])
+    track_lat = np.rad2deg(track_dset["phi_p"])
+
+    return shapely.LineString(shapely.points(track_lon, track_lat))
+
+
+def create_regular_grid_points(geobox, vertices):
+    rows, cols = geobox.shape
+
+    y = np.linspace(0, rows - 1, vertices[0]).astype("int32")
+    x = np.linspace(0, cols - 1, vertices[1]).astype("int32")
+
+    xx, yy = np.meshgrid(x, y, indexing="xy")
+    col_index = xx.ravel()
+    row_index = yy.ravel()
+
+    lon, lat = convert_to_lonlat(geobox, col_index, row_index)
+
+    return shapely.multipoints(shapely.points(lon, lat))
+
+
+def split_grid_by_track(grid_points, track_string, vertices):
+    assert vertices[0] == vertices[1]
+
+    grid_hull = grid_points.convex_hull
+
+    split_hull = shapely.ops.split(grid_hull, track_string)
+    assert split_hull.geom_type == "GeometryCollection"
+
+    parts = list(split_hull.geoms)
+    assert len(parts) != 0 and len(parts) <= 2
+
+    if len(parts) == 1:
+        return {"grid": grid_points}
+
+    track_clipped = shapely.multipoints(track_string.intersection(grid_hull).interpolate(
+        np.linspace(0, 1, vertices[0]), normalized=True
+    ))
+
+    part1, part2 = parts
+
+    points1 = shapely.multipoints([p for p in grid_points.geoms if part1.covers(p)])
+    points2 = shapely.multipoints([p for p in grid_points.geoms if part2.covers(p)])
+
+    assert len(grid_points.geoms) == len(points1.geoms) + len(points2.geoms)
+
+    return {"grid": grid_points, "track": track_clipped, "part1": points1, "part2": points2}
+
+
+def coordinator_geometries(geobox, track, vertices):
+    track_linestring = create_track_linestring(track)
+    grid_points = create_regular_grid_points(geobox, vertices)
+    return split_grid_by_track(grid_points, track_linestring, vertices)
+
+
+def create_vertices(acquisition, track, vertices=(3, 3)):
     """Defines the point locations, and the number of points, across a
     spatial grid.
 
     :param acquisition:
         An instance of an `Acquisition` object.
 
-    :param boxline_dataset:
-        The dataset containing the bi-section (satellite track)
-        coordinates. The datatype should be the same as that returned
-        by the `satellite_solar_angles.create_boxline` function.
-    :type boxline_dataset:
-        [('row_index', 'int64'), ('bisection_index', 'int64'),
-         ('npoints', 'int64'), ('start_index', 'int64'),
-         ('end_index', 'int64')]
+    :param track:
+        A dict containing satellite track coordinates.
 
     :param vertices:
         An integer 2-tuple indicating the number of rows and columns
@@ -242,38 +300,14 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
                     ('map_x', 'int64')])
     """
     geobox = acquisition.gridded_geo_box()
-    rows, cols = geobox.shape
+    geoms = coordinator_geometries(geobox, track, vertices)
 
-    if rows < vertices[0] | cols < vertices[1]:
-        msg = (
-            "Vertices must be >= to the acquisition dimensions! "
-            "Acquisition dimensions: {}, Vertices: {}"
-        )
-        raise ValueError(msg.format((rows, cols), vertices))
+    if "track" not in geoms:
+        points = geoms["grid"]
+    else:
+        points = shapely.ops.unary_union([geoms["grid"], geoms["track"]])
 
-    xcentre = boxline_dataset["bisection_index"]
-    npoints = boxline_dataset["npoints"]
-    istart = boxline_dataset["start_index"]
-    iend = boxline_dataset["end_index"]
-
-    _, mid_row, mid_col = track_bisection(acquisition, npoints, xcentre[0], xcentre[-1])
-
-    # Note, assumes that if track intersects two rows then it also
-    # intersects all intervening rows.
-
-    grid_rows = asymetric_linspace(0, rows - 1, vertices[0], midpoint=mid_row)
-
-    nvertices = vertices[0] * vertices[1]
-    locations = np.empty((vertices[0], vertices[1], 2), dtype="int64")
-    for ig, ir in enumerate(grid_rows):  # row indices for sample-grid & raster
-        grid_line = asymetric_linspace(
-            istart[ir], iend[ir], vertices[1], mid_col or xcentre[ir]
-        )
-        locations[ig, :, 0] = ir
-        locations[ig, :, 1] = grid_line
-    locations = locations.reshape(nvertices, 2)
-
-    return create_coordinator(locations, geobox)
+    return create_coordinator(shapely.get_coordinates(points), geobox)
 
 
 def calculate_julian_century(datetime):
