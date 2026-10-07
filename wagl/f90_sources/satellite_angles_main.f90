@@ -1,7 +1,7 @@
 ! subroutine angle
 SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_elements, &
              ntpoints,smodel,track, &
-             view,azi,tim,X_cent,N_cent,istat)
+             view,azi,tim,istat)
 
 !   program to calculate solar, view and azimuth angle from
 !   both UTM and lat/lon projection if we only know one point in the
@@ -53,15 +53,11 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
 !       view
 !       azi
 !       tim
-!       X_cent
-!       N_cent
 !
 !   Outputs
 !       view
 !       azi
 !       tim
-!       X_cent
-!       N_cent
 !       istat
 
     use sys_variables, only : pi, d2r, r2d
@@ -76,7 +72,6 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
     double precision, dimension(12), intent(in) :: smodel
     double precision, dimension(ntpoints,8), intent(in) :: track
     real, dimension(nrow, ncol), intent(inout) :: view, azi, tim
-    real, dimension(nlines), intent(inout) :: X_cent, N_cent
     integer, dimension(nrow, ncol), intent(out) :: istat
     double precision delxx, tol_lam
     double precision xout, yout
@@ -87,7 +82,7 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
     integer i, j, istat_elem
 
 !f2py depend(nrow, ncol), alat, alon, view, azi, tim
-!f2py depend(nlines), X_cent, N_cent
+!f2py depend(nlines)
 !f2py depend(ntpoints), track
 
 !   Orbital inclination
@@ -132,11 +127,6 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
         tim(i, j) = timet
         view(i, j) = theta_p*r2d
         azi(i, j) = azimuth*r2d
-        if ((abs(timet) .gt. 1.0e-5) .and. (abs(view(i, j)) .lt. 1.0e-7) &
-          .and. (abs(azi(i, j)) .lt. 1.0e-7)) then
-            X_cent(row_offset + i) = X_cent(row_offset + i)+real(j + col_offset)
-            N_cent(row_offset + i) = N_cent(row_offset + i)+1.0
-        endif
     enddo
     enddo
 

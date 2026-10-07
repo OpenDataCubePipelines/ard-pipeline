@@ -654,8 +654,6 @@ def satellite_angle(
     view,
     azi,
     tim,
-    x_cent,
-    n_cent,
 ):
     stat = satellite_angle_prim(
         nrow,
@@ -673,8 +671,6 @@ def satellite_angle(
         view,
         azi,
         tim,
-        x_cent,
-        n_cent,
     )
 
     if np.any(stat != 0):
@@ -903,10 +899,6 @@ def calculate_angles(
     }
     attach_attributes(time_ds, attrs)
 
-    # Initialise centre line variables
-    x_cent = np.zeros(acquisition.lines, dtype=out_dtype)
-    n_cent = np.zeros(acquisition.lines, dtype=out_dtype)
-
     for tile in acquisition.tiles(xtol=1, ytol=1):
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
@@ -952,8 +944,6 @@ def calculate_angles(
             view,
             azi,
             time,
-            x_cent,
-            n_cent,
         )
 
         # output to disk
