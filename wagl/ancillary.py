@@ -48,7 +48,7 @@ from wagl.hdf5 import (
     write_scalar,
 )
 from wagl.metadata import current_h5_metadata, is_offshore_territory
-from wagl.satellite_solar_angles import create_coordinator, create_vertices
+from wagl.satellite_solar_angles import create_vertices
 
 # A H5 file path and dataset name, separated by a colon.
 # h5_path, dataset_name = this.split(":")
@@ -113,38 +113,27 @@ def get_4d_idx(day):
     return list(range(start, stop, 1))
 
 
-def check_interpolation_sample_geometry(container, group, grp_name):
-    acqs = container.get_acquisitions(group=grp_name)
-    acq = acqs[0]
-    geobox = acq.gridded_geo_box()
-    coord_read = read_h5_table(group, DatasetName.COORDINATOR.value)
-    coord = np.zeros((coord_read.shape[0], 2), dtype="int")
-    map_x = coord_read.map_x.values
-    map_y = coord_read.map_y.values
-    coord[:, 1], coord[:, 0] = ~geobox.transform * (map_x, map_y)
-
-    unique_coords = {(coord[i, 0], coord[i, 1]) for i in range(coord.shape[0])}
-
-    return coord.shape[0] == len(unique_coords)
+def kelvin_2_celcius(kelvin):
+    """A small utility function for converting degrees Kelvin to
+    degrees Celcius.
+    """
+    return kelvin - 273.15
 
 
-def default_interpolation_grid(acquisition, vertices, boxline_dataset):
-    geobox = acquisition.gridded_geo_box()
-    rows, cols = geobox.shape
-    istart = boxline_dataset["start_index"]
-    iend = boxline_dataset["end_index"]
-    nvertices = vertices[0] * vertices[1]
-    locations = np.empty((vertices[0], vertices[1], 2), dtype="int64")
-    grid_rows = list(
-        np.linspace(0, rows - 1, vertices[0], endpoint=True, dtype="int32")
-    )
-    for ig, ir in enumerate(grid_rows):  # row indices for sample-grid & raster
-        grid_line = np.linspace(istart[ir], iend[ir], vertices[1], endpoint=True)
-        locations[ig, :, 0] = ir
-        locations[ig, :, 1] = grid_line
-    locations = locations.reshape(nvertices, 2)
-    coordinator = create_coordinator(locations, geobox)
-    return coordinator
+def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
+    """Calculates relative humidity given a surface temperature and
+    dewpoint temperature.
+    """
+    if kelvin:
+        surf_t = kelvin_2_celcius(surface_temp)
+        dew_t = kelvin_2_celcius(dewpoint_temp)
+    else:
+        surf_t = surface_temp
+        dew_t = dewpoint_temp
+
+    rh = 100 * ((112.0 - 0.1 * surf_t + dew_t) / (112.0 + 0.9 * surf_t)) ** 8
+
+    return rh
 
 
 class AerosolDict(TypedDict):
@@ -279,9 +268,13 @@ def collect_ancillary(
     ancil_group = fid.create_group(GroupName.ANCILLARY_GROUP.value)
     acquisition = container.get_highest_resolution()[0][0]
 
-    boxline_dataset = satellite_solar_group[DatasetName.BOXLINE.value][:]
-    coordinator = create_vertices(acquisition, boxline_dataset, vertices)
-    lat_longs = tuple(zip(coordinator["latitude"], coordinator["longitude"]))
+    track_dset = read_h5_table(satellite_solar_group, f"PARAMETERS/{DatasetName.SATELLITE_TRACK.value}")
+    coordinator = create_vertices(
+        acquisition,
+        {col: track_dset[col].to_numpy() for col in track_dset.columns},
+        vertices=vertices
+    )
+    lonlats = zip(coordinator["longitude"], coordinator["latitude"])
 
     desc = (
         "Contains the row and column array coordinates used for the "
@@ -292,16 +285,6 @@ def collect_ancillary(
     dset_name = DatasetName.COORDINATOR.value
     coord_dset = ancil_group.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
-
-    # check if modtran interpolation points coincide
-    if not all(
-        check_interpolation_sample_geometry(container, ancil_group, grp_name)
-        for grp_name in container.supported_groups
-    ):
-        coord_dset[:] = default_interpolation_grid(
-            acquisition, vertices, boxline_dataset
-        )
-        attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
 
     if sbt_path:
         raise AncillaryError("SBT is disabled")
