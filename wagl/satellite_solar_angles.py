@@ -627,7 +627,7 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
             * Index 2 contains the angular velocity in radians/sec^1.
 
     :return:
-        A floating point np array of 12 elements containing the
+        A floating point np array of 30 elements containing the
         satellite model paramaters.
 
             * Index 0 contains phi0.
@@ -672,7 +672,7 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
     return smodel, smodel_dset
 
 
-def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
+def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=30):
     """Setup the satellite track times.
     A wrapper routine for the ``set_times`` Fortran module built via
     ``F2Py``.
@@ -702,7 +702,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
             * Index 2 contains the angular velocity in radians/sec^1.
 
     :param smodel:
-        A floating point np array of 12 elements containing the
+        A floating point np array of 30 elements containing the
         satellite model paramaters:
 
             * Index 0 contains phi0.
@@ -720,7 +720,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
 
     :param ntpoints:
         The number of time sample points to be calculated along the
-        satellite track. Default is 12.
+        satellite track. Default is 30.
 
     :return:
         A floating point np array of [ntpoints,8] containing the
@@ -860,7 +860,7 @@ def calculate_angles(
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
     tle_path=None,
-    trackpoints=12,
+    trackpoints=30,
 ):
     """Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -897,7 +897,7 @@ def calculate_angles(
 
     :param trackpoints:
         Number of trackpoints to use when calculating solar angles
-        Default is 12
+        Default is 30 to detect track intersecting acquisition.
 
     :param compression:
         The compression filter to use.
