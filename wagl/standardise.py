@@ -552,7 +552,8 @@ def stash_atmospherics(
     inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
 
     json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".json"]))
-    nvertices = vertices[0] * vertices[1]
+    coordinator = read_h5_table(ancillary_group, DatasetName.COORDINATOR.value)
+    nvertices = coordinator.shape[0]
 
     # TODO: should some of MODTRAN data munging code move to modtran.py?
     # radiative transfer for each point and albedo
