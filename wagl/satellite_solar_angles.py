@@ -80,17 +80,9 @@ def first_and_last(array):
     return (i[0], i[-1]) if i.shape[0] else (-1, -1)
 
 
-def asymetric_linspace(start, stop, num, midpoint):
-    """Utility like numpy.linspace but with custom midpoint.
-
-    >>> assymetric_linspace(start=10, stop=20, num=5, midpoint=18)
-    [10, 14, 18, 19, 20]
-    """
-    front = np.linspace(start, midpoint, num // 2, endpoint=False, dtype="int64")
-    back = np.linspace(midpoint, stop, num // 2 + 1, dtype="int64")
-    return list(front) + list(back)
-
-
+# not used, kept here as a reminder of the possible optimization
+# that the coordinator points need to be outside a certain
+# range of satellite view angles
 def swathe_edges(threshold, array):
     """Find left and right edges of swathe.
 
@@ -103,75 +95,6 @@ def swathe_edges(threshold, array):
     for i, row in enumerate(array):
         start[i], end[i] = first_and_last(row <= threshold)
     return start, end
-
-
-def track_bisection(acquisition, npoints, first_row, last_row):
-    """Determine the type of intersection the satellite has with the
-    acquisition, and where the bi-section coordinates should occur.
-    Cases that are dealt with are:
-
-      * Full intersection; The track intersects both ends of the image.
-      * Partial; The track intersects only 1 end of the image, which
-        could be the top or bottom row.
-      * Empty; The track doesn't intersect the image at all.
-
-    The other case that is not currently considered (but may in
-    future releases), is where the track intersects the image, but not
-    at the top or bottom rows. Instead, the intersection occurs
-    obliquely in relation to the image rectangle. This is most likely
-    to occur at latitudes +- 80 degrees.
-
-    :param acquisition:
-        An instance of an `Acquisition` object.
-
-    :param npoints:
-        A NumPy array containing the number of pixels the satellite
-        track touched for a given row. The dimensions of npoints
-        should match the number of rows for the acquisition.
-
-    :param first_row:
-        The column index of the satellite track intersection for the
-        first row. A value of -1 indicates no intersection.
-
-    :param last_row:
-        The column index of the satellite track intersection for the
-        last row. A value of -1 indicates no intersection.
-
-    :return:
-        A tuple (intersection, row_bisection, column_bisection).
-        Where intersection is an instance of TrackIntersection
-        detailing the type of intersection occurring with the
-        acquisition. The row_bisection and column_bisection are
-        the indices at which the bi-section should occur.
-    """
-    geobox = acquisition.gridded_geo_box()
-    rows, cols = geobox.shape
-
-    # special handling if the satellite track does not intersect both ends
-    # of the raster
-    track_end_rows = set(first_and_last(npoints))
-    partial_track = track_end_rows - {0, rows - 1, -1}
-    row_bisection = rows // 2
-    if -1 in track_end_rows:  # track doesn't intersect raster
-        column_bisection = cols // 2
-        intersection = TrackIntersection.EMPTY
-
-    elif partial_track:  # track intersects only part of raster
-        try:
-            column_bisection = ({first_row, last_row} - {0, cols - 1, -1}).pop()
-            row_bisection = partial_track.pop()
-            intersection = TrackIntersection.PARTIAL
-        except KeyError:
-            # the intersection is too shallow, fall back to no intersection
-            row_bisection = rows // 2
-            column_bisection = cols // 2
-            intersection = TrackIntersection.EMPTY
-
-    else:  # track fully available for deference
-        column_bisection = None
-        intersection = TrackIntersection.FULL
-
-    return intersection, row_bisection, column_bisection
 
 
 def create_coordinator(locations, geobox):
