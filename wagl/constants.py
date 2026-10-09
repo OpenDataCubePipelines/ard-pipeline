@@ -190,11 +190,7 @@ class Method(Enum):
     """Defines the Interpolation method used for interpolating the
     atmospheric coefficients.
     """
-
-    BILINEAR = 0
-    SHEAR = 2
-    SHEARB = 3
-    SCIPY = 4
+    SCIPY = 0
 
 
 class BrdfModelParameters(Enum):

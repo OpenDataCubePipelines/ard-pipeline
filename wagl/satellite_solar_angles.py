@@ -124,7 +124,7 @@ def create_coordinator(locations, geobox):
             ("longitude", "float64"),
             ("map_y", "int64"),
             ("map_x", "int64"),
-            ('geom', 'int64'),
+            ("geom", "int32"),
         ]
     )
     coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
@@ -137,9 +137,10 @@ def create_coordinator(locations, geobox):
         coordinator["longitude"], coordinator["latitude"]
     )
 
-    cols, rows = ~geobox.transform * (coordinator["map_x"], coordinator["map_y"])
-    coordinator["col_index"] = cols
-    coordinator["row_index"] = rows
+    coordinator["col_index"], coordinator["row_index"] = ~geobox.transform * (
+        coordinator["map_x"],
+        coordinator["map_y"],
+    )
 
     return coordinator
 
@@ -180,9 +181,11 @@ def split_grid_by_track(grid_points, track_string, vertices):
     if len(parts) == 1:
         return {"grid": grid_points}
 
-    track_clipped = shapely.multipoints(track_string.intersection(grid_hull).interpolate(
-        np.linspace(0, 1, vertices[0]), normalized=True
-    ))
+    track_clipped = shapely.multipoints(
+        track_string.intersection(grid_hull).interpolate(
+            np.linspace(0, 1, vertices[0]), normalized=True
+        )
+    )
 
     part1, part2 = parts
 
@@ -191,7 +194,12 @@ def split_grid_by_track(grid_points, track_string, vertices):
 
     assert len(grid_points.geoms) == len(points1.geoms) + len(points2.geoms)
 
-    return {"grid": grid_points, "track": track_clipped, "part1": points1, "part2": points2}
+    return {
+        "grid": grid_points,
+        "track": track_clipped,
+        "part1": points1,
+        "part2": points2,
+    }
 
 
 def coordinator_geometries(geobox, track, vertices):
@@ -241,11 +249,13 @@ def create_vertices(acquisition, track, vertices=(3, 3)):
         # 1: track points
         # 2: component 1
         # 3: component 2
-        points = np.vstack([
-            assign_component_label(geoms["track"], 1),
-            assign_component_label(geoms["part1"], 2),
-            assign_component_label(geoms["part1"], 3),
-        ])
+        points = np.vstack(
+            [
+                assign_component_label(geoms["track"], 1),
+                assign_component_label(geoms["part1"], 2),
+                assign_component_label(geoms["part2"], 3),
+            ]
+        )
 
     return create_coordinator(points, geobox)
 
