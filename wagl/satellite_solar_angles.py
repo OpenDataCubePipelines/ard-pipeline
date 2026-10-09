@@ -174,11 +174,12 @@ def track_bisection(acquisition, npoints, first_row, last_row):
     return intersection, row_bisection, column_bisection
 
 
-def create_coordinator(lonlats, geobox):
+def create_coordinator(locations, geobox):
     """
-    :param lonlats:
-        A 2D `NumPy` array of shape (N, 2) containing
-        longitude and latitude coordinates of the sample locations.
+    :param locations:
+        A 2D `NumPy` array of shape (N, 3) containing
+        longitude and latitude coordinates of the sample locations
+        and the geometry component label.
 
     :return:
     A `NumPy` dataset of the following datatype:
@@ -188,7 +189,8 @@ def create_coordinator(lonlats, geobox):
     ('latitude', 'float64'),
     ('longitude', 'float64'),
     ('map_y', 'int64'),
-    ('map_x', 'int64')])
+    ('map_x', 'int64'),
+    ('geom', 'int32')])
     """
     # custom datatype for coordinator
     coordinator_dtype = np.dtype(
@@ -199,11 +201,13 @@ def create_coordinator(lonlats, geobox):
             ("longitude", "float64"),
             ("map_y", "int64"),
             ("map_x", "int64"),
+            ('geom', 'int64'),
         ]
     )
-    coordinator = np.empty(lonlats.shape[0], dtype=coordinator_dtype)
-    coordinator["latitude"] = lonlats[:, 1]
-    coordinator["longitude"] = lonlats[:, 0]
+    coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
+    coordinator["longitude"] = locations[:, 0]
+    coordinator["latitude"] = locations[:, 1]
+    coordinator["geom"] = locations[:, 2]
 
     transformer = proj.from_crs(CRS, geobox.crs.ExportToWkt(), always_xy=True)
     coordinator["map_x"], coordinator["map_y"] = transformer.transform(
@@ -302,12 +306,25 @@ def create_vertices(acquisition, track, vertices=(3, 3)):
     geobox = acquisition.gridded_geo_box()
     geoms = coordinator_geometries(geobox, track, vertices)
 
-    if "track" not in geoms:
-        points = geoms["grid"]
-    else:
-        points = shapely.ops.unary_union([geoms["grid"], geoms["track"]])
+    def assign_component_label(points, label):
+        coords = shapely.get_coordinates(points)
+        tag = np.full((coords.shape[0], 1), label)
+        return np.hstack([coords, tag])
 
-    return create_coordinator(shapely.get_coordinates(points), geobox)
+    if "track" not in geoms:
+        # 0: no track intersection, all points from grid
+        points = assign_component_label(geoms["grid"], 0)
+    else:
+        # 1: track points
+        # 2: component 1
+        # 3: component 2
+        points = np.vstack([
+            assign_component_label(geoms["track"], 1),
+            assign_component_label(geoms["part1"], 2),
+            assign_component_label(geoms["part1"], 3),
+        ])
+
+    return create_coordinator(points, geobox)
 
 
 def calculate_julian_century(datetime):
