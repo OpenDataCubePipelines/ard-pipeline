@@ -70,7 +70,7 @@ class DataStandardisation(luigi.Task):
     granule = luigi.OptionalParameter(default="")
     workflow = luigi.EnumParameter(enum=Workflow, default=Workflow.STANDARD)
     vertices = luigi.TupleParameter(default=(5, 5))
-    method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
+    method = luigi.EnumParameter(enum=Method, default=Method.SCIPY)
     aerosol = luigi.DictParameter(default={"user": 0.05}, significant=False)
     brdf = luigi.DictParameter()
     ozone = luigi.DictParameter(default={"user": 0.3}, significant=False)
