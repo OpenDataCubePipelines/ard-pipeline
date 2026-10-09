@@ -644,7 +644,6 @@ def stash_interpolation(
                     acq,
                     coefficient,
                     ancillary_group,
-                    sat_sol_grp,
                     comp_grp,
                     res_group,
                     compression,
