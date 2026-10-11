@@ -6,6 +6,7 @@ import logging
 
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator
+from scipy.ndimage import convolve
 
 from wagl.constants import DatasetName, GroupName, Method, Workflow
 from wagl.hdf5 import (
@@ -224,14 +225,46 @@ def scipy_interpolate(
     locations,
     samples,
 ):
-    # would np.mgrid be faster somehow?
-    # but it uses too much memory so have to process tile-by-tile
     y, x = np.ogrid[:rows, :cols]
-    # the memory usage with np.grid can reach upto 6GB
-    # probably a good idea to do tiled processing anyway
     interpolator = LinearNDInterpolator(locations, samples)
     result = interpolator(y, x)
     return result.astype(np.float32)
+
+
+def gap_fill_iteratively(image):
+    result = image.copy()
+
+    kernel = np.array([
+        [0, 1, 0],
+        [1, 0, 1],
+        [0, 1, 0]
+    ])
+
+    gaps = np.isnan(result)
+    gap_count = np.sum(gaps)
+
+    while gap_count > 0:
+        # convert NaNs to 0 so that they don't contribute to sum
+        neighbor_sum = convolve(
+            np.nan_to_num(result, nan=0.0), kernel, mode="constant", cval=0.0
+        )
+        neighbor_count = convolve(
+            (~gaps).astype(np.float32), kernel, mode="constant", cval=0.0
+        )
+
+        with np.errstate(divide="ignore", invalid="ignore"):
+            neighbor_mean = neighbor_sum / neighbor_count
+
+        result[gaps] = neighbor_mean[gaps]
+        old_gap_count = gap_count
+
+        gaps = np.isnan(result)
+        gap_count = np.sum(gaps)
+
+        if old_gap_count <= gap_count:
+            raise ValueError("Something went wrong in gap fill")
+
+    return result
 
 
 def interpolate(
@@ -265,6 +298,10 @@ def interpolate(
         raise ValueError(msg.format(Workflow.STANDARD.atmos_coefficients))
 
     coefficients = read_h5_table(coefficients_group, dataset_name)
+
+    # the coordinator records row_index, col_index
+    # but we may be operating on a different RES-GROUP here
+    # so recompute the row_index, col_index values
     coord = np.zeros((coordinator.shape[0], 2), dtype="int")
     map_x = coordinator.map_x.values
     map_y = coordinator.map_y.values
@@ -273,7 +310,21 @@ def interpolate(
     band_records = coefficients.band_name == acq.band_name
     samples = coefficients[coefficient.value][band_records].values
 
-    result = scipy_interpolate(cols, rows, coord, samples)
+    geom = coordinator.geom.values
+
+    if np.all(geom == 0):
+        result = scipy_interpolate(cols, rows, coord, samples)
+    else:
+        mask = (geom == 1) | (geom == 2)
+        result = scipy_interpolate(cols, rows, coord[mask], samples[mask])
+        mask = (geom == 1) | (geom == 3)
+        result = np.where(
+            np.isnan(result),
+            scipy_interpolate(cols, rows, coord[mask], samples[mask]),
+            result,
+        )
+
+        result = gap_fill_iteratively(result)
 
     assert out_group is not None
     fid = out_group
@@ -308,5 +359,6 @@ def interpolate(
     )
     attrs["description"] = desc.format(coefficient.value, acq.band_id, acq.sensor_id)
 
+    # is this correct?
     result[result == -999] = no_data
     write_h5_image(result, dset_name, group, compression, attrs, filter_opts)
