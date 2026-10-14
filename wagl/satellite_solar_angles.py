@@ -7,7 +7,7 @@ import numpy as np
 from osgeo import osr
 import shapely
 import shapely.ops
-from pyproj import Transformer as proj
+from pyproj import Transformer as ProjTransformer
 
 from wagl.__sat_sol_angles import satellite_angle as satellite_angle_prim
 from wagl.__sat_sol_angles import solar_angle as solar_angle_prim
@@ -26,42 +26,40 @@ from wagl.tle import load_tle
 CRS = "EPSG:4326"
 
 
-def convert_to_lonlat(geobox, col_index, row_index, centre=True):
-    """Converts arrays of row and column indices into latitude and
-    longitude (WGS84 datum).
-
-    :param geobox:
-        An instance of a GriddedGeoBox object.
-
-    :param col_index:
-        A 1D `NumPy` array of integers representing the column indices.
-
-    :param row_index:
-        A 1D `NumPy` array of integers representing the row indices.
-
-    :param centre:
-        TODO.
-
-    :return:
-        2x 1D `NumPy` arrays, of type float64, containing the
-        (longitude, latitude) coordinates.
-    """
-    # Define the TO_CRS for lon & lat outputs
-    sr = osr.SpatialReference()
-    sr.SetFromUserInput(CRS)
-
-    lon = np.zeros(row_index.shape, dtype="float64")
-    lat = np.zeros(row_index.shape, dtype="float64")
-
-    for i, coord in enumerate(zip(col_index, row_index)):
-        map_xy = geobox.convert_coordinates(coord, centre=centre)
-        lonlat = geobox.transform_coordinates(map_xy, to_crs=sr)
-        lon[i] = lonlat[0]
-        lat[i] = lonlat[1]
-
-    return lon, lat
+def convert_pixel_index_to_projected_coord(geobox, pixel_indices, centre=True):
+    shift = 0.5 if centre else 0.0
+    return np.array(
+        [(geobox.transform * point) for point in (pixel_indices + shift).tolist()]
+    )
 
 
+def convert_projected_coord_to_pixel_index(geobox, projected_coords, centre=True):
+    shift = 0.5 if centre else 0.0
+    pixels = np.array(
+        [((~geobox.transform) * point) for point in projected_coords.tolist()]
+    )
+    return np.round(pixels - shift).astype(np.int32)
+
+
+def convert_projected_coord_to_geographic(geobox, projected_coords):
+    transformer = ProjTransformer.from_crs(
+        geobox.crs.ExportToWkt(), CRS, always_xy=True
+    )
+    lon, lat = transformer.transform(projected_coords[:, 0], projected_coords[:, 1])
+    return np.hstack([lon[:, np.newaxis], lat[:, np.newaxis]])
+
+
+def convert_geographic_to_projected_coord(geobox, lonlat):
+    transformer = ProjTransformer.from_crs(
+        CRS, geobox.crs.ExportToWkt(), always_xy=True
+    )
+    map_x, map_y = transformer.transform(lonlat[:, 0], lonlat[:, 1])
+    return np.hstack([map_x[:, np.newaxis], map_y[:, np.newaxis]])
+
+
+# not used, kept here as a reminder of the possible optimization
+# that the coordinator points need to be outside a certain
+# range of satellite view angles
 def first_and_last(array):
     """Utility to find indices of first and last true value in an array.
 
@@ -101,7 +99,7 @@ def create_coordinator(locations, geobox):
     """
     :param locations:
         A 2D `NumPy` array of shape (N, 3) containing
-        longitude and latitude coordinates of the sample locations
+        pixel coordinates of the sample locations
         and the geometry component label.
 
     :return:
@@ -128,28 +126,30 @@ def create_coordinator(locations, geobox):
         ]
     )
     coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
-    coordinator["longitude"] = locations[:, 0]
-    coordinator["latitude"] = locations[:, 1]
+    coordinator["col_index"] = locations[:, 0]
+    coordinator["row_index"] = locations[:, 1]
     coordinator["geom"] = locations[:, 2]
 
-    transformer = proj.from_crs(CRS, geobox.crs.ExportToWkt(), always_xy=True)
-    coordinator["map_x"], coordinator["map_y"] = transformer.transform(
-        coordinator["longitude"], coordinator["latitude"]
-    )
+    projected = convert_pixel_index_to_projected_coord(geobox, locations[:, :2])
+    coordinator["map_x"] = projected[:, 0]
+    coordinator["map_y"] = projected[:, 1]
 
-    coordinator["col_index"], coordinator["row_index"] = ~geobox.transform * (
-        coordinator["map_x"],
-        coordinator["map_y"],
-    )
+    lonlat = convert_projected_coord_to_geographic(geobox, projected)
+    coordinator["longitude"] = lonlat[:, 0]
+    coordinator["latitude"] = lonlat[:, 1]
 
     return coordinator
 
 
-def create_track_linestring(track_dset):
+def create_track_linestring(geobox, track_dset):
     track_lon = np.rad2deg(track_dset["lam"])
     track_lat = np.rad2deg(track_dset["phi_p"])
 
-    return shapely.LineString(shapely.points(track_lon, track_lat))
+    lonlat = np.hstack([track_lon[:, np.newaxis], track_lat[:, np.newaxis]])
+    projected = convert_geographic_to_projected_coord(geobox, lonlat)
+    points = convert_projected_coord_to_pixel_index(geobox, projected)
+
+    return shapely.LineString(shapely.points(points[:, 0], points[:, 1]))
 
 
 def create_regular_grid_points(geobox, vertices):
@@ -162,12 +162,11 @@ def create_regular_grid_points(geobox, vertices):
     col_index = xx.ravel()
     row_index = yy.ravel()
 
-    lon, lat = convert_to_lonlat(geobox, col_index, row_index)
-
-    return shapely.multipoints(shapely.points(lon, lat))
+    return shapely.multipoints(shapely.points(col_index, row_index))
 
 
 def split_grid_by_track(grid_points, track_string, vertices):
+    # TODO or should vertices be (y_vertices, x_vertices, track_points)?
     assert vertices[0] == vertices[1]
 
     grid_hull = grid_points.convex_hull
@@ -203,7 +202,7 @@ def split_grid_by_track(grid_points, track_string, vertices):
 
 
 def coordinator_geometries(geobox, track, vertices):
-    track_linestring = create_track_linestring(track)
+    track_linestring = create_track_linestring(geobox, track)
     grid_points = create_regular_grid_points(geobox, vertices)
     return split_grid_by_track(grid_points, track_linestring, vertices)
 
