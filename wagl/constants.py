@@ -190,6 +190,7 @@ class Method(Enum):
     """Defines the Interpolation method used for interpolating the
     atmospheric coefficients.
     """
+
     SCIPY = 0
 
 
@@ -239,16 +240,6 @@ class AtmosphericCoefficients(Enum):  # param, coeff, vari... what to use
     PATH_DOWN = "PATH-DOWN"
     TRANSMITTANCE_UP = "TRANSMITTANCE-UP"
     ESUN = "ESUN"
-
-
-class TrackIntersection(Enum):
-    """Defines the type of track intersection an acquisition
-    will have.
-    """
-
-    FULL = 0
-    PARTIAL = 1
-    EMPTY = 2
 
 
 class WaterVapourTier(Enum):

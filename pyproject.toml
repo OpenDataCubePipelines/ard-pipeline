@@ -13,7 +13,7 @@ requires = [
 
 [project]
 authors = [
-    {name = 'Geoscience Australia', email = 'earth.observation@ga.gov.au'}
+    { name = 'Geoscience Australia', email = 'earth.observation@ga.gov.au' }
 ]
 dependencies = [
     "attrs>=17.4.0",
@@ -60,9 +60,9 @@ description = 'ARD image processing'
 dynamic = ["version"]
 # Was needed for tesp .. here too? TODO
 include_package_data = true
-license = {file = 'LICENCE.md'}
+license = { file = 'LICENCE.md' }
 name = 'ard-pipeline'
-package_data = {"eugl.gqa" = ["data/*.csv"]}
+package_data = { "eugl.gqa" = ["data/*.csv"] }
 readme = 'README.md'
 requires-python = '>=3.8'
 
