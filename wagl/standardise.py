@@ -623,7 +623,6 @@ def stash_interpolation(
         log.info("Interpolation")
 
         res_group = root[grp_name]
-        sat_sol_grp = res_group[GroupName.SAT_SOL_GROUP.value]
         comp_grp = root[GroupName.COEFFICIENTS_GROUP.value]
 
         for coefficient in workflow.atmos_coefficients:

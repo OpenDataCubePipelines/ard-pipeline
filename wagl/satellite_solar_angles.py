@@ -4,16 +4,16 @@ import math
 
 import ephem
 import numpy as np
-from osgeo import osr
 import shapely
 import shapely.ops
+from osgeo import osr
 from pyproj import Transformer as ProjTransformer
 
 from wagl.__sat_sol_angles import satellite_angle as satellite_angle_prim
 from wagl.__sat_sol_angles import solar_angle as solar_angle_prim
 from wagl.__satellite_model import set_satmod
 from wagl.__track_time_info import set_times
-from wagl.constants import DatasetName, GroupName, TrackIntersection
+from wagl.constants import DatasetName, GroupName
 from wagl.hdf5 import (
     H5CompressionFilter,
     attach_attributes,
