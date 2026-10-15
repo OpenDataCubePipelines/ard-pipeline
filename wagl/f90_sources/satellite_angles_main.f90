@@ -1,5 +1,5 @@
 ! subroutine angle
-SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,spheroid,orb_elements, &
+SUBROUTINE satellite_angle(nrow,ncol,row_offset,col_offset,alat,alon,spheroid,orb_elements, &
              ntpoints,smodel,track, &
              view,azi,tim,istat)
 
@@ -13,7 +13,6 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
 !   Inputs:
 !       nrow
 !       ncol
-!       nlines
 !       row_offset
 !       col_offset
 !       alat
@@ -64,7 +63,7 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
 
     implicit none
 
-    integer, intent(in) :: nrow, ncol, nlines, row_offset, col_offset
+    integer, intent(in) :: nrow, ncol, row_offset, col_offset
     double precision, dimension(nrow, ncol), intent(in) :: alat, alon
     double precision, dimension(4), intent(in) :: spheroid
     double precision, dimension(3), intent(in) :: orb_elements
@@ -82,7 +81,6 @@ SUBROUTINE satellite_angle(nrow,ncol,nlines,row_offset,col_offset,alat,alon,sphe
     integer i, j, istat_elem
 
 !f2py depend(nrow, ncol), alat, alon, view, azi, tim
-!f2py depend(nlines)
 !f2py depend(ntpoints), track
 
 !   Orbital inclination
