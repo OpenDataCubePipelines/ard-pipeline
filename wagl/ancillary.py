@@ -268,11 +268,13 @@ def collect_ancillary(
     ancil_group = fid.create_group(GroupName.ANCILLARY_GROUP.value)
     acquisition = container.get_highest_resolution()[0][0]
 
-    track_dset = read_h5_table(satellite_solar_group, f"PARAMETERS/{DatasetName.SATELLITE_TRACK.value}")
+    track_dset = read_h5_table(
+        satellite_solar_group, f"PARAMETERS/{DatasetName.SATELLITE_TRACK.value}"
+    )
     coordinator = create_vertices(
         acquisition,
         {col: track_dset[col].to_numpy() for col in track_dset.columns},
-        vertices=vertices
+        vertices=vertices,
     )
     lonlats = zip(coordinator["longitude"], coordinator["latitude"])
 

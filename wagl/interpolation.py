@@ -234,12 +234,7 @@ def scipy_interpolate(
 def gap_fill_iteratively(image):
     result = image.copy()
 
-    kernel = np.array([
-        [0, 1, 0],
-        [1, 0, 1],
-        [0, 1, 0]
-    ])
-
+    kernel = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
     gaps = np.isnan(result)
     gap_count = np.sum(gaps)
 
