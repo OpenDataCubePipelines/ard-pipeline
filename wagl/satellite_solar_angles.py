@@ -624,7 +624,6 @@ def solar_angle(nrow, ncol, alat, alon, hours, century, asol, soazi):
 def satellite_angle(
     nrow,
     ncol,
-    nlines,
     row_offset,
     col_offset,
     alat,
@@ -641,7 +640,6 @@ def satellite_angle(
     stat = satellite_angle_prim(
         nrow,
         ncol,
-        nlines,
         row_offset,
         col_offset,
         alat,
@@ -914,7 +912,6 @@ def calculate_angles(
         satellite_angle(
             dims[0],
             dims[1],
-            acquisition.lines,
             row_offset,
             col_offset,
             lat_data,
