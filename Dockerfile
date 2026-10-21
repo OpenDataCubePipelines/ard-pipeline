@@ -69,6 +69,8 @@ ENV LC_ALL="C.UTF-8" \
 RUN --mount=type=cache,target=/var/cache/dnf,id=dnfprod <<EOF
     set -eu
     dnf --quiet makecache --refresh
+    # Latest certificates
+    dnf --assumeyes --quiet upgrade ca-certificates
     dnf --assumeyes --quiet install \
         gcc-gfortran \
         git \

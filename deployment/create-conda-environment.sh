@@ -4,7 +4,8 @@ set -eux
 unset PIP_REQUIRE_VIRTUALENV
 
 clean_all=false
-pip_args=(--no-binary :all:)
+# pip >= 25.3 builds setup.py-only projects (python-fmask) in isolation, hiding our conda numpy.
+pip_args=(--no-binary :all: --no-build-isolation)
 
 location="conda"
 # If they provided a location argument, install there instead
