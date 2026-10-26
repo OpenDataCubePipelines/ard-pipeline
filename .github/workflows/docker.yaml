@@ -74,11 +74,7 @@ jobs:
         -   name: Load image
             run: docker load < ard-pipeline-image.tar
 
-        -   uses: docker/login-action@v3
-            with:
-                username: ${{ secrets.DOCKERHUB_USERNAME }}
-                password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
+        # Docker Hub publishing is retired (as on main, 9715de68): ECR only.
         -   uses: aws-actions/configure-aws-credentials@v4
             with:
                 role-to-assume: arn:aws:iam::538673716275:role/ard_pipeline_github-actions-role
@@ -90,14 +86,10 @@ jobs:
         -   name: Push Docker image
             run: |
                 TAG=$(cat git-tag.txt)
-                docker tag ard-pipeline:dev geoscienceaustralia/ard-pipeline:$TAG
                 docker tag ard-pipeline:dev  ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:$TAG
-                docker push geoscienceaustralia/ard-pipeline:$TAG
                 docker push ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:$TAG
                 # Only main moves the floating :dev tag. nrt-s2-* tag pushes publish just that tag.
                 if [[ "$GITHUB_REF" == refs/heads/main ]]; then
-                    docker tag ard-pipeline:dev geoscienceaustralia/ard-pipeline:dev
                     docker tag ard-pipeline:dev  ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:dev
-                    docker push geoscienceaustralia/ard-pipeline:dev
                     docker push ${{ steps.login-ecr.outputs.registry }}/geoscienceaustralia/ard-pipeline:dev
                 fi
