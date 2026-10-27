@@ -41,6 +41,10 @@ RUN --mount=type=cache,target=/opt/conda/pkgs,id=conda \
     --mount=type=cache,target=/root/.cache,id=pipconda \
     ./create-conda-environment.sh /opt/conda
 
+# Brotli CVE mitigation: without a Python brotli module, urllib3/requests stop
+# requesting and decoding `br` HTTP responses. Nothing in the pipeline seems to need it.
+RUN /opt/conda/bin/conda remove --force --yes brotli-python brotlipy
+
 # Use conda for the remaining commands
 SHELL ["/opt/conda/bin/conda", "run", "--no-capture-output", "/bin/sh", "-c"]
 
