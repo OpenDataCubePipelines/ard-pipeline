@@ -1,0 +1,6 @@
+@EXPLICIT
+https://conda.anaconda.org/conda-forge/linux-64/libbrotlicommon-1.2.1-h39a168f_0.conda#9460bdde20bcdf9e6bbef0232b14ad2d
+https://conda.anaconda.org/conda-forge/linux-64/libbrotlidec-1.2.1-ha411449_0.conda#6d934e235f4d452ebec720ec7c3638a6
+https://conda.anaconda.org/conda-forge/linux-64/libbrotlienc-1.2.1-h018ffa1_0.conda#8f3078564b4a4cd9602ebaafe78e0b87
+https://conda.anaconda.org/conda-forge/linux-64/brotli-bin-1.2.1-h9908984_0.conda#903eceb31743f0ce070abb9b9f879714
+https://conda.anaconda.org/conda-forge/linux-64/brotli-1.2.1-h505cf86_0.conda#65f1fc5f6a3a984a8a25641d0e60fc25
