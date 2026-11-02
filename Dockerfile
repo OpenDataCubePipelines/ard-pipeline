@@ -43,7 +43,15 @@ RUN --mount=type=cache,target=/opt/conda/pkgs,id=conda \
 
 # Brotli CVE mitigation: without a Python brotli module, urllib3/requests stop
 # requesting and decoding `br` HTTP responses. Nothing in the pipeline seems to need it.
-RUN /opt/conda/bin/conda remove --force --yes brotli-python brotlipy
+# libbrotli is bumped to 1.2.1 from exact URLs: a normal `conda install` hangs on this env,
+# and only imagecodecs/brunsli link it (stable .so.1 ABI), so nothing else needs rebuilding.
+# Same fix as de-platform's products/ard wrapper.
+COPY deployment/brotli-explicit.txt ./
+RUN --mount=type=cache,target=/opt/conda/pkgs,id=conda <<EOF
+    set -eu
+    /opt/conda/bin/conda remove --force --yes brotli-python brotlipy
+    /opt/conda/bin/conda install --yes --file brotli-explicit.txt
+EOF
 
 # Use conda for the remaining commands
 SHELL ["/opt/conda/bin/conda", "run", "--no-capture-output", "/bin/sh", "-c"]
