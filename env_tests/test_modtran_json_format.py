@@ -23,7 +23,7 @@ class JsonTest(unittest.TestCase):
 
     def test_midlat_summer_albedo(self):
         """Test the mid latitude summer albedo configuration."""
-        test = mpjson.midlat_summer_albedo(
+        test = mpjson.modtran_simple_profile(
             name="POINT-0-ALBEDO-0",
             water=1.85,
             ozone=0.025,
@@ -39,6 +39,7 @@ class JsonTest(unittest.TestCase):
             albedo=0.0,
             filter_function="landsat5_vsir.flt",
             binary=False,
+            atmospheric_model="ATM_MIDLAT_SUMMER",
         )
 
         d = json.dumps(test, cls=JsonEncoder, indent=4)
@@ -50,7 +51,7 @@ class JsonTest(unittest.TestCase):
 
     def test_tropical_albedo(self):
         """Test the tropical  albedo configuration."""
-        test = mpjson.tropical_albedo(
+        test = mpjson.modtran_simple_profile(
             name="POINT-0-ALBEDO-0",
             water=1.85,
             ozone=0.025,
@@ -66,6 +67,7 @@ class JsonTest(unittest.TestCase):
             albedo=0.0,
             filter_function="landsat5_vsir.flt",
             binary=False,
+            atmospheric_model="ATM_TROPICAL",
         )
 
         d = json.dumps(test, cls=JsonEncoder, indent=4)
