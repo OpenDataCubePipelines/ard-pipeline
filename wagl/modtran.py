@@ -83,16 +83,14 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir):
         shutil.copy(acq.spectral_filter_filepath, out_fname)
 
 
-def select_profile_australia(acquisition_datetime, centre_lat, input_data):
+def select_atmospheric_model_australia(acquisition_datetime, centre_lat):
     if centre_lat < -23.0:
-        data = mpjson.midlat_summer_albedo(**input_data)
+        return "ATM_MIDLAT_SUMMER"
     else:
-        data = mpjson.tropical_albedo(**input_data)
-
-    return data
+        return "ATM_TROPICAL"
 
 
-def select_profile_worldwide(acquisition_datetime, centre_lat, input_data):
+def select_atmospheric_model_worldwide(acquisition_datetime, centre_lat):
     april_september = (
         acquisition_datetime.month >= 4 and acquisition_datetime.month <= 9
     )
@@ -104,36 +102,33 @@ def select_profile_worldwide(acquisition_datetime, centre_lat, input_data):
     arc_south = centre_lat <= -45.0
 
     if tropical:
-        data = mpjson.tropical_albedo(**input_data)
+        return "ATM_TROPICAL"
 
-    elif mid_north:
+    if mid_north:
         if april_september:
-            data = mpjson.midlat_summer_albedo(**input_data)
+            return "ATM_MIDLAT_SUMMER"
         else:
-            data = mpjson.midlat_winter_albedo(**input_data)
+            return "ATM_MIDLAT_WINTER"
 
-    elif mid_south:
+    if mid_south:
         if april_september:
-            data = mpjson.midlat_winter_albedo(**input_data)
+            return "ATM_MIDLAT_WINTER"
         else:
-            data = mpjson.midlat_summer_albedo(**input_data)
+            return "ATM_MIDLAT_SUMMER"
 
-    elif arc_north:
+    if arc_north:
         if april_september:
-            data = mpjson.subarctic_summer_albedo(**input_data)
+            return "ATM_SUBARC_SUMMER"
         else:
-            data = mpjson.subarctic_winter_albedo(**input_data)
+            return "ATM_SUBARC_WINTER"
 
-    elif arc_south:
+    if arc_south:
         if april_september:
-            data = mpjson.subarctic_winter_albedo(**input_data)
+            return "ATM_SUBARC_WINTER"
         else:
-            data = mpjson.subarctic_summer_albedo(**input_data)
+            return "ATM_SUBARC_SUMMER"
 
-    else:
-        raise ValueError("modtran atmospheric profile selection failed")
-
-    return data
+    raise ValueError("modtran atmospheric profile selection failed")
 
 
 # TODO: this function breaks the single responsibility principle by performing
@@ -271,6 +266,9 @@ def format_json(
                         "prof_water": list(atmos_profile[RELATIVE_HUMIDITY]),
                         "geopotential_height": elevation,
                         "modtran_aerosol_model": modtran_aerosol_model,
+                        "atmospheric_model": select_atmospheric_model_worldwide(
+                            acquisitions[0].acquisition_datetime, centre_lat
+                        ),
                     }
 
                     input_data.update(era5_profile_ext)
@@ -281,10 +279,11 @@ def format_json(
                     input_data["albedo"] = float(alb.value)
                     input_data["water"] = water_vapour
                     input_data["binary"] = False
-
-                    data = select_profile_australia(
-                        acquisitions[0].acquisition_datetime, centre_lat, input_data
+                    input_data["atmospheric_model"] = select_atmospheric_model_australia(
+                        acquisitions[0].acquisition_datetime, centre_lat
                     )
+
+                    data = mpjson.modtran_simple_profile(**input_data)
 
                     # NB: drop `binary` to prevent value being serialised after
                     #  profile creation.
