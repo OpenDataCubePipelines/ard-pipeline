@@ -214,8 +214,8 @@ def format_json(
         out_group.create_group(GroupName.ATMOSPHERIC_INPUTS_GRP.value)
 
     group = out_group[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
-    iso_time = acquisitions[0].acquisition_datetime.isoformat()
-    group.attrs["acquisition-datetime"] = iso_time
+    acquisition_datetime = acquisitions[0].acquisition_datetime
+    group.attrs["acquisition-datetime"] = acquisition_datetime.isoformat()
 
     json_data = {}
     # setup the json files required by MODTRAN
@@ -266,8 +266,10 @@ def format_json(
                         "prof_water": list(atmos_profile[RELATIVE_HUMIDITY]),
                         "geopotential_height": elevation,
                         "modtran_aerosol_model": modtran_aerosol_model,
-                        "atmospheric_model": select_atmospheric_model_worldwide(
-                            acquisitions[0].acquisition_datetime, centre_lat
+                        "atmospheric_model": (
+                            select_atmospheric_model_worldwide(
+                                acquisition_datetime, centre_lat
+                            )
                         ),
                     }
 
@@ -279,8 +281,10 @@ def format_json(
                     input_data["albedo"] = float(alb.value)
                     input_data["water"] = water_vapour
                     input_data["binary"] = False
-                    input_data["atmospheric_model"] = select_atmospheric_model_australia(
-                        acquisitions[0].acquisition_datetime, centre_lat
+                    input_data["atmospheric_model"] = (
+                        select_atmospheric_model_australia(
+                            acquisition_datetime, centre_lat
+                        )
                     )
 
                     data = mpjson.modtran_simple_profile(**input_data)
