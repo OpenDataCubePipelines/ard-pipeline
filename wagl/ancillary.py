@@ -276,7 +276,7 @@ def collect_ancillary(
         {col: track_dset[col].to_numpy() for col in track_dset.columns},
         vertices=vertices,
     )
-    lonlats = zip(coordinator["longitude"], coordinator["latitude"])
+    lat_longs = tuple(zip(coordinator["latitude"], coordinator["longitude"]))
 
     desc = (
         "Contains the row and column array coordinates used for the "
