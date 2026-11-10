@@ -431,6 +431,7 @@ def build_profile_data_frame(
     profile_frame.index = profile_frame.index + 1  # shift index
     profile_frame = profile_frame.sort_index()
 
+    profile_frame = profile_frame.sort_values("GeoPotential_Height", ignore_index=True)
     clean_profile_frame = remove_inversions(profile_frame)
     return clean_profile_frame
 
@@ -466,6 +467,15 @@ def remove_inversions(profile_frame):
     :param profile_frame: Atmospheric profile data frame, see `build_profile_data_frame()`.
     """
     # TODO: does this need to filter on geopotential height too?
+    while not profile_frame["Pressure"].is_monotonic_decreasing:
+        pressure = profile_frame["Pressure"]
+        noninversions = (pressure.diff().isnull()) | (pressure.diff() < 0)
+        profile_frame = profile_frame[noninversions]
+
+    return profile_frame
+
+
+
     surface_pressure = profile_frame["Pressure"][0]
 
     # using <= keeps surface pressure row & flags higher pressure layers
