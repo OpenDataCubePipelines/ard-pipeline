@@ -36,6 +36,7 @@ from wagl.constants import (
     GroupName,
     OzoneTier,
     WaterVapourTier,
+    ERA5Tier,
 )
 from wagl.data import get_pixel, get_pixel_from_raster
 from wagl.dsm import copernicus_dem_image_for_latlon
@@ -350,7 +351,14 @@ def collect_era5_ancillary(
     ):
         pnt = POINT_FMT.format(p=n)
         data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
-        write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts, attrs={"source_paths": src_paths})
+        write_dataframe(
+            df,
+            data_name,
+            out_group,
+            compression,
+            filter_opts=filter_opts,
+            attrs={"source_paths": src_paths, "tier": ERA5Tier.DEFINITIVE.name},
+        )
 
     # read ERA ozone at all sampling coords
     # NB: there's point creation duplication. The alternative is using zip() to
@@ -360,7 +368,12 @@ def collect_era5_ancillary(
     ):
         pnt = POINT_FMT.format(p=n)
         data_name = ppjoin(pnt, DatasetName.OZONE.value)
-        write_scalar(ozone, data_name, out_group, attrs={"source_paths": [src_path]})
+        write_scalar(
+            ozone,
+            data_name,
+            out_group,
+            attrs={"source_paths": [src_path], "tier": OzoneTier.DEFINITIVE.name},
+        )
 
 
 def collect_merra2_ancillary(acquisition, lat_longs, merra2_dir_path, out_group):
@@ -389,7 +402,12 @@ def collect_merra2_ancillary(acquisition, lat_longs, merra2_dir_path, out_group)
     ):
         pnt = POINT_FMT.format(p=n)
         data_name = ppjoin(pnt, DatasetName.AEROSOL.value)
-        write_scalar(aerosol, data_name, out_group, attrs={"source_paths": [src_path]})
+        write_scalar(
+            aerosol,
+            data_name,
+            out_group,
+            attrs={"source_paths": [src_path], "tier": AerosolTier.MERRA2.name},
+        )
 
 
 def collect_default_aerosol(cfg_paths, out_group):
@@ -668,9 +686,11 @@ def find_needed_acquisition_ancillary(
         find_water_vapour_definitive_path(acquisition, config.water_vapour_dict),
         config.ozone_dict,
         dem_file_path,
-        config.brdf_dict["ocean_mask_path"]
-        if not offshore
-        else config.brdf_dict["extended_ocean_mask_path"],
+        (
+            config.brdf_dict["ocean_mask_path"]
+            if not offshore
+            else config.brdf_dict["extended_ocean_mask_path"]
+        ),
     ]
 
     tiers: Set[str] = set()

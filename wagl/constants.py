@@ -281,10 +281,20 @@ class AerosolTier(Enum):
     AATSR_CMP_YEAR_MONTH = 2  # composite for all data within a given month and year
     AATSR_PIX = 3  # value taken from date of acquisition
     USER = 4  # user specified
+    MERRA2 = 5
 
 
 class OzoneTier(Enum):
     """Defines the tier levels for the ozone data.
+    The higher the value, the higher the precedence.
+    """
+
+    DEFINITIVE = 0  # value taken from dataset
+    USER = 1  # user specified
+
+
+class ERA5Tier(Enum):
+    """Defines the tier levels for the ERA5 data.
     The higher the value, the higher the precedence.
     """
 

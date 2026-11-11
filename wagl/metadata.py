@@ -39,6 +39,8 @@ from wagl.constants import (
     RELATIVE_HUMIDITY,
     TEMPERATURE,
     WaterVapourTier,
+    OzoneTier,
+    AerosolTier,
 )
 from wagl.hdf5 import read_h5_table, read_scalar, write_scalar
 
@@ -390,7 +392,24 @@ def create_ard_yaml(
             for n in range(coordinator.shape[0]):
                 yield fid[POINT_FMT.format(p=n)][DatasetName.ATMOSPHERIC_PROFILE.value]
 
-        # TODO sources and tiers(?)
+        def common_attrs(groups):
+            def go(v):
+                if not isinstance(v, np.ndarray):
+                    return v
+                if len(v.shape) == 0:
+                    return v.item()
+                return v.tolist()
+
+            result = {}
+            for g in groups:
+                attrs = dict(g.attrs)
+                for key in (set(attrs) & {"source_paths", "tier"}):
+                    if key not in result:
+                        result[key] = go(attrs[key])
+                    else:
+                        assert go(result[key]) == go(attrs[key]), f"Attribute {key} differs between groups"
+            return result
+
         result = {
             "water_vapour": {
                 # TODO remove this after eodatasets3 is updated
@@ -400,20 +419,28 @@ def create_ard_yaml(
             "longitude": list(coordinator["longitude"]),
             "latitude": list(coordinator["latitude"]),
             "aerosol": {
-                "value": [p[DatasetName.AEROSOL.value][()] for p in point_data()]
+                "value": [p[DatasetName.AEROSOL.value][()] for p in point_data()],
+                **common_attrs([p[DatasetName.AEROSOL.value] for p in point_data()]),
             },
-            "ozone": {"value": [p[DatasetName.OZONE.value][()] for p in point_data()]},
+            "ozone": {
+                "value": [p[DatasetName.OZONE.value][()] for p in point_data()],
+                **common_attrs([p[DatasetName.OZONE.value] for p in point_data()]),
+            },
             "geopotential_height": {
-                "value": [list(p[...][GEOPOTENTIAL_HEIGHT]) for p in profile_data()]
+                "value": [list(p[...][GEOPOTENTIAL_HEIGHT]) for p in profile_data()],
+                **common_attrs(profile_data()),
             },
             "pressure": {
-                "value": [list(p[...][PRESSURE]) for p in profile_data()]
+                "value": [list(p[...][PRESSURE]) for p in profile_data()],
+                **common_attrs(profile_data()),
             },
             "temperature": {
-                "value": [list(p[...][TEMPERATURE]) for p in profile_data()]
+                "value": [list(p[...][TEMPERATURE]) for p in profile_data()],
+                **common_attrs(profile_data()),
             },
             "relative_humidity": {
-                "value": [list(p[...][RELATIVE_HUMIDITY]) for p in profile_data()]
+                "value": [list(p[...][RELATIVE_HUMIDITY]) for p in profile_data()],
+                **common_attrs(profile_data()),
             },
         }
 
