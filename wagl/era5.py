@@ -202,7 +202,7 @@ def profile_data_frame_workflow(
         frame = build_profile_data_frame(
             pressure_levels_values, single_level_values, ecwmf_levels
         )
-        yield frame
+        yield (frame, pressure_level_paths + single_level_paths)
 
 
 # TODO: could refactor into workflow function
@@ -535,7 +535,7 @@ def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
             )
             warnings.warn(msg)
 
-        yield ozone_atm_cm
+        yield (ozone_atm_cm, ozone_path)
 
 
 def read_ozone_data(

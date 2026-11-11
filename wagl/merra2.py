@@ -57,7 +57,7 @@ def aerosol_workflow(merra2_data_dir, acquisition_datetime, lat_longs):
 
     for lat_long in lat_longs:
         aerosol = get_closest_value(dataset, acquisition_datetime, lat_long)
-        yield aerosol
+        yield (aerosol, aerosol_path)
 
 
 # MERRA2 data has file names like:

@@ -343,24 +343,24 @@ def collect_era5_ancillary(
     acq_datetime = acquisition.acquisition_datetime
 
     # create atmospheric profile for each sampling location
-    for n, df in enumerate(
+    for n, (df, src_paths) in enumerate(
         era5.profile_data_frame_workflow(
             era5_dir_path, acq_datetime, lat_longs, ECWMF_LEVELS
         )
     ):
         pnt = POINT_FMT.format(p=n)
         data_name = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
-        write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts)
+        write_dataframe(df, data_name, out_group, compression, filter_opts=filter_opts, attrs={"source_paths": src_paths})
 
     # read ERA ozone at all sampling coords
     # NB: there's point creation duplication. The alternative is using zip() to
     #  jointly call the profile & ozone workflows, with tricky loop
-    for n, ozone in enumerate(
+    for n, (ozone, src_path) in enumerate(
         era5.ozone_workflow(era5_dir_path, acq_datetime, lat_longs)
     ):
         pnt = POINT_FMT.format(p=n)
         data_name = ppjoin(pnt, DatasetName.OZONE.value)
-        write_scalar(ozone, data_name, out_group)
+        write_scalar(ozone, data_name, out_group, attrs={"source_paths": [src_path]})
 
 
 def collect_merra2_ancillary(acquisition, lat_longs, merra2_dir_path, out_group):
@@ -384,12 +384,12 @@ def collect_merra2_ancillary(acquisition, lat_longs, merra2_dir_path, out_group)
     # NB: retrieve aerosol at each coord, improving default NBAR workflow which
     #  only sampled a single location. This breaks the NBAR workflow which only
     #  expects a single aerosol value in the H5 data.
-    for n, aerosol in enumerate(
+    for n, (aerosol, src_path) in enumerate(
         merra2.aerosol_workflow(merra2_dir_path, acq_datetime, lat_longs)
     ):
         pnt = POINT_FMT.format(p=n)
         data_name = ppjoin(pnt, DatasetName.AEROSOL.value)
-        write_scalar(aerosol, data_name, out_group)
+        write_scalar(aerosol, data_name, out_group, attrs={"source_paths": [src_path]})
 
 
 def collect_default_aerosol(cfg_paths, out_group):

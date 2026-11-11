@@ -273,25 +273,18 @@ def card4l(
             filter_opts,
         )
 
-        # TODO: packaging breaks in ERA5 mode as explicit water vapour handling
-        #  is removed (it's included in atmospheric profile code). Disable the
-        #  metadata step for "clean" exits until solution is developed
-        if era5_dir_path is None:
-            stash_metadata(
-                root,
-                container,
-                granule,
-                workflow,
-                vertices,
-                buffer_distance,
-                method,
-                rori,
-                normalized_solar_zenith,
-                offshore_territory_boundary_path,
-            )
-        else:
-            msg = "stash_metadata() is temporarily disabled for the ERA5 MVP"
-            warnings.warn(msg)
+        stash_metadata(
+            root,
+            container,
+            granule,
+            workflow,
+            vertices,
+            buffer_distance,
+            method,
+            rori,
+            normalized_solar_zenith,
+            offshore_territory_boundary_path,
+        )
 
 
 def stash_oa_bands(
