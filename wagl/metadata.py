@@ -34,6 +34,11 @@ from wagl.constants import (
     DatasetName,
     GroupName,
     Workflow,
+    GEOPOTENTIAL_HEIGHT,
+    PRESSURE,
+    RELATIVE_HUMIDITY,
+    TEMPERATURE,
+    WaterVapourTier,
 )
 from wagl.hdf5 import read_h5_table, read_scalar, write_scalar
 
@@ -371,6 +376,66 @@ def create_ard_yaml(
 
         return result
 
+    def ecmwf_ancillary(fid):
+        # TODO record metadata when retrieving ECMWF ancillary data
+        # TODO is geopotential height the same source as elevation?
+
+        coordinator = fid[DatasetName.COORDINATOR.value]
+
+        def point_data():
+            for n in range(coordinator.shape[0]):
+                yield fid[POINT_FMT.format(p=n)]
+
+        def profile_data():
+            for n in range(coordinator.shape[0]):
+                yield fid[POINT_FMT.format(p=n)][DatasetName.ATMOSPHERIC_PROFILE.value]
+
+        # TODO sources and tiers(?)
+        result = {
+            "water_vapour": {
+                # TODO remove this after eodatasets3 is updated
+                # this is really so that dataset maturity calculation does not break
+                "tier": WaterVapourTier.DEFINITIVE.name,
+            },
+            "longitude": list(coordinator["longitude"]),
+            "latitude": list(coordinator["latitude"]),
+            "aerosol": {
+                "value": [p[DatasetName.AEROSOL.value][()] for p in point_data()]
+            },
+            "ozone": {"value": [p[DatasetName.OZONE.value][()] for p in point_data()]},
+            "geopotential_height": {
+                "value": [list(p[...][GEOPOTENTIAL_HEIGHT]) for p in profile_data()]
+            },
+            "pressure": {
+                "value": [list(p[...][PRESSURE]) for p in profile_data()]
+            },
+            "temperature": {
+                "value": [list(p[...][TEMPERATURE]) for p in profile_data()]
+            },
+            "relative_humidity": {
+                "value": [list(p[...][RELATIVE_HUMIDITY]) for p in profile_data()]
+            },
+        }
+
+        result["brdf"] = {}
+        for grp_name in res_group_bands:
+            grp_ancillary = load_nbar_ancillary(res_group_bands[grp_name], fid)
+            if result["brdf"] == {}:
+                result["brdf"] = grp_ancillary
+            else:
+                brdf = result["brdf"]
+                brdf["id"] = list(set(brdf["id"]) | set(grp_ancillary["id"]))
+                brdf["tier"] = BrdfTier(
+                    min(
+                        BrdfTier[brdf["tier"]].value,
+                        BrdfTier[grp_ancillary["tier"]].value,
+                    )
+                ).name
+                brdf["alpha_1"].update(grp_ancillary["alpha_1"])
+                brdf["alpha_2"].update(grp_ancillary["alpha_2"])
+
+        return result
+
     def software_versions():
         dist = distribution("ard-pipeline")
         return {
@@ -402,7 +467,7 @@ def create_ard_yaml(
     metadata = {
         "system_information": get_system_information(),
         "source_datasets": source_info(),
-        "ancillary": ancillary(ancillary_group),
+        "ancillary": ecmwf_ancillary(ancillary_group),
         "algorithm_information": algorithm(),
         "software_versions": software_versions(),
         "id": str(uuid.uuid4()),
@@ -410,8 +475,8 @@ def create_ard_yaml(
     }
 
     offshore = is_offshore_territory(acquisition, offshore_territory_boundary_path)
-    if offshore:
-        metadata["final_ancillaries"] = "nonstandard"
+    # if offshore:
+    #     metadata["final_ancillaries"] = "nonstandard"
 
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)
