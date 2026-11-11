@@ -475,14 +475,6 @@ def remove_inversions(profile_frame):
     return profile_frame
 
 
-
-    surface_pressure = profile_frame["Pressure"][0]
-
-    # using <= keeps surface pressure row & flags higher pressure layers
-    inversions = profile_frame["Pressure"] <= surface_pressure
-    return profile_frame[inversions]
-
-
 # TODO: is a user ozone override required?
 def ozone_workflow(era5_data_dir, acquisition_datetime, lat_longs):
     """
