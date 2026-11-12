@@ -467,6 +467,7 @@ def stash_ancillary(
         paths = {
             "aerosol": aerosol,  # TODO: handle MERRA2 aerosol
             "brdf_dict": brdf,
+            "cop_pathname": cop_pathname,
         }
     else:
         # NBAR paths

@@ -444,6 +444,9 @@ def create_ard_yaml(
             },
         }
 
+        elevation_data = elevation_provenance(fid)
+        result["elevation"] = elevation_data
+
         result["brdf"] = {}
         for grp_name in res_group_bands:
             grp_ancillary = load_nbar_ancillary(res_group_bands[grp_name], fid)

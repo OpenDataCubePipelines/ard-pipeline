@@ -281,6 +281,11 @@ def collect_ancillary(
         )
 
         collect_brdf_ancillary(container, cfg_paths["brdf_dict"], ancil_group)
+
+        geobox = acquisition.gridded_geo_box()
+        elev = get_elevation_data(geobox.centre_lonlat, cfg_paths["cop_pathname"], offshore=True)
+        write_scalar(elev[0], DatasetName.ELEVATION.value, ancil_group, elev[1])
+
     else:
         is_offshore = is_offshore_territory(
             acquisition, offshore_territory_boundary_path
